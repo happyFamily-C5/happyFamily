@@ -27,6 +27,7 @@ xcuserdata/
 # Environment & Secret Files
 .env
 .env.*
+!.env.example
 *.secret
 *.secrets
 secrets.xcconfig
