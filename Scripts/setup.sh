@@ -8,4 +8,4 @@ brew list swiftlint >/dev/null 2>&1 || brew install swiftlint
 brew list swiftformat >/dev/null 2>&1 || brew install swiftformat
 bundle install
 xcodegen generate
-echo "Setup complete."
+echo "Setup complete. Happy Coding !"
