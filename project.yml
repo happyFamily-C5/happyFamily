@@ -1,0 +1,63 @@
+name: happyFamily
+
+options:
+  bundleIdPrefix: com.academy.hendraaaa
+  deploymentTarget:
+    iOS: "17.0"
+
+configs:
+  Debug: debug
+  Staging: release
+  Release: release
+
+configFiles:
+  Debug: Config/Debug.xcconfig
+  Staging: Config/Staging.xcconfig
+  Release: Config/Release.xcconfig
+
+targets:
+  happyFamily:
+    type: application
+    platform: iOS
+    configFiles:
+      Debug: Config/Debug.xcconfig
+      Staging: Config/Staging.xcconfig
+      Release: Config/Release.xcconfig
+    sources:
+      - App
+      - Features
+      - Core
+      - DesignSystem
+    resources:
+      - Resources
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+    scheme:
+      testTargets:
+        - happyFamilyTests
+        - happyFamilyUITests
+
+  happyFamilyTests:
+    type: bundle.unit-test
+    platform: iOS
+    configFiles:
+      Debug: Config/Debug.xcconfig
+      Staging: Config/Staging.xcconfig
+      Release: Config/Release.xcconfig
+    sources:
+      - Tests
+    dependencies:
+      - target: happyFamily
+
+  happyFamilyUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    configFiles:
+      Debug: Config/Debug.xcconfig
+      Staging: Config/Staging.xcconfig
+      Release: Config/Release.xcconfig
+    sources:
+      - UITests
+    dependencies:
+      - target: happyFamily

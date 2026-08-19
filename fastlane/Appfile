@@ -1,0 +1,17 @@
+app_identifier(ENV["APP_IDENTIFIER"] || "com.academy.hendraaaa.happyFamily")
+apple_id("neuhendra@gmail.com")
+
+itc_team_id("128825924")
+team_id("K39QVFTK2A")
+
+for_lane :beta do
+  app_identifier("com.academy.hendraaaa.happyFamily")
+end
+
+for_lane :staging do
+  app_identifier("com.academy.hendraaaa.happyFamily.staging")
+end
+
+for_lane :debug do
+  app_identifier("com.academy.hendraaaa.happyFamily.debug")
+end

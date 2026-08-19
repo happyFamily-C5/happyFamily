@@ -1,0 +1,23 @@
+//
+// Debug.xcconfig
+// Configuration settings for Debug builds
+//
+
+#include "Base.xcconfig"
+
+// App & Bundle Info (Debug overrides)
+APP_DISPLAY_NAME = happyFamily (Debug)
+PRODUCT_BUNDLE_IDENTIFIER = $(BUNDLE_ID_PREFIX).happyFamily.debug
+
+// Compilation & Optimization
+SWIFT_OPTIMIZATION_LEVEL = -Onone
+SWIFT_COMPILATION_MODE = singlefile
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG $(inherited)
+GCC_OPTIMIZATION_LEVEL = 0
+GCC_PREPROCESSOR_DEFINITIONS = DEBUG=1 $(inherited)
+
+// Debugging & Testing
+ENABLE_TESTABILITY = YES
+ONLY_ACTIVE_ARCH = YES
+DEBUG_INFORMATION_FORMAT = dwarf
+MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE

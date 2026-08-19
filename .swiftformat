@@ -1,0 +1,25 @@
+# SwiftFormat Configuration
+
+# Swift version
+--swiftversion 5.10
+
+# Rules & formatting
+--indent 4
+--indentcase false
+--trimwhitespace always
+--allman false
+--semicolons never
+--linebreaks lf
+--maxwidth 140
+--stripunusedargs closure-only
+
+# Wrap options
+--wraparguments before-first
+--wrapcollections before-first
+
+# Exclusions
+--exclude Pods,Carthage,DerivedData,build,.build,Config,Scripts
+
+# Disabled rules for SwiftUI compatibility
+--disable redundantSelf
+--disable trailingClosures

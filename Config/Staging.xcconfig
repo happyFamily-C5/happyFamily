@@ -1,0 +1,24 @@
+//
+// Staging.xcconfig
+// Configuration settings for Staging / UAT builds
+//
+
+#include "Base.xcconfig"
+
+// App & Bundle Info (Staging overrides)
+APP_DISPLAY_NAME = happyFamily (Staging)
+PRODUCT_BUNDLE_IDENTIFIER = $(BUNDLE_ID_PREFIX).happyFamily.staging
+
+// Compilation & Optimization
+SWIFT_OPTIMIZATION_LEVEL = -O
+SWIFT_COMPILATION_MODE = wholemodule
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = STAGING $(inherited)
+GCC_OPTIMIZATION_LEVEL = s
+GCC_PREPROCESSOR_DEFINITIONS = STAGING=1 $(inherited)
+
+// Code Generation & Debug Info
+ENABLE_TESTABILITY = YES
+ONLY_ACTIVE_ARCH = NO
+DEBUG_INFORMATION_FORMAT = dwarf-with-dsym
+MTL_ENABLE_DEBUG_INFO = NO
+VALIDATE_PRODUCT = YES

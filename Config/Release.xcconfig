@@ -1,0 +1,23 @@
+//
+// Release.xcconfig
+// Configuration settings for Release builds
+//
+
+#include "Base.xcconfig"
+
+// App & Bundle Info (Release overrides)
+APP_DISPLAY_NAME = happyFamily
+PRODUCT_BUNDLE_IDENTIFIER = $(BUNDLE_ID_PREFIX).happyFamily
+
+// Compilation & Optimization
+SWIFT_OPTIMIZATION_LEVEL = -O
+SWIFT_COMPILATION_MODE = wholemodule
+GCC_OPTIMIZATION_LEVEL = s
+ENABLE_NS_ASSERTIONS = NO
+
+// Code Generation & Debug Info
+ENABLE_TESTABILITY = NO
+ONLY_ACTIVE_ARCH = NO
+DEBUG_INFORMATION_FORMAT = dwarf-with-dsym
+MTL_ENABLE_DEBUG_INFO = NO
+VALIDATE_PRODUCT = YES

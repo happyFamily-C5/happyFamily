@@ -1,0 +1,89 @@
+name: Deploy to TestFlight
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      lane:
+        description: 'Fastlane lane to run'
+        required: true
+        default: 'beta'
+        type: choice
+        options:
+          - beta
+          - staging_beta
+      build_number:
+        description: 'Custom Build Number (optional)'
+        required: false
+        type: string
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build & Deploy to TestFlight
+    runs-on: macos-14
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Ruby and Bundler
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+
+      - name: Install XcodeGen
+        run: |
+          if ! command -v xcodegen &> /dev/null; then
+            brew install xcodegen
+          fi
+
+      - name: Setup App Store Connect API Key
+        env:
+          ASC_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY }}
+          ASC_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID || 'VQHBTPG3DZ' }}
+        run: |
+          if [ -n "$ASC_KEY_BASE64" ]; then
+            echo "$ASC_KEY_BASE64" | base64 --decode > "AuthKey_${KEY_ID}.p8"
+          elif [ -n "$ASC_KEY_CONTENT" ]; then
+            echo "$ASC_KEY_CONTENT" > "AuthKey_${KEY_ID}.p8"
+          fi
+
+      - name: Run Code Quality Checks
+        run: |
+          bundle exec fastlane lint
+
+      - name: Deploy to TestFlight
+        env:
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID || 'VQHBTPG3DZ' }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY }}
+          APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          PROVISIONING_PROFILE_BASE64: ${{ secrets.PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          LANE="${{ github.event.inputs.lane || 'beta' }}"
+          BUILD_NUM="${{ github.event.inputs.build_number || github.run_number }}"
+          bundle exec fastlane $LANE build_number:"$BUILD_NUM"
+
+      - name: Upload Build Artifacts on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fastlane-logs
+          path: |
+            ~/Library/Logs/gym/*.log
+            ~/Library/Logs/fastlane/
+          retention-days: 7

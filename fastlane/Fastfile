@@ -1,0 +1,183 @@
+# Fastfile configuration for happyFamily iOS Project
+# Architecture: XcodeGen + SwiftUI + Multiple Configs (Debug, Staging, Release)
+
+default_platform(:ios)
+
+platform :ios do
+
+  # ----------------------------------------------------------------------
+  # Helpers
+  # ----------------------------------------------------------------------
+  def load_api_key
+    key_file = File.expand_path("../AuthKey_VQHBTPG3DZ.p8", __dir__)
+    
+    if File.exist?(key_file) || ENV["APP_STORE_CONNECT_API_KEY_KEY"]
+      app_store_connect_api_key(
+        key_id: ENV["APP_STORE_CONNECT_KEY_ID"] || "VQHBTPG3DZ",
+        issuer_id: ENV["APP_STORE_CONNECT_ISSUER_ID"] || "",
+        key_filepath: File.exist?(key_file) ? key_file : nil,
+        key_content: ENV["APP_STORE_CONNECT_API_KEY_KEY"],
+        is_key_content_base64: false,
+        in_house: false
+      )
+    end
+  end
+
+  # ----------------------------------------------------------------------
+  # Hooks
+  # ----------------------------------------------------------------------
+  before_all do
+    # Ensure the Xcode project is generated and up to date from project.yml
+    sh("cd .. && xcodegen generate")
+  end
+
+  # ----------------------------------------------------------------------
+  # Code Quality & Formatting Lanes
+  # ----------------------------------------------------------------------
+  desc "Run SwiftFormat and SwiftLint checks"
+  lane :lint do
+    sh("cd .. && swiftformat --lint .")
+    swiftlint(
+      mode: :lint,
+      strict: false,
+      config_file: ".swiftlint.yml"
+    )
+  end
+
+  desc "Automatically format and autocorrect code with SwiftFormat and SwiftLint"
+  lane :format do
+    sh("cd .. && swiftformat .")
+    swiftlint(
+      mode: :autocorrect,
+      config_file: ".swiftlint.yml"
+    )
+  end
+
+  # ----------------------------------------------------------------------
+  # Testing Lane
+  # ----------------------------------------------------------------------
+  desc "Run Unit and UI tests"
+  lane :test do
+    run_tests(
+      project: "happyFamily.xcodeproj",
+      scheme: "happyFamily",
+      devices: ["iPhone 16"],
+      clean: true
+    )
+  end
+
+  # ----------------------------------------------------------------------
+  # Build Lanes (Local / CI)
+  # ----------------------------------------------------------------------
+  desc "Build Debug app for simulator"
+  lane :build_debug do
+    build_app(
+      project: "happyFamily.xcodeproj",
+      scheme: "happyFamily",
+      configuration: "Debug",
+      destination: "generic/platform=iOS Simulator",
+      skip_package_ipa: true,
+      skip_codesigning: true
+    )
+  end
+
+  desc "Build Staging archive (.ipa)"
+  lane :build_staging do
+    build_app(
+      project: "happyFamily.xcodeproj",
+      scheme: "happyFamily",
+      configuration: "Staging",
+      export_method: "ad-hoc",
+      clean: true,
+      output_directory: "./build/Staging"
+    )
+  end
+
+  desc "Build Release archive (.ipa) for App Store / TestFlight"
+  lane :build_release do
+    build_app(
+      project: "happyFamily.xcodeproj",
+      scheme: "happyFamily",
+      configuration: "Release",
+      export_method: "app-store",
+      clean: true,
+      output_directory: "./build/Release"
+    )
+  end
+
+  # ----------------------------------------------------------------------
+  # Distribution & Deployment Lanes
+  # ----------------------------------------------------------------------
+  desc "Build and upload Beta build to TestFlight"
+  lane :beta do |options|
+    api_key = load_api_key
+
+    # Optional build number increment if needed
+    if options[:build_number]
+      increment_build_number(
+        build_number: options[:build_number],
+        xcodeproj: "happyFamily.xcodeproj"
+      )
+    end
+
+    # Build the app using Release configuration
+    build_app(
+      project: "happyFamily.xcodeproj",
+      scheme: "happyFamily",
+      configuration: "Release",
+      export_method: "app-store",
+      clean: true,
+      output_directory: "./build/Beta"
+    )
+
+    # Upload to TestFlight
+    upload_to_testflight(
+      api_key: api_key,
+      skip_waiting_for_build_processing: true,
+      distribute_external: options[:distribute_external] || false,
+      notify_external_testers: false
+    )
+  end
+
+  desc "Build and upload Staging build to TestFlight"
+  lane :staging_beta do |options|
+    api_key = load_api_key
+
+    build_app(
+      project: "happyFamily.xcodeproj",
+      scheme: "happyFamily",
+      configuration: "Staging",
+      export_method: "app-store",
+      clean: true,
+      output_directory: "./build/Staging-Beta"
+    )
+
+    upload_to_testflight(
+      api_key: api_key,
+      skip_waiting_for_build_processing: true,
+      distribute_external: false
+    )
+  end
+
+  desc "Build and deploy a new version to the App Store"
+  lane :release do |options|
+    api_key = load_api_key
+
+    build_app(
+      project: "happyFamily.xcodeproj",
+      scheme: "happyFamily",
+      configuration: "Release",
+      export_method: "app-store",
+      clean: true,
+      output_directory: "./build/AppStore"
+    )
+
+    upload_to_app_store(
+      api_key: api_key,
+      force: true,
+      skip_screenshots: true,
+      skip_metadata: false
+    )
+  end
+
+end

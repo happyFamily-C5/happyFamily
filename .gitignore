@@ -1,0 +1,57 @@
+# Xcode User Data & Build Artifacts
+build/
+DerivedData/
+*.xcarchive
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcworkspace/xcuserdata/
+xcuserdata/
+*.xcuserdatad
+
+# Generated Xcode Project (XcodeGen)
+*.xcodeproj
+*.xcworkspace
+
+# Certificates, Keys & Provisioning Profiles
+*.p8
+*.p12
+*.cer
+*.crt
+*.der
+*.pem
+*.key
+*.keystore
+*.mobileprovision
+*.provisionprofile
+
+# Environment & Secret Files
+.env
+.env.*
+*.secret
+*.secrets
+secrets.xcconfig
+Secrets.xcconfig
+*.private.xcconfig
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# CocoaPods & Carthage
+Pods/
+Podfile.lock
+Carthage/Build/
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# macOS System Files
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
