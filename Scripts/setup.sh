@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-set -e
-
-echo "Setting up happyFamily project..."
-brew install xcodegen swiftlint swiftformat 2>/dev/null || true
+set -euo pipefail
+command -v brew >/dev/null || { echo "Install Homebrew first"; exit 1; }
+brew list xcodegen >/dev/null 2>&1 || brew install xcodegen
+brew list swiftlint >/dev/null 2>&1 || brew install swiftlint
+brew list swiftformat >/dev/null 2>&1 || brew install swiftformat
 bundle install
 xcodegen generate
-echo "Setup complete! Open happyFamily.xcodeproj to start development."
+echo "Setup complete."
