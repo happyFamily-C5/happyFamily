@@ -56,3 +56,10 @@ fastlane/test_output
 ._*
 .Spotlight-V100
 .Trashes
+
+# Bundler local install
+.bundle/
+vendor/bundle/
+
+# Claude Code
+CLAUDE.md
