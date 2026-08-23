@@ -49,6 +49,9 @@ fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
 
+# Agent tooling
+.serena/
+
 # macOS System Files
 .DS_Store
 .AppleDouble
