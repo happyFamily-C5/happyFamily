@@ -15,6 +15,11 @@ configFiles:
   Staging: Config/Staging.xcconfig
   Release: Config/Release.xcconfig
 
+settings:
+  base:
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: K39QVFTK2A
+
 targets:
   happyFamily:
     type: application
@@ -30,13 +35,65 @@ targets:
       - DesignSystem
     resources:
       - Resources
+    entitlements:
+      path: App/happyFamily.entitlements
+      properties:
+        com.apple.developer.associated-appclip-app-identifiers:
+          - $(AppIdentifierPrefix)$(APP_CLIP_BUNDLE_IDENTIFIER)
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
+      configs:
+        Debug:
+          APP_CLIP_BUNDLE_IDENTIFIER: $(BUNDLE_ID_PREFIX).happyFamily.debug.Clip
+        Staging:
+          APP_CLIP_BUNDLE_IDENTIFIER: $(BUNDLE_ID_PREFIX).happyFamily.staging.Clip
+        Release:
+          APP_CLIP_BUNDLE_IDENTIFIER: $(BUNDLE_ID_PREFIX).happyFamily.Clip
+    dependencies:
+      - target: HappyFamilyAppClips
     scheme:
       testTargets:
         - happyFamilyTests
         - happyFamilyUITests
+
+  HappyFamilyAppClips:
+    type: application.on-demand-install-capable
+    platform: iOS
+    configFiles:
+      Debug: Config/Debug.xcconfig
+      Staging: Config/Staging.xcconfig
+      Release: Config/Release.xcconfig
+    sources:
+      - HappyFamilyAppClips
+    info:
+      path: HappyFamilyAppClips/Info.plist
+      properties:
+        NSAppClip:
+          NSAppClipRequestEphemeralUserNotification: false
+          NSAppClipRequestLocationConfirmation: false
+    entitlements:
+      path: HappyFamilyAppClips/HappyFamilyAppClips.entitlements
+      properties:
+        com.apple.developer.on-demand-install-capable: true
+        com.apple.developer.parent-application-identifiers:
+          - $(AppIdentifierPrefix)$(PARENT_APPLICATION_IDENTIFIER)
+    settings:
+      base:
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: happyFamily
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: $(inherited) APPCLIP
+      configs:
+        Debug:
+          PARENT_APPLICATION_IDENTIFIER: $(BUNDLE_ID_PREFIX).happyFamily.debug
+          PRODUCT_BUNDLE_IDENTIFIER: $(BUNDLE_ID_PREFIX).happyFamily.debug.Clip
+        Staging:
+          PARENT_APPLICATION_IDENTIFIER: $(BUNDLE_ID_PREFIX).happyFamily.staging
+          PRODUCT_BUNDLE_IDENTIFIER: $(BUNDLE_ID_PREFIX).happyFamily.staging.Clip
+        Release:
+          PARENT_APPLICATION_IDENTIFIER: $(BUNDLE_ID_PREFIX).happyFamily
+          PRODUCT_BUNDLE_IDENTIFIER: $(BUNDLE_ID_PREFIX).happyFamily.Clip
 
   happyFamilyTests:
     type: bundle.unit-test
@@ -61,3 +118,13 @@ targets:
       - UITests
     dependencies:
       - target: happyFamily
+
+schemes:
+  HappyFamilyAppClips:
+    build:
+      targets:
+        HappyFamilyAppClips: all
+    run:
+      config: Debug
+      environmentVariables:
+        _XCAppClipURL: https://example.com/happy-family
