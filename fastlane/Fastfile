@@ -1,6 +1,8 @@
 # Fastfile configuration for happyFamily iOS Project
 # Architecture: XcodeGen + SwiftUI + Multiple Configs (Debug, Staging, Release)
 
+require "shellwords"
+
 default_platform(:ios)
 
 platform :ios do
@@ -13,6 +15,7 @@ platform :ios do
     key_file = ENV["APP_STORE_CONNECT_API_KEY_PATH"] || File.expand_path("../AuthKey_#{key_id}.p8", __dir__)
 
     UI.user_error!("App Store Connect API key file was not found at #{key_file}") unless File.file?(key_file)
+    ENV["APP_STORE_CONNECT_API_KEY_PATH"] = key_file
 
     app_store_connect_api_key(
       key_id: key_id,
@@ -20,6 +23,21 @@ platform :ios do
       key_filepath: key_file,
       in_house: false
     )
+  end
+
+  def automatic_signing_xcargs
+    key_file = ENV["APP_STORE_CONNECT_API_KEY_PATH"]
+    key_id = ENV["APP_STORE_CONNECT_KEY_ID"]
+    issuer_id = ENV["APP_STORE_CONNECT_ISSUER_ID"]
+
+    UI.user_error!("App Store Connect signing credentials are incomplete") if [key_file, key_id, issuer_id].any? { |value| value.to_s.empty? }
+
+    [
+      "-allowProvisioningUpdates",
+      "-authenticationKeyPath #{Shellwords.escape(key_file)}",
+      "-authenticationKeyID #{Shellwords.escape(key_id)}",
+      "-authenticationKeyIssuerID #{Shellwords.escape(issuer_id)}"
+    ].join(" ")
   end
 
   # ----------------------------------------------------------------------
@@ -111,6 +129,8 @@ platform :ios do
   lane :beta do |options|
     api_key = load_api_key
     build_number = options[:build_number]
+    signing_xcargs = automatic_signing_xcargs
+    archive_xcargs = [build_number ? "CURRENT_PROJECT_VERSION=#{build_number}" : nil, signing_xcargs].compact.join(" ")
 
     # Build the app using Release configuration
     build_app(
@@ -120,7 +140,8 @@ platform :ios do
       export_method: "app-store",
       clean: true,
       output_directory: "./build/Beta",
-      xcargs: build_number ? "CURRENT_PROJECT_VERSION=#{build_number}" : nil
+      xcargs: archive_xcargs,
+      export_xcargs: signing_xcargs
     )
 
     # Upload to TestFlight
@@ -136,6 +157,8 @@ platform :ios do
   lane :staging_beta do |options|
     api_key = load_api_key
     build_number = options[:build_number]
+    signing_xcargs = automatic_signing_xcargs
+    archive_xcargs = [build_number ? "CURRENT_PROJECT_VERSION=#{build_number}" : nil, signing_xcargs].compact.join(" ")
 
     build_app(
       project: "happyFamily.xcodeproj",
@@ -144,7 +167,8 @@ platform :ios do
       export_method: "app-store",
       clean: true,
       output_directory: "./build/Staging-Beta",
-      xcargs: build_number ? "CURRENT_PROJECT_VERSION=#{build_number}" : nil
+      xcargs: archive_xcargs,
+      export_xcargs: signing_xcargs
     )
 
     upload_to_testflight(
