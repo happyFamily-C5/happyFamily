@@ -17,8 +17,10 @@ configFiles:
 
 settings:
   base:
+    ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: NO
     CODE_SIGN_STYLE: Automatic
     DEVELOPMENT_TEAM: K39QVFTK2A
+    STRING_CATALOG_GENERATE_SYMBOLS: YES
 
 targets:
   happyFamily:
@@ -62,6 +64,7 @@ targets:
       Release: Config/Release.xcconfig
     sources:
       - HappyFamilyAppClips
+      - DesignSystem/Colors/AppColor.swift
     info:
       path: HappyFamilyAppClips/Info.plist
       properties:
