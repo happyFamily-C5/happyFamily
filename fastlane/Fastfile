@@ -110,14 +110,7 @@ platform :ios do
   desc "Build and upload Beta build to TestFlight"
   lane :beta do |options|
     api_key = load_api_key
-
-    # Optional build number increment if needed
-    if options[:build_number]
-      increment_build_number(
-        build_number: options[:build_number],
-        xcodeproj: "happyFamily.xcodeproj"
-      )
-    end
+    build_number = options[:build_number]
 
     # Build the app using Release configuration
     build_app(
@@ -126,7 +119,8 @@ platform :ios do
       configuration: "Release",
       export_method: "app-store",
       clean: true,
-      output_directory: "./build/Beta"
+      output_directory: "./build/Beta",
+      xcargs: build_number ? "CURRENT_PROJECT_VERSION=#{build_number}" : nil
     )
 
     # Upload to TestFlight
@@ -141,6 +135,7 @@ platform :ios do
   desc "Build and upload Staging build to TestFlight"
   lane :staging_beta do |options|
     api_key = load_api_key
+    build_number = options[:build_number]
 
     build_app(
       project: "happyFamily.xcodeproj",
@@ -148,7 +143,8 @@ platform :ios do
       configuration: "Staging",
       export_method: "app-store",
       clean: true,
-      output_directory: "./build/Staging-Beta"
+      output_directory: "./build/Staging-Beta",
+      xcargs: build_number ? "CURRENT_PROJECT_VERSION=#{build_number}" : nil
     )
 
     upload_to_testflight(
