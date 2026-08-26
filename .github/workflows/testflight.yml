@@ -28,7 +28,7 @@ concurrency:
 jobs:
   deploy:
     name: Build & Deploy to TestFlight
-    runs-on: macos-14
+    runs-on: macos-26
     timeout-minutes: 45
 
     steps:
@@ -37,16 +37,27 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Verify Xcode toolchain
+        run: |
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+
       - name: Setup Ruby and Bundler
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.3'
           bundler-cache: true
 
-      - name: Install XcodeGen
+      - name: Install code quality tools
         run: |
           if ! command -v xcodegen &> /dev/null; then
             brew install xcodegen
+          fi
+          if ! command -v swiftformat &> /dev/null; then
+            brew install swiftformat
+          fi
+          if ! command -v swiftlint &> /dev/null; then
+            brew install swiftlint
           fi
 
       - name: Setup App Store Connect API Key
@@ -55,11 +66,27 @@ jobs:
           ASC_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID || 'VQHBTPG3DZ' }}
         run: |
+          set -euo pipefail
+          KEY_PATH="${RUNNER_TEMP}/AuthKey_${KEY_ID}.p8"
+
           if [ -n "$ASC_KEY_BASE64" ]; then
-            echo "$ASC_KEY_BASE64" | base64 --decode > "AuthKey_${KEY_ID}.p8"
+            printf '%s' "$ASC_KEY_BASE64" | base64 --decode > "$KEY_PATH"
+          elif [[ "$ASC_KEY_CONTENT" == *"BEGIN PRIVATE KEY"* ]]; then
+            printf '%s' "$ASC_KEY_CONTENT" > "$KEY_PATH"
           elif [ -n "$ASC_KEY_CONTENT" ]; then
-            echo "$ASC_KEY_CONTENT" > "AuthKey_${KEY_ID}.p8"
+            printf '%s' "$ASC_KEY_CONTENT" | base64 --decode > "$KEY_PATH"
+          else
+            echo "::error::App Store Connect API key secret is missing"
+            exit 1
           fi
+
+          chmod 600 "$KEY_PATH"
+          if ! openssl pkey -in "$KEY_PATH" -noout > /dev/null 2>&1; then
+            echo "::error::App Store Connect API key is not a valid .p8 private key"
+            exit 1
+          fi
+
+          echo "APP_STORE_CONNECT_API_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
 
       - name: Run Code Quality Checks
         run: |
@@ -69,7 +96,6 @@ jobs:
         env:
           APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID || 'VQHBTPG3DZ' }}
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          APP_STORE_CONNECT_API_KEY_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY_KEY }}
           APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           PROVISIONING_PROFILE_BASE64: ${{ secrets.PROVISIONING_PROFILE_BASE64 }}

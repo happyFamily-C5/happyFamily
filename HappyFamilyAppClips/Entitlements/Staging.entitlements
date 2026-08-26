@@ -6,7 +6,7 @@
 	<true/>
 	<key>com.apple.developer.parent-application-identifiers</key>
 	<array>
-		<string>$(AppIdentifierPrefix)$(PARENT_APPLICATION_IDENTIFIER)</string>
+		<string>$(AppIdentifierPrefix)com.academy.hendraaaa.happyFamily.staging</string>
 	</array>
 </dict>
 </plist>
