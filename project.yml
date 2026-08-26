@@ -3,7 +3,7 @@ name: happyFamily
 options:
   bundleIdPrefix: com.academy.hendraaaa
   deploymentTarget:
-    iOS: "17.0"
+    iOS: "26.0"
 
 configs:
   Debug: debug
