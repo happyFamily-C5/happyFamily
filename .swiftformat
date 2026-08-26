@@ -18,7 +18,7 @@
 --wrapcollections before-first
 
 # Exclusions
---exclude Pods,Carthage,DerivedData,build,.build,Config,Scripts
+--exclude Pods,Carthage,DerivedData,build,.build,Config,Scripts,vendor,.git,happyFamily.xcodeproj,.bundle
 
 # Disabled rules for SwiftUI compatibility
 --disable redundantSelf
