@@ -133,6 +133,7 @@ platform :ios do
     archive_xcargs = [build_number ? "CURRENT_PROJECT_VERSION=#{build_number}" : nil, signing_xcargs].compact.join(" ")
 
     # Build the app using Release configuration
+    # gym forwards xcargs to both archive and export, so do not repeat them in export_xcargs.
     build_app(
       project: "happyFamily.xcodeproj",
       scheme: "happyFamily",
@@ -140,8 +141,7 @@ platform :ios do
       export_method: "app-store",
       clean: true,
       output_directory: "./build/Beta",
-      xcargs: archive_xcargs,
-      export_xcargs: signing_xcargs
+      xcargs: archive_xcargs
     )
 
     # Upload to TestFlight
@@ -167,8 +167,7 @@ platform :ios do
       export_method: "app-store",
       clean: true,
       output_directory: "./build/Staging-Beta",
-      xcargs: archive_xcargs,
-      export_xcargs: signing_xcargs
+      xcargs: archive_xcargs
     )
 
     upload_to_testflight(
