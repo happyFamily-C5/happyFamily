@@ -9,12 +9,12 @@ import SwiftUI
 
 struct BannerEvent: View {
     let image: Image?
-    
+
     var body: some View {
-        ZStack{
+        ZStack {
             RoundedRectangle(cornerRadius: 40)
                 .fill(AppColor.accentColor)
-            
+
             if let image {
                 image
                     .resizable()
