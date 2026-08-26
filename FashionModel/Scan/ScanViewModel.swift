@@ -24,6 +24,7 @@ final class ScanViewModel: ObservableObject {
     @Published private(set) var capturedImage: UIImage?
     @Published private(set) var result: AccessoryScanResult = .empty
     @Published private(set) var statusMessage: String?
+    @Published private(set) var isTorchOn = false
     @Published var pickedItem: PhotosPickerItem? {
         didSet { Task { await scanPickedPhoto() } }
     }
@@ -65,6 +66,20 @@ final class ScanViewModel: ObservableObject {
         statusMessage = nil
         phase = .aiming
         camera.start()
+    }
+
+    func toggleTorch() {
+        isTorchOn.toggle()
+        camera.setTorch(on: isTorchOn)
+    }
+
+    func flipCamera() {
+        do {
+            try camera.flipCamera()
+            isTorchOn = false
+        } catch {
+            statusMessage = error.localizedDescription
+        }
     }
 
     private func scanPickedPhoto() async {

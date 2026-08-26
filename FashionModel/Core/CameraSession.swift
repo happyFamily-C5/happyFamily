@@ -30,27 +30,55 @@ final class CameraSession: NSObject {
     private let queue = DispatchQueue(label: "camera.session")
     private let photoOutput = AVCapturePhotoOutput()
     private var captureContinuation: CheckedContinuation<UIImage, Error>?
+    private(set) var position: AVCaptureDevice.Position = .back
+    private var activeDevice: AVCaptureDevice?
 
     func configure() throws {
         guard session.inputs.isEmpty else { return }
         session.beginConfiguration()
         session.sessionPreset = .photo
-
-        guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
-              let input = try? AVCaptureDeviceInput(device: device)
-        else {
+        do {
+            try addInput(for: position)
+        } catch {
             session.commitConfiguration()
-            throw SetupError.noCamera
+            throw error
         }
-        guard session.canAddInput(input) else {
-            session.commitConfiguration()
-            throw SetupError.cannotAddInput
-        }
-        session.addInput(input)
         if session.canAddOutput(photoOutput) {
             session.addOutput(photoOutput)
         }
         session.commitConfiguration()
+    }
+
+    func flipCamera() throws {
+        let newPosition: AVCaptureDevice.Position = position == .back ? .front : .back
+        session.beginConfiguration()
+        let previousInputs = session.inputs
+        previousInputs.forEach(session.removeInput)
+        do {
+            try addInput(for: newPosition)
+        } catch {
+            previousInputs.forEach(session.addInput)
+            session.commitConfiguration()
+            throw error
+        }
+        position = newPosition
+        session.commitConfiguration()
+    }
+
+    func setTorch(on: Bool) {
+        guard let activeDevice, activeDevice.hasTorch else { return }
+        try? activeDevice.lockForConfiguration()
+        activeDevice.torchMode = on ? .on : .off
+        activeDevice.unlockForConfiguration()
+    }
+
+    private func addInput(for position: AVCaptureDevice.Position) throws {
+        guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: position),
+              let input = try? AVCaptureDeviceInput(device: device)
+        else { throw SetupError.noCamera }
+        guard session.canAddInput(input) else { throw SetupError.cannotAddInput }
+        session.addInput(input)
+        activeDevice = device
     }
 
     func start() {

@@ -12,10 +12,6 @@ struct OpenCamera: View {
 
     var body: some View {
         VStack {
-            Text("Ambil Gambar Baju Anda!")
-                .font(.title2)
-                .fontWeight(.semibold)
-
             Button {
                 isScanning = true
             } label: {
