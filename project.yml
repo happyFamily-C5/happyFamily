@@ -34,6 +34,7 @@ targets:
       - Core
       - DesignSystem
       - Resources
+      - FashionModel
     entitlements:
       path: App/happyFamily.entitlements
       properties:
@@ -42,6 +43,8 @@ targets:
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_NSCameraUsageDescription: Kamera dipakai untuk memindai pakaian.
+        INFOPLIST_KEY_NSPhotoLibraryUsageDescription: Galeri dipakai untuk memilih foto pakaian yang akan dipindai.
       configs:
         Debug:
           APP_CLIP_BUNDLE_IDENTIFIER: $(BUNDLE_ID_PREFIX).happyFamily.debug.Clip

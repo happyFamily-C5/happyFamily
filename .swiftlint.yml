@@ -6,6 +6,7 @@ included:
   - Features
   - Core
   - DesignSystem
+  - FashionModel
   - Tests
   - UITests
 
@@ -49,9 +50,13 @@ opt_in_rules:
   - yoda_condition
 
 # Rules to disable
+# SwiftFormat owns formatting; rules it already enforces are disabled here so the two
+# tools can't demand opposite things (both run in `fastlane lint`).
 disabled_rules:
   - todo
   - trailing_whitespace
+  # SwiftFormat's `trailingCommas` adds these to multiline literals.
+  - trailing_comma
 
 # Configurable rules
 line_length:
