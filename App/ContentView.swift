@@ -3,7 +3,7 @@ import SwiftUI
 struct ContentView: View {
     var body: some View {
         ZStack {
-            Color(.systemBackground)
+            AppColor.baseColor
                 .ignoresSafeArea()
 
             Text("Hello, World!")

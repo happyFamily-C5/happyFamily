@@ -42,7 +42,7 @@ struct ProgressBar: View {
                     
                     ZStack(alignment: .leading) {
                         Capsule()
-                            .fill(Color.gray.opacity(0.2))
+                            .fill(AppColor.textColor.opacity(0.2))
                             .frame(maxWidth: .infinity)
                             .frame(height: 20)
                             .overlay{
