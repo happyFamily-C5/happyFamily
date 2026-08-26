@@ -9,18 +9,17 @@ platform :ios do
   # Helpers
   # ----------------------------------------------------------------------
   def load_api_key
-    key_file = File.expand_path("../AuthKey_VQHBTPG3DZ.p8", __dir__)
-    
-    if File.exist?(key_file) || ENV["APP_STORE_CONNECT_API_KEY_KEY"]
-      app_store_connect_api_key(
-        key_id: ENV["APP_STORE_CONNECT_KEY_ID"] || "VQHBTPG3DZ",
-        issuer_id: ENV["APP_STORE_CONNECT_ISSUER_ID"] || "",
-        key_filepath: File.exist?(key_file) ? key_file : nil,
-        key_content: ENV["APP_STORE_CONNECT_API_KEY_KEY"],
-        is_key_content_base64: false,
-        in_house: false
-      )
-    end
+    key_id = ENV["APP_STORE_CONNECT_KEY_ID"] || "VQHBTPG3DZ"
+    key_file = ENV["APP_STORE_CONNECT_API_KEY_PATH"] || File.expand_path("../AuthKey_#{key_id}.p8", __dir__)
+
+    UI.user_error!("App Store Connect API key file was not found at #{key_file}") unless File.file?(key_file)
+
+    app_store_connect_api_key(
+      key_id: key_id,
+      issuer_id: ENV["APP_STORE_CONNECT_ISSUER_ID"],
+      key_filepath: key_file,
+      in_house: false
+    )
   end
 
   # ----------------------------------------------------------------------
