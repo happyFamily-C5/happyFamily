@@ -5,13 +5,12 @@
 //  Created by Muhamad Yuan Sastro Dimianta on 26/08/26.
 //
 
-import SwiftUI
 import MapKit
+import SwiftUI
 
 struct MapView: View {
-    
     let coordinate: CLLocationCoordinate2D
-    
+
     var body: some View {
         Map(
             initialPosition: .region(
@@ -37,6 +36,7 @@ struct MapView: View {
 #Preview {
     MapView(coordinate: CLLocationCoordinate2D(
         latitude: -6.1667,
-        longitude: 106.7900)
+        longitude: 106.7900
+    )
     )
 }
