@@ -60,6 +60,12 @@ fastlane/test_output
 .Spotlight-V100
 .Trashes
 
+# Bundler local install
+.bundle/
+vendor/bundle/
+
+# Claude Code
+CLAUDE.md
 # Generated knowledge graph (graphify)
 graphify-out/
 

@@ -11,6 +11,8 @@ import SwiftUI
 struct HomeView: View {
     @State var isPressed = false
     
+    @Environment(AppRouter.self) var router
+    
     var title: String
     var manager: String
     var capacity: Int
@@ -18,10 +20,10 @@ struct HomeView: View {
     
     var body: some View {
         ZStack(alignment: .bottom) {
-            ScrollView {
+
                 VStack(spacing: 16) {
                     // MARK: - Banner
-                    
+                    ScrollView(showsIndicators: true) {
                     BannerEvent(image: .none)
                         .ignoresSafeArea()
                     
@@ -105,29 +107,31 @@ struct HomeView: View {
                     }
                     .padding(.horizontal, 20)
                 }
-            }
-            .ignoresSafeArea(edges: .top)
-            
-            // MARK: - Tab-bar-style floating button
-            
-            VStack {
-                Button {
-                    // Send clothes action
-                } label: {
-                    Text("Send My Clothes")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
+                // MARK: - Tab-bar-style floating button
+                
+                VStack {
+                    Button {
+                        // Send clothes action
+                        router.push(to: .donationForm)
+                    } label: {
+                        Text("Send My Clothes")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .padding(.horizontal, 20)
                 }
-                .buttonStyle(.borderedProminent)
-                .padding(.horizontal, 20)
+                .padding(.vertical, 24)
+                
             }
-            .padding(.vertical, 24)
             
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .ignoresSafeArea()
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .ignoresSafeArea()
+        .toolbar(.hidden, for: .navigationBar)
+        .toolbarBackground(.hidden, for: .navigationBar)
     }
 }
 
@@ -138,4 +142,6 @@ struct HomeView: View {
         capacity: 250,
         maxCapacity: 500
     )
+    .environment(AppRouter())
 }
+

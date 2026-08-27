@@ -22,7 +22,7 @@ struct FormView: View {
 }
 
 #Preview {
-    NavigationStack{
-        FormView()
-    }
+    FormView()
+        .environment(AppRouter())
+    
 }
