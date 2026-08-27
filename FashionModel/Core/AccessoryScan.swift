@@ -5,8 +5,6 @@
 //  Created by Calzy Akmal Indyramdhani on 26/08/26.
 //
 
-import Foundation
-
 struct AccessoryFinding: Identifiable, Equatable {
     let attribute: String
     let confidence: Float
@@ -59,8 +57,4 @@ struct AccessoryScanResult: Equatable {
         multipleGarmentsProbability: 0,
         hasMultipleGarments: false
     )
-}
-
-protocol TextileScanner {
-    func scan(_ image: ScanImage) throws -> AccessoryScanResult
 }

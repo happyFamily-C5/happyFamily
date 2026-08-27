@@ -8,11 +8,7 @@
 import Foundation
 import Vision
 
-enum ScanImage {
-    case cgImage(CGImage)
-}
-
-struct FeaturePrintScanner: TextileScanner {
+struct FeaturePrintScanner {
     /// Pinned: the trained weights assume this exact revision's embedding.
     static let featurePrintRevision = VNGenerateImageFeaturePrintRequestRevision2
 
@@ -22,14 +18,8 @@ struct FeaturePrintScanner: TextileScanner {
         self.head = head
     }
 
-    func scan(_ image: ScanImage) throws -> AccessoryScanResult {
-        try scan(image, sensitivity: head.defaultSensitivity)
-    }
-
-    func scan(_ image: ScanImage, sensitivity: String) throws -> AccessoryScanResult {
-        guard case let .cgImage(cgImage) = image else { return .empty }
-
-        return try head.evaluate(whole: featurePrint(of: cgImage), sensitivity: sensitivity)
+    func scan(_ image: CGImage, sensitivity: String) throws -> AccessoryScanResult {
+        try head.evaluate(whole: featurePrint(of: image), sensitivity: sensitivity)
     }
 
     private func featurePrint(of image: CGImage) throws -> [Float] {

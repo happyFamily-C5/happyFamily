@@ -34,9 +34,10 @@ struct MapView: View {
 }
 
 #Preview {
-    MapView(coordinate: CLLocationCoordinate2D(
-        latitude: -6.1667,
-        longitude: 106.7900
-    )
+    MapView(
+        coordinate: CLLocationCoordinate2D(
+            latitude: -6.1667,
+            longitude: 106.7900
+        )
     )
 }

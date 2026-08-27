@@ -73,6 +73,7 @@ targets:
     sources:
       - HappyFamilyAppClips
       - DesignSystem/Colors/AppColor.swift
+      - Features/Home/Views/Components/MapView.swift
     info:
       path: HappyFamilyAppClips/Info.plist
       properties:
