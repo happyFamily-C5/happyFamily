@@ -23,12 +23,12 @@ struct ShippingMethodCard: View {
                 VStack(alignment: .leading, spacing: 4) {
 
                     Text(method.rawValue)
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(.primary)
+                        .font(.body.bold())
+                        .foregroundStyle(AppColor.textDarkCyan)
 
                     Text(method.description)
-                        .font(.system(size: 11, weight: .regular))
-                        .foregroundStyle(.primary.opacity(0.72))
+                        .font(.caption2)
+                        .foregroundStyle(AppColor.textDarkCyan)
                         .multilineTextAlignment(.leading)
                         .lineSpacing(0)
                 }
@@ -53,7 +53,7 @@ struct ShippingMethodCard: View {
                         style: .continuous
                     )
                     .stroke(
-                        Color.green,
+                        AppColor.primaryCyan,
                         lineWidth: 1
                     )
                 }
@@ -75,8 +75,8 @@ struct ShippingMethodCard: View {
 
     private var cardBackground: Color {
         isSelected
-        ? Color.green
-        : Color.gray
+        ? AppColor.secondaryCyan
+        : AppColor.baseGrey
     }
 
     private var radioButton: some View {
@@ -85,15 +85,15 @@ struct ShippingMethodCard: View {
             Circle()
                 .stroke(
                     isSelected
-                    ? Color.red
-                        : Color.blue.opacity(0.6),
+                    ? AppColor.primaryCyan
+                        : Color.gray,
                     lineWidth: 2
                 )
                 .frame(width: 18, height: 18)
 
             if isSelected {
                 Circle()
-                    .fill(Color.red)
+                    .fill(AppColor.primaryCyan)
                     .frame(width: 10, height: 10)
             }
         }

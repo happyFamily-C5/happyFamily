@@ -12,4 +12,11 @@ enum AppColor {
     static let surfaceColor = Color("SurfaceColor")
     static let accentColor = Color("AccentColor")
     static let textColor = Color("TextColor")
+    
+    // Cyan
+    static let primaryCyan = Color("3-DarkSoftCyan")
+    static let secondaryCyan = Color("6-VeryLightSoftCyan")
+    static let textDarkCyan = Color("1-VeryDarkSoftCyan")
+    
+    static let baseGrey = Color("BaseGrey")
 }
