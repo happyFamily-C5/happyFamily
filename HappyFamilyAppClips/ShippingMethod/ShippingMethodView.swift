@@ -37,9 +37,9 @@ private extension ShippingMethodView {
             HStack {
                 Button {} label: {
                     Image(systemName: "chevron.left")
+                        .font(.headline)
+                        .foregroundStyle(AppColor.textDarkCyan)
                 }
-
-                Spacer()
 
                 Text("Step 3 of 3")
                     .font(.caption)
@@ -52,7 +52,7 @@ private extension ShippingMethodView {
         HStack(spacing: 5) {
             ForEach(0 ..< 3) { _ in
                 Capsule()
-                    .fill(.green)
+                    .fill(AppColor.primaryCyan)
                     .frame(height: 7)
             }
         }
@@ -66,11 +66,11 @@ private extension ShippingMethodView {
         VStack(alignment: .leading, spacing: 4) {
             Text("Mau dikirim pake apa?")
                 .font(.title.bold())
-                .foregroundStyle(.primary)
+                .foregroundStyle(AppColor.textDarkCyan)
 
             Text("Pilih metode pengiriman, dan lakukan\npengiriman maksimal dalam 3 hari kedepan.")
                 .font(.body)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppColor.textDarkCyan)
         }
     }
 }
@@ -109,7 +109,7 @@ private extension ShippingMethodView {
                 .frame(height: 52)
                 .background(
                     Capsule()
-                        .fill(Color.green)
+                        .fill(AppColor.primaryCyan)
                 )
         }
         .padding(.horizontal, 20)
