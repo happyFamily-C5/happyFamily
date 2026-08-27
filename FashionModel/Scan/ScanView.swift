@@ -59,7 +59,6 @@ struct ScanView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .clipped()
-        .background(Color.black)
     }
 
     private var topBar: some View {
