@@ -12,11 +12,7 @@ struct ScanView: View {
     @StateObject private var viewModel = ScanViewModel()
     @Environment(\.dismiss) private var dismiss
 
-    /// Not in an asset catalog, so `Image("clothing_frame")` can't resolve it — load it manually.
-    private static let clothingFrameImage: UIImage? = {
-        guard let path = Bundle.main.path(forResource: "clothing_frame", ofType: "png") else { return nil }
-        return UIImage(contentsOfFile: path)
-    }()
+    private static let clothingFrameImage = UIImage.bundled("clothing_frame")
 
     var body: some View {
         ZStack {
