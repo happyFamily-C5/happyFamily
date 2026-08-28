@@ -50,7 +50,7 @@ struct BookingConfirmedView: View {
                             .frame(height: 52)
                             .background(
                                 Capsule()
-                                    .fill(AppColor.primaryGreen)
+                                    .fill(AppColor.primaryCyan)
                             )
                     }
                     
