@@ -9,6 +9,12 @@ import AVFoundation
 import Foundation
 import UIKit
 
+/// AVFoundation doesn't declare `AVCaptureSession` as `Sendable`, although
+/// starting and stopping this owned instance is serialized on one private queue.
+private struct CaptureSessionReference: @unchecked Sendable {
+    let value: AVCaptureSession
+}
+
 @MainActor
 final class CameraSession: NSObject {
     enum SetupError: LocalizedError {
@@ -83,12 +89,14 @@ final class CameraSession: NSObject {
 
     func start() {
         guard !session.isRunning else { return }
-        queue.async { [session] in session.startRunning() }
+        let reference = CaptureSessionReference(value: session)
+        queue.async { [reference] in reference.value.startRunning() }
     }
 
     func stop() {
         guard session.isRunning else { return }
-        queue.async { [session] in session.stopRunning() }
+        let reference = CaptureSessionReference(value: session)
+        queue.async { [reference] in reference.value.stopRunning() }
     }
 
     func capturePhoto() async throws -> UIImage {
