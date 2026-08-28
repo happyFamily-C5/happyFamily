@@ -15,14 +15,16 @@ struct FormView: View {
                 Text("Step 1 of 3")
                     .font(.headline)
             }
-            
+
             Spacer()
-        }.padding(20)
+        }
+        .padding(20)
     }
 }
 
 #Preview {
-    FormView()
-        .environment(AppRouter())
-    
+    NavigationStack {
+        FormView()
+            .environment(AppRouter())
+    }
 }

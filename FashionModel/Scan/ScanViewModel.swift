@@ -5,7 +5,6 @@
 //  Created by Calzy Akmal Indyramdhani on 26/08/26.
 //
 
-import AVFoundation
 import Combine
 import Foundation
 import PhotosUI
@@ -104,7 +103,7 @@ final class ScanViewModel: ObservableObject {
         let scanner = self.scanner
         let level = sensitivity
         let outcome = await Task.detached(priority: .userInitiated) {
-            Result { try scanner.scan(.cgImage(cgImage), sensitivity: level) }
+            Result { try scanner.scan(cgImage, sensitivity: level) }
         }.value
 
         switch outcome {

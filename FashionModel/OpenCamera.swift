@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct OpenCamera: View {
-    @State private var isScanning: Bool = false
+    @State private var isScanning = false
 
     var body: some View {
         VStack {

@@ -36,7 +36,7 @@ private struct Spiral: Shape {
         let steps = 140
 
         var path = Path()
-        for step in 0...steps {
+        for step in 0 ... steps {
             let progress = Double(step) / Double(steps)
             let angle = progress * turns * 2 * .pi - .pi / 2
             let radius = maxRadius * (1 - progress * 0.78)
@@ -44,7 +44,11 @@ private struct Spiral: Shape {
                 x: center.x + cos(angle) * radius,
                 y: center.y + sin(angle) * radius
             )
-            if step == 0 { path.move(to: point) } else { path.addLine(to: point) }
+            if step == 0 {
+                path.move(to: point)
+            } else {
+                path.addLine(to: point)
+            }
         }
         return path
     }

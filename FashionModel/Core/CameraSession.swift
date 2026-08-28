@@ -6,10 +6,10 @@
 //
 
 import AVFoundation
-import CoreImage
 import Foundation
 import UIKit
 
+@MainActor
 final class CameraSession: NSObject {
     enum SetupError: LocalizedError {
         case noCamera
@@ -29,7 +29,7 @@ final class CameraSession: NSObject {
 
     private let queue = DispatchQueue(label: "camera.session")
     private let photoOutput = AVCapturePhotoOutput()
-    private var captureContinuation: CheckedContinuation<UIImage, Error>?
+    private var photoCaptureDelegate: PhotoCaptureDelegate?
     private(set) var position: AVCaptureDevice.Position = .back
     private var activeDevice: AVCaptureDevice?
 
@@ -92,10 +92,12 @@ final class CameraSession: NSObject {
     }
 
     func capturePhoto() async throws -> UIImage {
-        try await withCheckedThrowingContinuation { continuation in
-            captureContinuation = continuation
+        defer { photoCaptureDelegate = nil }
+        return try await withCheckedThrowingContinuation { continuation in
+            let delegate = PhotoCaptureDelegate(continuation: continuation)
+            photoCaptureDelegate = delegate
             let settings = AVCapturePhotoSettings()
-            photoOutput.capturePhoto(with: settings, delegate: self)
+            photoOutput.capturePhoto(with: settings, delegate: delegate)
         }
     }
 
@@ -108,22 +110,27 @@ final class CameraSession: NSObject {
     }
 }
 
-extension CameraSession: AVCapturePhotoCaptureDelegate {
+private final class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate {
+    private let continuation: CheckedContinuation<UIImage, any Error>
+
+    init(continuation: CheckedContinuation<UIImage, any Error>) {
+        self.continuation = continuation
+    }
+
     func photoOutput(
         _ output: AVCapturePhotoOutput,
         didFinishProcessingPhoto photo: AVCapturePhoto,
         error: Error?
     ) {
-        defer { captureContinuation = nil }
         if let error {
-            captureContinuation?.resume(throwing: error)
+            continuation.resume(throwing: error)
             return
         }
         guard let data = photo.fileDataRepresentation(), let image = UIImage(data: data) else {
-            captureContinuation?.resume(throwing: SetupError.captureFailed)
+            continuation.resume(throwing: CameraSession.SetupError.captureFailed)
             return
         }
-        captureContinuation?.resume(returning: image)
+        continuation.resume(returning: image)
     }
 }
 

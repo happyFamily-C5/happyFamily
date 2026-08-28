@@ -7,7 +7,6 @@
 
 import SwiftUI
 
-//TODO: Adapt ini semua buat dipake di view lain maybe
 enum LandingPalette {
     static let gradientTop = Color(red: 0.816, green: 0.898, blue: 0.878)
     static let gradientMid = Color(red: 0.937, green: 0.957, blue: 0.929)

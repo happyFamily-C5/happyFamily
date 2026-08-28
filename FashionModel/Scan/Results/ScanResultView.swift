@@ -32,7 +32,6 @@ struct ScanResultView: View {
         .ignoresSafeArea(edges: .bottom)
     }
 
-    @ViewBuilder
     private var backdrop: some View {
         Group {
             if let photo {

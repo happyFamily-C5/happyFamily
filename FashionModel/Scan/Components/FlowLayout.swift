@@ -59,7 +59,9 @@ struct FlowLayout: Layout {
             current.indices.append(index)
         }
 
-        if !current.indices.isEmpty { rows.append(current) }
+        if !current.indices.isEmpty {
+            rows.append(current)
+        }
         return rows
     }
 }

@@ -5,7 +5,6 @@
 //  Created by Calzy Akmal Indyramdhani on 26/08/26.
 //
 
-import PhotosUI
 import SwiftUI
 
 struct ScanView: View {

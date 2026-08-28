@@ -9,12 +9,12 @@ import MapKit
 import SwiftUI
 
 struct HomeView: View {
-    @State var isPressed = false
+    @State private var isPressed = false
 
-    var title: String
-    var manager: String
-    var capacity: Int
-    var maxCapacity: Int
+    let title: String
+    let manager: String
+    let capacity: Int
+    let maxCapacity: Int
 
     var body: some View {
         ZStack {
@@ -30,7 +30,7 @@ struct HomeView: View {
                         HStack(alignment: .top) {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(title)
-                                    .font(Font.title.bold())
+                                    .font(.title.bold())
 
                                 Text(manager)
                                     .font(.headline)
@@ -39,9 +39,7 @@ struct HomeView: View {
                             Spacer()
 
                             HStack(spacing: 16) {
-                                Button {
-                                    // action
-                                } label: {
+                                Button {} label: {
                                     Image(systemName: "square.and.arrow.up")
                                         .font(.system(size: 24))
                                 }
