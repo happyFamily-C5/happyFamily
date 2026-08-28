@@ -51,7 +51,7 @@ Ensure you have the following installed on your macOS machine:
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### 1. Generate Xcode Project
 Since this project uses [XcodeGen](https://github.com/yonaskolb/XcodeGen), the `.xcodeproj` file is generated from `project.yml`:
@@ -65,7 +65,7 @@ open happyFamily.xcodeproj
 
 ---
 
-## ⚙️ Build Configurations & Environments
+## Build Configurations & Environments
 
 The project provides dedicated build configurations managed through `.xcconfig` files in the `Config/` directory:
 
@@ -77,7 +77,7 @@ The project provides dedicated build configurations managed through `.xcconfig` 
 
 ---
 
-## 🧹 Code Quality & Linting
+## Code Quality & Linting
 
 Format and validate your Swift code before committing:
 
@@ -91,7 +91,7 @@ bundle exec fastlane format
 
 ---
 
-## 🚢 Fastlane & CI/CD Pipelines
+## Fastlane & CI/CD Pipelines
 
 ### Fastlane Lanes
 - **Lint & Format**: `bundle exec fastlane lint` / `bundle exec fastlane format`

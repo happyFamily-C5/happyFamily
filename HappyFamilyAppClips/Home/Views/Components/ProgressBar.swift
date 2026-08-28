@@ -8,9 +8,9 @@
 import SwiftUI
 
 struct ProgressBar: View {
-    var maxCapacity: Int
-    var currentCapacity: Int
-    var dayLeft: Int
+    let maxCapacity: Int
+    let currentCapacity: Int
+    let dayLeft: Int
 
     private var progress: Double {
         guard maxCapacity > 0 else { return 0 }
@@ -25,12 +25,14 @@ struct ProgressBar: View {
             VStack(spacing: 8) {
                 HStack(alignment: .bottom, spacing: 0) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("\(Int(currentCapacity)) kg")
+                        Text("\(currentCapacity) kg")
                             .font(.title2).bold()
-                        Text("Terkumpul dari ")
-                            .font(.caption2) +
-                            Text("\(Int(maxCapacity)) kg")
-                            .font(.caption2).bold()
+                        HStack(spacing: 0) {
+                            Text("Terkumpul dari ")
+                                .font(.caption2)
+                            Text("\(maxCapacity) kg")
+                                .font(.caption2).bold()
+                        }
                     }
 
                     Spacer()

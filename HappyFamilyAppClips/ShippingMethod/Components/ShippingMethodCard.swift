@@ -8,20 +8,16 @@
 import SwiftUI
 
 struct ShippingMethodCard: View {
-
     let method: ShippingMethodModel
     let isSelected: Bool
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-
-            HStack(alignment: .center, spacing: 12) {
-
+            HStack(spacing: 12) {
                 radioButton
 
                 VStack(alignment: .leading, spacing: 4) {
-
                     Text(method.rawValue)
                         .font(.body.bold())
                         .foregroundStyle(AppColor.textDarkCyan)
@@ -30,7 +26,6 @@ struct ShippingMethodCard: View {
                         .font(.caption2)
                         .foregroundStyle(AppColor.textDarkCyan)
                         .multilineTextAlignment(.leading)
-                        .lineSpacing(0)
                 }
 
                 Spacer(minLength: 0)
@@ -65,11 +60,9 @@ struct ShippingMethodCard: View {
     private var cardHeight: CGFloat {
         switch method {
         case .direct:
-            return 70
-        case .ojol:
-            return 84
-        case .expedition:
-            return 84
+            70
+        case .expedition, .ojol:
+            84
         }
     }
 
@@ -81,7 +74,6 @@ struct ShippingMethodCard: View {
 
     private var radioButton: some View {
         ZStack {
-
             Circle()
                 .stroke(
                     isSelected
