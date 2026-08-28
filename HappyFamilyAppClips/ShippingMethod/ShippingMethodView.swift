@@ -40,6 +40,8 @@ private extension ShippingMethodView {
                         .font(.headline)
                         .foregroundStyle(AppColor.textDarkCyan)
                 }
+                .buttonStyle(.automatic)
+                
 
                 Text("Step 3 of 3")
                     .font(.caption)
