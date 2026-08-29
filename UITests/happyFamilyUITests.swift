@@ -5,6 +5,7 @@ final class HappyFamilyUITests: XCTestCase {
         continueAfterFailure = false
     }
 
+    @MainActor
     func testLaunch() {
         let app = XCUIApplication()
         app.launch()

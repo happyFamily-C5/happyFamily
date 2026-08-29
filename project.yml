@@ -101,6 +101,34 @@ targets:
           CODE_SIGN_ENTITLEMENTS: HappyFamilyAppClips/Entitlements/Release.entitlements
           PRODUCT_BUNDLE_IDENTIFIER: com.academy.hendraaaa.happyFamily.Clip
 
+  # App Clip executables cannot use Xcode's JIT preview executor directly.
+  # This normal app target hosts the same UI sources for canvas previews only.
+  HappyFamilyPreviewHost:
+    type: application
+    platform: iOS
+    configFiles:
+      Debug: Config/Debug.xcconfig
+      Staging: Config/Staging.xcconfig
+      Release: Config/Release.xcconfig
+    sources:
+      - PreviewHost
+      - path: HappyFamilyAppClips
+        excludes:
+          - Entitlements
+          - HappyFamilyAppClipsApp.swift
+          - Info.plist
+      - DesignSystem/Colors/AppColor.swift
+      - Features/Home/Views/Components/MapView.swift
+    settings:
+      base:
+        ASSETCATALOG_COMPILER_APPICON_NAME: ""
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: ""
+        INFOPLIST_KEY_CFBundleDisplayName: happyFamily Preview Host
+        PRODUCT_BUNDLE_IDENTIFIER: com.academy.hendraaaa.happyFamily.PreviewHost
+        SKIP_INSTALL: YES
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: $(inherited) APPCLIP PREVIEW_HOST
+
   happyFamilyTests:
     type: bundle.unit-test
     platform: iOS
@@ -126,6 +154,13 @@ targets:
       - target: happyFamily
 
 schemes:
+  HappyFamilyPreviewHost:
+    build:
+      targets:
+        HappyFamilyPreviewHost: all
+    run:
+      config: Debug
+
   HappyFamilyAppClips:
     build:
       targets:
