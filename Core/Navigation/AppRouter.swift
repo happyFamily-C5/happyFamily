@@ -15,12 +15,22 @@ final class AppRouter {
     func push(to destination: DonationsRouter) {
         path.append(destination)
     }
+    
 }
 
 extension View {
-    func donationsRouter() -> some View {
-        navigationDestination(for: DonationsRouter.self) { _ in
-            FormView()
+    func donationsRouter(_ router: AppRouter) -> some View {
+        self.navigationDestination(for: DonationsRouter.self) { destination in
+            switch destination {
+            case  .donationFlow:
+                DonationFlowView()
+            case .scan:
+                ClothsView{}
+            case .result:
+                FormView{}
+            case .openCamera:
+                ScanView()
+            }
         }
     }
 }

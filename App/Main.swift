@@ -13,9 +13,10 @@ struct Main: App {
                     capacity: 250,
                     maxCapacity: 500
                 )
-                .donationsRouter()
+                .donationsRouter(router)
             }
             .environment(router)
+//            OpenCamera()
         }
     }
 }

@@ -110,7 +110,7 @@ struct HomeView: View {
 
                 VStack {
                     Button {
-                        router.push(to: .donationForm)
+                        router.push(to: .donationFlow)
                     } label: {
                         Text("Send My Clothes")
                             .font(.headline)
