@@ -8,7 +8,7 @@
 import Foundation
 import UIKit
 
-final class ClothingAnalyzer {
+struct ClothingAnalyzer {
 
     enum DebugMode {
         case automatic
@@ -19,7 +19,7 @@ final class ClothingAnalyzer {
 
     // Ubah satu baris ini untuk hardcode hasil scan saat debug.
     // `.automatic` memakai heuristic dari ukuran gambar.
-    static var debugMode: DebugMode = .success
+    static let debugMode: DebugMode = .success
 
     func analyze(
         image: UIImage
