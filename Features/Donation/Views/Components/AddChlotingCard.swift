@@ -11,8 +11,10 @@ struct AddClothingCard: View {
     var onTap: () -> Void
     
     var body: some View {
-        Button(action: onTap) {
-            RoundedRectangle(cornerRadius: 12)
+        Button{
+            onTap()
+        }label: {
+            RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [6]))
                 .foregroundColor(.gray.opacity(0.5))
                 .overlay(
@@ -23,13 +25,21 @@ struct AddClothingCard: View {
                         .background(Color(red: 0.35, green: 0.5, blue: 0.4))
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 )
-                .frame(height: 180)
-                .background(
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(Color.white)
-                        .shadow(color: .black.opacity(0.05), radius: 6, y: 2)
-                )
+                .frame(width: 125, height: 149)
         }
-        .buttonStyle(.plain)
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.white)
+        )
+
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(AppColor.secondaryCyan)
+        )
     }
+}
+
+#Preview {
+    AddClothingCard{}
 }

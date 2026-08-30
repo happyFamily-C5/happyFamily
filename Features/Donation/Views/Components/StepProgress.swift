@@ -16,7 +16,7 @@ struct StepProgress: View {
             ForEach(0..<totalStep, id: \.self){ index in
                 Capsule()
                     .fill(
-                        index + 1 <= currentStep ? Color.green : Color.green.opacity(0.2)
+                        index + 1 <= currentStep ? AppColor.primaryCyan : AppColor.secondaryCyan
                     )
                     .frame(height: 8)
             }

@@ -16,7 +16,7 @@ struct ClothingCard: View {
                 Image(uiImage: item.image)
                     .resizable()
                     .scaledToFit()
-                    .frame(height: 180)
+                    .frame(height: 149)
                     .clipped()
                 
                 Button {
@@ -27,9 +27,10 @@ struct ClothingCard: View {
                         .padding(8)
                         .background(Circle().fill(Color.black.opacity(0.4)))
                 }
-                .padding(8)
+                .padding(-10)
+                
             }
-            
+            .padding(20)
             HStack(spacing: 6) {
                 Text(item.isPassed == true ? "Diterima" : "Ditolak")
                     .font(.subheadline).bold()
@@ -45,12 +46,18 @@ struct ClothingCard: View {
             )
             .clipShape(RoundedRectangle(cornerRadius: 20))
         }
+        
         .clipShape(RoundedRectangle(cornerRadius: 20))
         .background(
             RoundedRectangle(cornerRadius: 20)
                 .fill(Color.white)
                 .shadow(color: .black.opacity(0.05), radius: 6, y: 2)
         )
+        .overlay {
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(AppColor.secondaryCyan)
+        }
+        .frame(width: 165, height: 189)
     }
 }
 

@@ -11,6 +11,7 @@ struct ClothsView: View {
     
     @Environment(AppRouter.self) var router
     @State private var donationVM = DonationViewModel()
+    
     let onNext: () -> Void
     
     let columns = [
@@ -56,23 +57,34 @@ struct ClothsView: View {
                             router.push(to: .openCamera)
                         }
                     }
-                    .padding(20)
                 }
                 
-                Button {
+                Button{
                     onNext()
-                } label: {
+    //                router.push(to: .scan)
+                }label: {
                     Text("Lanjut")
-                        .font(.headline)
-                        .foregroundColor(.white)
+                        .padding()
+                        .padding(.horizontal, 30)
+                        .foregroundStyle(Color.white)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
+                        .background(
+                            AppColor.primaryCyan,
+                            in: RoundedRectangle(cornerRadius: 30)
+                        )
                 }
-                .background(Color(red: 0.35, green: 0.5, blue: 0.4))
-                .clipShape(Capsule())
-                .padding(.horizontal, 20)
-                .padding(.bottom, 12)
-                .disabled(!donationVM.canProceedFromReview)
+            }
+            .navigationBarBackButtonHidden(true)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button{
+                        if router.currentStep > 1 {
+                            router.currentStep -= 1
+                        }
+                    }label: {
+                        Image(systemName: "chevron.left")
+                    }
+                }
             }
         }
     }
@@ -81,7 +93,6 @@ struct ClothsView: View {
 #Preview {
     NavigationStack {
         ClothsView{}
-            .environment(AppRouter())
+        .environment(AppRouter())
     }
-    
 }

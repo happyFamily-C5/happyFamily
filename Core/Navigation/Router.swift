@@ -8,6 +8,6 @@
 enum DonationsRouter: Hashable {
     case donationFlow
     case scan
-    case result
     case openCamera
+    case result
 }

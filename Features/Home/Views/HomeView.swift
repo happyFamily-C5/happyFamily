@@ -9,7 +9,6 @@ import MapKit
 import SwiftUI
 
 struct HomeView: View {
-    @State private var isPressed = false
 
     @Environment(AppRouter.self) private var router
 
@@ -47,15 +46,6 @@ struct HomeView: View {
                                         .font(.system(size: 24))
                                 }
                                 .buttonStyle(.plain)
-
-                                Button {
-                                    isPressed.toggle()
-                                    print(isPressed)
-                                } label: {
-                                    Image(systemName: isPressed ? "bookmark.fill" : "bookmark")
-                                        .font(.system(size: 24))
-                                }
-                                .buttonStyle(.plain)
                             }
                         }
 
@@ -73,21 +63,11 @@ struct HomeView: View {
 
                             Divider()
 
-                            Text("EcoTouch Office")
-                                .font(.subheadline).bold()
-
-                            HStack {
-                                Text(
-                                    "Jl. Arjuna Utara No.14D, RT.1/RW.1, Tj. Duren Sel., Kec. Grogol petamburan, " +
-                                        "Kota Jakarta Barat,, Daerah Khusus Ibukota Jakarta 11470"
-                                )
-                                .font(.caption)
-
-                                Spacer()
-
-                                Text("1,4 Km")
-                                    .bold()
-                            }.frame(height: 48)
+                            LocationDisclosureCard(
+                                name: "Eco Touch Office",
+                                address: "Jl. Arjuna Utara No.14D, RT.1/RW.1, Tj. Duren Sel., Kec. Grogol petamburan, Kota Jakarta Barat,, Daerah Khusus Ibukota Jakarta 11470",
+                                distance: 1.4
+                            )
                         }
 
                         MapView(
@@ -115,16 +95,20 @@ struct HomeView: View {
                         Text("Send My Clothes")
                             .font(.headline)
                             .foregroundColor(.white)
+                            .padding(18)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
+                            .background(
+                                RoundedRectangle(cornerRadius: 28)
+                                    .fill(AppColor.primaryCyan)
+                            )
+                        
                     }
-                    .buttonStyle(.borderedProminent)
                     .padding(.horizontal, 20)
                 }
                 .padding(.vertical, 24)
             }
 
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .frame(maxWidth: .infinity)
             .ignoresSafeArea()
         }
         .toolbar(.hidden, for: .navigationBar)

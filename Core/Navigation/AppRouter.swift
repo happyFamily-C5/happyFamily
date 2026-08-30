@@ -11,9 +11,14 @@ import SwiftUI
 @Observable
 final class AppRouter {
     var path: [DonationsRouter] = []
+    var currentStep: Int = 1
 
     func push(to destination: DonationsRouter) {
         path.append(destination)
+    }
+    
+    func nextStep() {
+        currentStep += 1
     }
     
 }
@@ -25,11 +30,11 @@ extension View {
             case  .donationFlow:
                 DonationFlowView()
             case .scan:
-                ClothsView{}
-            case .result:
-                FormView{}
+                ClothsView { router.nextStep() }
             case .openCamera:
                 ScanView()
+            case .result:
+                FormView{ router.nextStep() }
             }
         }
     }

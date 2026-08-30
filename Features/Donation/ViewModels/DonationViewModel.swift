@@ -7,6 +7,26 @@
 
 import SwiftUI
 
+enum ShippingMethod: String, CaseIterable, Identifiable {
+    case direct = "Antar Langsung"
+    case ojekOnline = "Ojek Online"
+    case expedition = "Ekspedisi"
+    
+    var id: String { rawValue }
+    
+    var description: String {
+        switch self {
+        case .direct:
+            return "Kamu membawa langsung paketnya ke lokasi drop-point"
+        case .ojekOnline:
+            return "Kamu pesan ojek, biar driver yang antar paketnya ke lokasi drop-point"
+        case .expedition:
+            return "Kamu bawa paketnya ke ekspedisi terdekat, biar kurir yang antar paketnya ke lokasi drop-point"
+        }
+    }
+}
+
+
 @Observable
 public class DonationViewModel {
     var name: String = ""
@@ -30,5 +50,11 @@ public class DonationViewModel {
     
     var canProceedFromReview: Bool {
         clothingItems.contains { $0.isPassed == true }
+    }
+    
+    var selectedShippingMethod: ShippingMethod? = .none
+
+    var canProceedFromShipping: Bool {
+        selectedShippingMethod != nil
     }
 }

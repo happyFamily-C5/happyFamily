@@ -13,7 +13,7 @@ struct BannerEvent: View {
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 40)
-                .fill(AppColor.accentColor)
+                .fill(AppColor.primaryCyan)
 
             if let image {
                 image
@@ -22,7 +22,7 @@ struct BannerEvent: View {
             } else {
                 Text("There is No Upcoming Event")
                     .font(.headline)
-                    .foregroundStyle(AppColor.baseColor)
+                    .foregroundStyle(AppColor.textDarkCyan)
             }
         }
         .aspectRatio(4 / 3, contentMode: .fit)

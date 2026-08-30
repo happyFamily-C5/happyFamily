@@ -44,7 +44,7 @@ struct ProgressBar: View {
                         .frame(height: 20)
                         .overlay {
                             Capsule()
-                                .fill(AppColor.accentColor)
+                                .fill(AppColor.primaryCyan)
                                 .frame(maxWidth: .infinity)
                                 .scaleEffect(x: progress, y: 1, anchor: .leading)
                         }
@@ -53,7 +53,7 @@ struct ProgressBar: View {
                 .frame(height: 12)
             }
             .padding(16)
-            .background(AppColor.surfaceColor.cornerRadius(28))
+            .background(AppColor.secondaryCyan.cornerRadius(28))
         }
     }
 }
