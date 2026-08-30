@@ -8,66 +8,33 @@
 import Foundation
 import UIKit
 
+/// Bridges the FeaturePrint head in `FashionModel/Core` to the clip's scan UI.
 struct ClothingAnalyzer {
 
-    enum DebugMode {
-        case automatic
-        case success
-        case needsProcessing
-        case multipleDetected
+    enum AnalyzeError: LocalizedError {
+        case unreadableImage
+
+        var errorDescription: String? {
+            switch self {
+            case .unreadableImage: "Foto tidak bisa dibaca."
+            }
+        }
     }
 
-    // Ubah satu baris ini untuk hardcode hasil scan saat debug.
-    // `.automatic` memakai heuristic dari ukuran gambar.
-    static let debugMode: DebugMode = .success
+    private let scanner = FeaturePrintScanner()
 
-    func analyze(
-        image: UIImage
-    ) async -> ClothingAnalysis {
+    /// Fixed, not user-facing — donors shouldn't tune how suspicious the model is.
+    private let sensitivity = AccessoryHead.shared.defaultSensitivity
 
-        // Simulate AI processing
-        try? await Task.sleep(
-            for: .seconds(2)
-        )
-
-        switch Self.debugMode {
-        case .automatic:
-            break
-        case .success:
-            return ClothingAnalysis(
-                detectedAccessories: [],
-                hasMultipleItems: false
-            )
-        case .needsProcessing:
-            return ClothingAnalysis(
-                detectedAccessories: ["Tag", "Kancing"],
-                hasMultipleItems: false
-            )
-        case .multipleDetected:
-            return ClothingAnalysis(
-                detectedAccessories: [],
-                hasMultipleItems: true
-            )
+    func analyze(image: UIImage) async throws -> ClothingAnalysis {
+        guard let cgImage = image.normalizedUp().cgImage else {
+            throw AnalyzeError.unreadableImage
         }
-
-        let size = image.size
-        if size.width > size.height * 1.15 {
-            return ClothingAnalysis(
-                detectedAccessories: [],
-                hasMultipleItems: true
-            )
-        }
-
-        if size.height > size.width * 1.15 {
-            return ClothingAnalysis(
-                detectedAccessories: ["Tag", "Kancing"],
-                hasMultipleItems: false
-            )
-        }
-
-        return ClothingAnalysis(
-            detectedAccessories: [],
-            hasMultipleItems: false
-        )
+        let scanner = self.scanner
+        let level = sensitivity
+        let outcome = await Task.detached(priority: .userInitiated) {
+            Result { try scanner.scan(cgImage, sensitivity: level) }
+        }.value
+        return ClothingAnalysis(try outcome.get())
     }
 }

@@ -43,8 +43,6 @@ private extension ShippingMethodView {
                 .buttonStyle(.automatic)
                 
 
-                Spacer()
-
                 Text("Step 3 of 3")
                     .font(.caption)
             }
