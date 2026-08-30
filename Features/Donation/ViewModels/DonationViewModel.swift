@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import CoreImage.CIFilterBuiltins
 
 enum ShippingMethod: String, CaseIterable, Identifiable {
     case direct = "Antar Langsung"
@@ -57,4 +58,18 @@ public class DonationViewModel {
     var canProceedFromShipping: Bool {
         selectedShippingMethod != nil
     }
+}
+
+func generateQRCode(from string: String) -> UIImage {
+    let context = CIContext()
+    let filter = CIFilter.qrCodeGenerator()
+    filter.message = Data(string.utf8)
+    
+    if let outputImage = filter.outputImage {
+        let scaled = outputImage.transformed(by: CGAffineTransform(scaleX: 10, y: 10))
+        if let cgImage = context.createCGImage(scaled, from: scaled.extent) {
+            return UIImage(cgImage: cgImage)
+        }
+    }
+    return UIImage(systemName: "xmark") ?? UIImage()
 }

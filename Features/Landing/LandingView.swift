@@ -17,7 +17,7 @@ struct LandingView: View {
                 Spacer(minLength: 24)
 
                 // TODO: Ganti pake logo kita
-                BrandMark()
+                BrandMark(diameter: 76)
 
                 Text(".kumpul")
                     .font(.title.weight(.semibold))

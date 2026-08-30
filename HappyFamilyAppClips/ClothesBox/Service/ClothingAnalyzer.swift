@@ -14,6 +14,7 @@ struct ClothingAnalyzer {
     enum AnalyzeError: LocalizedError {
         case unreadableImage
 
+
         var errorDescription: String? {
             switch self {
             case .unreadableImage: "Foto tidak bisa dibaca."

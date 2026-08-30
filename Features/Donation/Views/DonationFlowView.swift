@@ -8,9 +8,7 @@
 import SwiftUI
 
 struct DonationFlowView: View {
-    
     @Environment(AppRouter.self) var router
-    @State var donationVM = DonationViewModel()
 
     var body: some View {
         VStack(spacing: 32) {
@@ -35,7 +33,7 @@ struct DonationFlowView: View {
                 }
 
             case 3:
-                DropMethodView(donationVM: donationVM) {
+                DropMethodView {
                     router.currentStep = 3
                 }
 
@@ -49,4 +47,5 @@ struct DonationFlowView: View {
 #Preview {
     DonationFlowView()
         .environment(AppRouter())
+        .environment(DonationViewModel())
 }

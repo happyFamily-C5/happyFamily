@@ -12,7 +12,7 @@ struct DropMethodView: View {
     @Environment(AppRouter.self) var router
     @State private var selectedMethod: ShippingMethod?
     
-    var donationVM: DonationViewModel
+//    var donationVM: DonationViewModel
     let onNext: () -> Void
     
     var body: some View {
@@ -50,7 +50,7 @@ struct DropMethodView: View {
         }
         Spacer()
         Button{
-            
+            router.push(to: .result)
         }label: {
             Text("Lanjut")
                 .padding()
@@ -66,6 +66,6 @@ struct DropMethodView: View {
 }
 
 #Preview {
-    DropMethodView(donationVM: DonationViewModel()){}
+    DropMethodView{}
         .environment(AppRouter())
 }

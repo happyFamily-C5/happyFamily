@@ -24,7 +24,7 @@ final class AppRouter {
 }
 
 extension View {
-    func donationsRouter(_ router: AppRouter) -> some View {
+    func donationsRouter(_ router: AppRouter, donationVM: DonationViewModel) -> some View {
         self.navigationDestination(for: DonationsRouter.self) { destination in
             switch destination {
             case  .donationFlow:
@@ -34,7 +34,7 @@ extension View {
             case .openCamera:
                 ScanView()
             case .result:
-                FormView{ router.nextStep() }
+                ResultView()
             }
         }
     }

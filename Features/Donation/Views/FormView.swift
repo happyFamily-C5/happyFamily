@@ -8,16 +8,16 @@
 import SwiftUI
 
 struct FormView: View {
-    
+    @Environment(DonationViewModel.self) var donationVM
     @Environment(AppRouter.self) var router
-    @State var name: String = ""
-    @State var phoneNumber: String = ""
     @State var showNameError = false
     @State var showPhoneError = false
     
     let onNext: () -> Void
     
     var body: some View {
+        @Bindable var donationVM = donationVM
+        
         VStack(alignment: .leading, spacing: 36) {
             VStack(spacing: 16){
                 
@@ -46,7 +46,7 @@ struct FormView: View {
                 VStack(alignment: .leading, spacing: 8){
                     Text("Name")
                         .font(.body)
-                    TextField("Enter your name", text: $name)
+                    TextField("Enter your name", text: $donationVM.name)
                         .padding(20)
                         .background(Color.gray.opacity(0.2), in: RoundedRectangle(cornerRadius: 30))
                         .overlay(
@@ -65,7 +65,7 @@ struct FormView: View {
                 VStack(alignment: .leading, spacing: 8){
                     Text("Phone Number")
                         .font(.body)
-                    TextField("Active phone number", text: $phoneNumber)
+                    TextField("Active phone number", text: $donationVM.phone)
                         .keyboardType(.numberPad)
                         .padding(20)
                         .background(Color.gray.opacity(0.2), in: RoundedRectangle(cornerRadius: 30))
@@ -84,17 +84,17 @@ struct FormView: View {
             }
             Spacer()
             Button{
-                if name.isEmpty {
+                if donationVM.name.isEmpty {
                     showNameError = true
                 } else {
                     showNameError = false
                 }
-                if phoneNumber.isEmpty {
+                if donationVM.phone.isEmpty {
                     showPhoneError = true
                 } else {
                     showPhoneError = false
                 }
-                if !name.isEmpty && !phoneNumber.isEmpty {
+                if !donationVM.name.isEmpty && !donationVM.phone.isEmpty {
                     onNext()
                 }
             }label: {
@@ -110,6 +110,15 @@ struct FormView: View {
             }
             
         }
+        .onChange(of: donationVM.name) { _, newValue in
+            if !newValue.isEmpty {
+                showNameError = false
+            }
+        }.onChange(of: donationVM.phone) { _, newValue in
+            if !newValue.isEmpty {
+                showPhoneError = false
+            }
+        }
     }
 }
 
@@ -117,6 +126,7 @@ struct FormView: View {
     NavigationStack {
         FormView{}
             .environment(AppRouter())
+            .environment(DonationViewModel())
     }
     
 }

@@ -10,7 +10,7 @@ import SwiftUI
 /// The `.kumpul` spiral inside a filled disc — a garment's fibre being drawn
 /// back in rather than thrown out.
 struct BrandMark: View {
-    var diameter: CGFloat = 76
+    var diameter: CGFloat
 
     var body: some View {
         Circle()
@@ -57,6 +57,6 @@ private struct Spiral: Shape {
 #Preview {
     ZStack {
         LandingPalette.backdrop.ignoresSafeArea()
-        BrandMark()
+        BrandMark(diameter: 76)
     }
 }

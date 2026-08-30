@@ -3,6 +3,7 @@ import SwiftUI
 @main
 struct Main: App {
     @State private var router = AppRouter()
+    @State var donationVM = DonationViewModel()
 
     var body: some Scene {
         WindowGroup {
@@ -13,9 +14,10 @@ struct Main: App {
                     capacity: 250,
                     maxCapacity: 500
                 )
-                .donationsRouter(router)
+                .donationsRouter(router, donationVM: donationVM)
             }
             .environment(router)
+            .environment(donationVM)
 //            OpenCamera()
         }
     }
