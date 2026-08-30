@@ -5,13 +5,25 @@
 //  Created by binc876 on 29/08/26.
 //
 
-import Foundation
 import AVFoundation
+import Foundation
 import UIKit
 
+/// AVFoundation does not declare `AVCaptureSession` as `Sendable`, although
+/// starting and stopping this owned instance is serialized on one private queue.
+private struct CaptureSessionReference: @unchecked Sendable {
+    let value: AVCaptureSession
+}
+
+@MainActor
 final class CameraManager: NSObject {
 
     let session = AVCaptureSession()
+
+    private let sessionQueue = DispatchQueue(
+        label: "clothes-box.camera.session",
+        qos: .userInitiated
+    )
 
     private let photoOutput = AVCapturePhotoOutput()
 
@@ -32,10 +44,12 @@ final class CameraManager: NSObject {
 
             AVCaptureDevice.requestAccess(
                 for: .video
-            ) { granted in
+            ) { [weak self] granted in
 
                 if granted {
-                    self.configureAndStart()
+                    Task { @MainActor [weak self] in
+                        self?.configureAndStart()
+                    }
                 }
             }
 
@@ -49,17 +63,19 @@ final class CameraManager: NSObject {
 
     private func configureAndStart() {
 
-        DispatchQueue.global(
-            qos: .userInitiated
-        ).async {
+        configureSession()
 
-            self.configureSession()
+        let reference = CaptureSessionReference(
+            value: session
+        )
 
-            guard !self.session.isRunning else {
+        sessionQueue.async { [reference] in
+
+            guard !reference.value.isRunning else {
                 return
             }
 
-            self.session.startRunning()
+            reference.value.startRunning()
         }
     }
 
@@ -128,12 +144,14 @@ final class CameraManager: NSObject {
 
     func stopSession() {
 
-        DispatchQueue.global(
-            qos: .userInitiated
-        ).async {
+        let reference = CaptureSessionReference(
+            value: session
+        )
 
-            if self.session.isRunning {
-                self.session.stopRunning()
+        sessionQueue.async { [reference] in
+
+            if reference.value.isRunning {
+                reference.value.stopRunning()
             }
         }
     }
@@ -142,7 +160,7 @@ final class CameraManager: NSObject {
 extension CameraManager:
     AVCapturePhotoCaptureDelegate {
 
-    func photoOutput(
+    nonisolated func photoOutput(
         _ output: AVCapturePhotoOutput,
         didFinishProcessingPhoto photo: AVCapturePhoto,
         error: Error?
@@ -162,8 +180,9 @@ extension CameraManager:
             return
         }
 
-        captureCompletion?(image)
-
-        captureCompletion = nil
+        Task { @MainActor [weak self] in
+            self?.captureCompletion?(image)
+            self?.captureCompletion = nil
+        }
     }
 }

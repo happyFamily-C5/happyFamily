@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-func ButtonSheet( _ title: String, color: Color, action: @escaping () -> Void) -> some View {
+@MainActor func ButtonSheet( _ title: String, color: Color, action: @escaping () -> Void) -> some View {
     Button(action: action) {
         Text(title)
             .font(.title3.bold())
