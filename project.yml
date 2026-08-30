@@ -74,9 +74,15 @@ targets:
       - HappyFamilyAppClips
       - DesignSystem/Colors/AppColor.swift
       - Features/Home/Views/Components/MapView.swift
+      # Core + Model only. FashionModel/Scan is the main app's own scan UI and
+      # redeclares CameraPreview, ScanResultSheet and ScanResultView, which the
+      # clip already has under ClothesBox — adding the whole folder won't compile.
+      - FashionModel/Core
+      - FashionModel/Model
     info:
       path: HappyFamilyAppClips/Info.plist
       properties:
+        NSCameraUsageDescription: Kamera dipakai untuk memindai pakaian.
         NSAppClip:
           NSAppClipRequestEphemeralUserNotification: false
           NSAppClipRequestLocationConfirmation: false
@@ -119,12 +125,15 @@ targets:
           - Info.plist
       - DesignSystem/Colors/AppColor.swift
       - Features/Home/Views/Components/MapView.swift
+      - FashionModel/Core
+      - FashionModel/Model
     settings:
       base:
         ASSETCATALOG_COMPILER_APPICON_NAME: ""
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_FILE: ""
         INFOPLIST_KEY_CFBundleDisplayName: happyFamily Preview Host
+        INFOPLIST_KEY_NSCameraUsageDescription: Kamera dipakai untuk memindai pakaian.
         PRODUCT_BUNDLE_IDENTIFIER: com.academy.hendraaaa.happyFamily.PreviewHost
         SKIP_INSTALL: YES
         SWIFT_ACTIVE_COMPILATION_CONDITIONS: $(inherited) APPCLIP PREVIEW_HOST

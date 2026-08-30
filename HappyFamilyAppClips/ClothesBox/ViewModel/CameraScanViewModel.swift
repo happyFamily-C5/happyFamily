@@ -60,17 +60,23 @@ final class CameraScanViewModel {
 
         showResultSheet = true
 
+        // Inherits the main actor; `ClothingAnalyzer` hops off it for the
+        // FeaturePrint pass itself.
         Task {
 
-            let result = await analyzer.analyze(
-                image: image
-            )
+            do {
 
-            await MainActor.run {
+                analysisResult = try await analyzer.analyze(
+                    image: image
+                )
 
-                self.analysisResult = result
+                analysisState = .completed
 
-                self.analysisState = .completed
+            } catch {
+
+                analysisResult = nil
+
+                analysisState = .failed
             }
         }
     }

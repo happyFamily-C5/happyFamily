@@ -54,3 +54,21 @@ enum ScanOutcome {
     case success
     case multipleDetected
 }
+
+extension ClothingAnalysis {
+    /// `logam` and `ornamen` are separate heads sharing one display label, so the
+    /// labels are de-duplicated here rather than listing the same chip twice.
+    init(_ result: AccessoryScanResult) {
+        var labels: [String] = []
+        for finding in result.removable {
+            let label = AccessoryHead.shared.displayName(for: finding.attribute)
+            if !labels.contains(label) {
+                labels.append(label)
+            }
+        }
+        self.init(
+            detectedAccessories: labels,
+            hasMultipleItems: result.hasMultipleGarments
+        )
+    }
+}
