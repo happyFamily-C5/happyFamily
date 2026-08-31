@@ -1,0 +1,30 @@
+//
+// Local.xcconfig
+// Personal Team development on a contributor-owned iPhone.
+//
+
+#include "Base.xcconfig"
+
+// Safe defaults keep project generation and Simulator builds working before a
+// contributor creates Config/LocalOverrides.xcconfig.
+HAPPYFAMILY_LOCAL_DEVELOPMENT_TEAM =
+HAPPYFAMILY_LOCAL_BUNDLE_IDENTIFIER = com.example.happyfamily.local
+
+// This file is ignored by Git and contains each contributor's own values.
+#include? "LocalOverrides.xcconfig"
+
+APP_DISPLAY_NAME = happyFamily Local
+CODE_SIGN_STYLE = Automatic
+DEVELOPMENT_TEAM = $(HAPPYFAMILY_LOCAL_DEVELOPMENT_TEAM)
+PRODUCT_BUNDLE_IDENTIFIER = $(HAPPYFAMILY_LOCAL_BUNDLE_IDENTIFIER)
+
+SWIFT_OPTIMIZATION_LEVEL = -Onone
+SWIFT_COMPILATION_MODE = singlefile
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG LOCAL $(inherited)
+GCC_OPTIMIZATION_LEVEL = 0
+GCC_PREPROCESSOR_DEFINITIONS = DEBUG=1 LOCAL=1 $(inherited)
+
+ENABLE_TESTABILITY = YES
+ONLY_ACTIVE_ARCH = YES
+DEBUG_INFORMATION_FORMAT = dwarf
+MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE

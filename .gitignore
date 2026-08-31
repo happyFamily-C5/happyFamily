@@ -33,6 +33,7 @@ xcuserdata/
 secrets.xcconfig
 Secrets.xcconfig
 *.private.xcconfig
+Config/LocalOverrides.xcconfig
 
 # Swift Package Manager
 .build/

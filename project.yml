@@ -7,11 +7,13 @@ options:
 
 configs:
   Debug: debug
+  Local: debug
   Staging: release
   Release: release
 
 configFiles:
   Debug: Config/Debug.xcconfig
+  Local: Config/Local.xcconfig
   Staging: Config/Staging.xcconfig
   Release: Config/Release.xcconfig
 
@@ -21,6 +23,12 @@ settings:
     CODE_SIGN_STYLE: Automatic
     DEVELOPMENT_TEAM: K39QVFTK2A
     STRING_CATALOG_GENERATE_SYMBOLS: YES
+  configs:
+    Local:
+      # Resolve the Personal Team from the ignored LocalOverrides.xcconfig.
+      # Keeping this indirection here prevents the owner's team from being used
+      # when another developer builds the local-only target on a device.
+      DEVELOPMENT_TEAM: $(HAPPYFAMILY_LOCAL_DEVELOPMENT_TEAM)
 
 targets:
   happyFamily:
@@ -62,6 +70,30 @@ targets:
       testTargets:
         - happyFamilyTests
         - happyFamilyUITests
+
+  # Personal Team target for contributors who are not members of the owner's
+  # Apple Developer team. It intentionally excludes the App Clip dependency and
+  # association entitlements, which require matching paid-team App IDs.
+  happyFamilyPersonal:
+    type: application
+    platform: iOS
+    sources:
+      - App
+      - Features
+      - Core
+      - DesignSystem
+      - Resources
+      - FashionModel
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_NSCameraUsageDescription: Kamera dipakai untuk memindai pakaian.
+        INFOPLIST_KEY_NSPhotoLibraryUsageDescription: Galeri dipakai untuk memilih foto pakaian yang akan dipindai.
+      configs:
+        Local:
+          CODE_SIGN_ENTITLEMENTS: ""
+          DEVELOPMENT_TEAM: $(HAPPYFAMILY_LOCAL_DEVELOPMENT_TEAM)
+          PRODUCT_BUNDLE_IDENTIFIER: $(HAPPYFAMILY_LOCAL_BUNDLE_IDENTIFIER)
 
   HappyFamilyAppClips:
     type: application.on-demand-install-capable
@@ -163,6 +195,15 @@ targets:
       - target: happyFamily
 
 schemes:
+  happyFamily Personal:
+    build:
+      targets:
+        happyFamilyPersonal: all
+    run:
+      config: Local
+    analyze:
+      config: Local
+
   HappyFamilyPreviewHost:
     build:
       targets:
