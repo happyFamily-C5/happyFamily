@@ -38,8 +38,8 @@ struct CameraScanView: View {
         }
         .navigationBarBackButtonHidden(true)
 
-        .onAppear {
-            viewModel.startCamera()
+        .task {
+            await viewModel.startCamera()
         }
 
         .onDisappear {
@@ -122,8 +122,7 @@ private extension CameraScanView {
                 )
         } else {
             CameraPreview(
-                session:
-                    viewModel.cameraManager.session
+                session: viewModel.camera.session
             )
         }
     }
@@ -177,11 +176,9 @@ private extension CameraScanView {
             Spacer()
 
             Button {
-                // Flash action
-                // nanti kita implement
-
+                viewModel.toggleTorch()
             } label: {
-                Image(systemName: "bolt.slash.fill")
+                Image(systemName: viewModel.isTorchOn ? "bolt.fill" : "bolt.slash.fill")
                 .font(.system(size: 17))
                 .foregroundStyle(.white)
                 .frame(
@@ -246,12 +243,15 @@ private extension CameraScanView {
     var instruction: some View {
         HStack(spacing: 10) {
             Image(
-                systemName: "info.circle.fill"
+                systemName: viewModel.statusMessage == nil
+                    ? "info.circle.fill"
+                    : "exclamationmark.triangle.fill"
             )
             .font(.system(size: 22))
 
             Text(
-                "Bentangkan satu pakaian dalam bingkai."
+                viewModel.statusMessage
+                    ?? "Bentangkan satu pakaian dalam bingkai."
             )
             .font(.system(size: 12))
         }
@@ -275,7 +275,7 @@ private extension CameraScanView {
 private extension CameraScanView {
     var shutterButton: some View {
         Button {
-            viewModel.capturePhoto()
+            Task { await viewModel.capturePhoto() }
         } label: {
             Circle()
                 .fill(.white)
@@ -325,8 +325,7 @@ private extension CameraScanView {
 private extension CameraScanView {
     var switchCameraButton: some View {
         Button {
-            // nanti switch front/back camera
-
+            viewModel.flipCamera()
         } label: {
             Image(
                 systemName:

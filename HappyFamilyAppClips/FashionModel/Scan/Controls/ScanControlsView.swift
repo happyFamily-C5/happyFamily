@@ -40,9 +40,8 @@ struct ScanControlsView: View {
                     viewModel.flipCamera()
                 }
             case .reviewing, .rejected:
-                Button("Scan Lagi") { viewModel.retake() }
-                    .buttonStyle(.borderedProminent)
-                    .frame(maxWidth: .infinity)
+                // Handled by ScanResultView, which covers this panel.
+                EmptyView()
             }
         }
         .padding(.horizontal, 32)
