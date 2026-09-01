@@ -26,23 +26,14 @@ struct ScanResultSheet: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Capsule()
-                .fill(Color(white: 0.85))
-                .frame(width: 36, height: 5)
-                .padding(.top, 8)
-
             Text("Hasil Scan")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Self.heading)
-                .padding(.top, 14)
+                .padding(.top, 22)
 
             content
         }
         .frame(maxWidth: .infinity)
-        .background(
-            Color.white,
-            in: UnevenRoundedRectangle(topLeadingRadius: 24, topTrailingRadius: 24)
-        )
     }
 
     @ViewBuilder
