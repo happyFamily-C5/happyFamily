@@ -18,12 +18,10 @@ struct ScanView: View {
             stage
                 .ignoresSafeArea()
 
-            if let outcome = viewModel.outcome {
+            if viewModel.outcome != nil {
                 ScanResultView(
                     photo: viewModel.capturedImage,
-                    outcome: outcome,
-                    onClose: { viewModel.retake() },
-                    onPrimaryAction: { primaryAction(for: outcome) }
+                    onClose: { viewModel.retake() }
                 )
             } else {
                 cameraOverlay
@@ -33,6 +31,33 @@ struct ScanView: View {
         .preferredColorScheme(.dark)
         .toolbar(.hidden, for: .navigationBar)
         .navigationBarBackButtonHidden(true)
+        .sheet(isPresented: isShowingResult) {
+            if let outcome = viewModel.outcome {
+                ScanResultSheet(outcome: outcome) { primaryAction(for: outcome) }
+                    .presentationDetents([.height(Self.resultDetent), .large])
+                    .presentationDragIndicator(.visible)
+                    // Keeps the close button behind the sheet tappable at the
+                    // resting detent; without this the backdrop is inert.
+                    .presentationBackgroundInteraction(
+                        .enabled(upThrough: .height(Self.resultDetent))
+                    )
+                    .presentationBackground(.white)
+                    .environment(\.colorScheme, .light)
+            }
+        }
+    }
+
+    /// Tall enough for a finished result, short enough to leave the photo visible.
+    private static let resultDetent: CGFloat = 430
+
+    /// Swiping the sheet away means "try again", the same as the close button.
+    private var isShowingResult: Binding<Bool> {
+        Binding(
+            get: { viewModel.outcome != nil },
+            set: { presented in
+                if !presented { viewModel.retake() }
+            }
+        )
     }
 
     /// "Simpan" has nowhere to save to yet, so it just leaves the scanner.
