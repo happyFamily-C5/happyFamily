@@ -44,7 +44,7 @@ targets:
       - Core
       - DesignSystem
       - Resources
-      - FashionModel
+      - HappyFamilyAppClips/FashionModel
     entitlements:
       path: App/happyFamily.entitlements
       properties:
@@ -83,7 +83,7 @@ targets:
       - Core
       - DesignSystem
       - Resources
-      - FashionModel
+      - HappyFamilyAppClips/FashionModel
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
@@ -103,14 +103,17 @@ targets:
       Staging: Config/Staging.xcconfig
       Release: Config/Release.xcconfig
     sources:
-      - HappyFamilyAppClips
+      # FashionModel/Scan is the main app's own scan UI, reached through
+      # OpenCamera, and it redeclares CameraPreview, ScanResultSheet and
+      # ScanResultView — all of which the clip already has under ClothesBox.
+      # The clip compiles the model itself (Core + Model) and nothing else.
+      - path: HappyFamilyAppClips
+        excludes:
+          - FashionModel/Scan
+          - FashionModel/OpenCamera.swift
+          - FashionModel/Assets
       - DesignSystem/Colors/AppColor.swift
       - Features/Home/Views/Components/MapView.swift
-      # Core + Model only. FashionModel/Scan is the main app's own scan UI and
-      # redeclares CameraPreview, ScanResultSheet and ScanResultView, which the
-      # clip already has under ClothesBox — adding the whole folder won't compile.
-      - FashionModel/Core
-      - FashionModel/Model
     info:
       path: HappyFamilyAppClips/Info.plist
       properties:
@@ -155,10 +158,11 @@ targets:
           - Entitlements
           - HappyFamilyAppClipsApp.swift
           - Info.plist
+          - FashionModel/Scan
+          - FashionModel/OpenCamera.swift
+          - FashionModel/Assets
       - DesignSystem/Colors/AppColor.swift
       - Features/Home/Views/Components/MapView.swift
-      - FashionModel/Core
-      - FashionModel/Model
     settings:
       base:
         ASSETCATALOG_COMPILER_APPICON_NAME: ""
