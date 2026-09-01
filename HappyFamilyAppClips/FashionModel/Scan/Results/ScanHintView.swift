@@ -16,23 +16,9 @@ struct ScanHintView: View {
             hintRow("Bentangkan satu pakaian dalam bingkai.")
         case .analyzing:
             hintRow("Menganalisis…")
-        case .rejected:
-            VStack(spacing: 6) {
-                Text("TERDETEKSI LEBIH DARI SATU PAKAIAN")
-                    .font(.subheadline.bold())
-                    .foregroundStyle(.red)
-                Text(
-                    "Scan hanya bisa dilakukan untuk satu helai pakaian. "
-                        + "Foto ulang dengan satu baju, celana, atau rok saja — "
-                        + "pastikan memenuhi bingkai dan tidak ada pakaian lain ikut terlihat."
-                )
-                .font(.footnote)
-                .foregroundStyle(.white.opacity(0.75))
-                .multilineTextAlignment(.center)
-            }
-            .padding(.horizontal, 24)
-        case .reviewing:
-            ScanResultsSummaryView(result: viewModel.result)
+        case .reviewing, .rejected:
+            // Handled by ScanResultView, which covers this panel.
+            EmptyView()
         }
 
         if let status = viewModel.statusMessage {

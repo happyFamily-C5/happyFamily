@@ -34,6 +34,32 @@ final class ScanViewModel: ObservableObject {
     let camera = CameraSession()
     private let scanner = FeaturePrintScanner()
 
+    /// How the current phase reads in the result sheet's vocabulary.
+    /// `nil` while the camera is still the thing on screen.
+    var outcome: ScanResultSheet.Outcome? {
+        guard capturedImage != nil else { return nil }
+        switch phase {
+        case .aiming:
+            return nil
+        case .analyzing:
+            return .checking
+        case .rejected:
+            return .multipleGarments
+        case .reviewing:
+            let accessories = accessoriesToRemove
+            return accessories.isEmpty ? .success : .needsProcessing(accessories: accessories)
+        }
+    }
+
+    /// Display names of the flagged accessories, deduplicated, in scan order.
+    private var accessoriesToRemove: [String] {
+        var seen: Set<String> = []
+        return result.removable.compactMap { finding in
+            let label = AccessoryHead.shared.displayName(for: finding.attribute)
+            return seen.insert(label).inserted ? label : nil
+        }
+    }
+
     func startCamera() async {
         guard await CameraSession.requestAccess() else {
             statusMessage = "Izin kamera ditolak. Aktifkan di Settings, atau pilih foto dari galeri."
@@ -55,14 +81,20 @@ final class ScanViewModel: ObservableObject {
             await analyze(photo)
         } catch {
             statusMessage = error.localizedDescription
-            phase = .aiming
+            returnToAiming()
         }
     }
 
     func retake() {
+        statusMessage = nil
+        returnToAiming()
+    }
+
+    /// Back to the viewfinder, leaving `statusMessage` alone — a failing caller
+    /// has just set it, and the hint panel is where it gets read.
+    private func returnToAiming() {
         capturedImage = nil
         result = .empty
-        statusMessage = nil
         phase = .aiming
         camera.start()
     }
@@ -97,7 +129,7 @@ final class ScanViewModel: ObservableObject {
 
         guard let cgImage = normalized.cgImage else {
             statusMessage = "Foto tidak bisa dibaca."
-            phase = .aiming
+            returnToAiming()
             return
         }
         let scanner = self.scanner
@@ -112,7 +144,7 @@ final class ScanViewModel: ObservableObject {
             phase = scanned.hasMultipleGarments ? .rejected : .reviewing
         case let .failure(error):
             statusMessage = "Gagal memproses foto: \(error)"
-            phase = .aiming
+            returnToAiming()
         }
     }
 }

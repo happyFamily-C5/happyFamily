@@ -12,8 +12,9 @@ import UIKit
 @Observable
 final class CameraScanViewModel {
 
-    let cameraManager = CameraManager()
-    let analyzer = ClothingAnalyzer()
+    let camera = CameraSession()
+
+    private let analyzer = ClothingAnalyzer()
 
     var capturedImage: UIImage?
 
@@ -23,6 +24,12 @@ final class CameraScanViewModel {
 
     var analysisResult: ClothingAnalysis?
 
+    /// Permission and hardware problems, shown over the preview. Analysis
+    /// failures are not routed here — the result sheet reports those itself.
+    var statusMessage: String?
+
+    var isTorchOn = false
+
     enum AnalysisState {
         case idle
         case analyzing
@@ -30,28 +37,47 @@ final class CameraScanViewModel {
         case failed
     }
 
-    func startCamera() {
-        cameraManager.requestPermissionAndStart()
-    }
-
-    func stopCamera() {
-        cameraManager.stopSession()
-    }
-
-    func capturePhoto() {
-        cameraManager.capturePhoto { [weak self] image in
-
-            guard let self else {
-                return
-            }
-
-            Task { @MainActor in
-                self.processImage(image)
-            }
+    func startCamera() async {
+        guard await CameraSession.requestAccess() else {
+            statusMessage = "Izin kamera ditolak. Aktifkan di Settings, atau pilih foto dari galeri."
+            return
+        }
+        do {
+            try camera.configure()
+            camera.start()
+            statusMessage = nil
+        } catch {
+            statusMessage = error.localizedDescription
         }
     }
 
-    func processImage(_ image: UIImage) {
+    func stopCamera() {
+        camera.stop()
+    }
+
+    func capturePhoto() async {
+        do {
+            await processImage(try await camera.capturePhoto())
+        } catch {
+            statusMessage = error.localizedDescription
+        }
+    }
+
+    func toggleTorch() {
+        isTorchOn.toggle()
+        camera.setTorch(on: isTorchOn)
+    }
+
+    func flipCamera() {
+        do {
+            try camera.flipCamera()
+            isTorchOn = false
+        } catch {
+            statusMessage = error.localizedDescription
+        }
+    }
+
+    func processImage(_ image: UIImage) async {
 
         capturedImage = image
 
@@ -60,29 +86,21 @@ final class CameraScanViewModel {
 
         showResultSheet = true
 
-        // Inherits the main actor; `ClothingAnalyzer` hops off it for the
-        // FeaturePrint pass itself.
-        Task {
+        // The still frame is on screen behind the sheet from here on, so the
+        // preview has nothing left to show until the user scans again.
+        camera.stop()
 
-            do {
-
-                analysisResult = try await analyzer.analyze(
-                    image: image
-                )
-
-                analysisState = .completed
-
-            } catch {
-
-                analysisResult = nil
-
-                analysisState = .failed
-            }
+        do {
+            analysisResult = try await analyzer.analyze(image: image)
+            analysisState = .completed
+        } catch {
+            analysisResult = nil
+            analysisState = .failed
         }
     }
 
     func selectPhoto(_ image: UIImage) {
-        processImage(image)
+        Task { await processImage(image) }
     }
 
     func retry() {
@@ -90,5 +108,6 @@ final class CameraScanViewModel {
         analysisResult = nil
         analysisState = .idle
         showResultSheet = false
+        camera.start()
     }
 }
