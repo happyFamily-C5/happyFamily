@@ -18,18 +18,15 @@ struct ScanView: View {
             stage
                 .ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                topBar
-
-                Spacer(minLength: 0)
-
-                if viewModel.phase == .aiming {
-                    ClothingFrameOverlay(image: Self.clothingFrameImage)
-                }
-
-                Spacer(minLength: 0)
-
-                bottomPanel
+            if let outcome = viewModel.outcome {
+                ScanResultView(
+                    photo: viewModel.capturedImage,
+                    outcome: outcome,
+                    onClose: { viewModel.retake() },
+                    onPrimaryAction: { primaryAction(for: outcome) }
+                )
+            } else {
+                cameraOverlay
             }
         }
         .task { await viewModel.startCamera() }
@@ -38,17 +35,28 @@ struct ScanView: View {
         .navigationBarBackButtonHidden(true)
     }
 
+    /// "Simpan" has nowhere to save to yet, so it just leaves the scanner.
+    private func primaryAction(for outcome: ScanResultSheet.Outcome) {
+        switch outcome {
+        case .success:
+            dismiss()
+        case .needsProcessing, .multipleGarments:
+            viewModel.retake()
+        case .checking:
+            break
+        }
+    }
+
     private var stage: some View {
         ZStack {
-            switch viewModel.phase {
-            case .aiming:
+            if let image = viewModel.capturedImage {
+                Image(uiImage: image).resizable().scaledToFill()
+            } else {
                 CameraPreview(session: viewModel.camera.session)
-            case .analyzing, .reviewing, .rejected:
-                if let image = viewModel.capturedImage {
-                    Image(uiImage: image).resizable().scaledToFill()
-                }
             }
-            if viewModel.phase == .analyzing {
+
+            // Only until the shutter returns — after that the sheet does the waiting.
+            if viewModel.phase == .analyzing, viewModel.capturedImage == nil {
                 ProgressView().tint(.white).scaleEffect(1.4)
             }
         }
@@ -56,14 +64,28 @@ struct ScanView: View {
         .clipped()
     }
 
+    private var cameraOverlay: some View {
+        VStack(spacing: 0) {
+            topBar
+
+            Spacer(minLength: 0)
+
+            if viewModel.phase == .aiming {
+                ClothingFrameOverlay(image: Self.clothingFrameImage)
+            }
+
+            Spacer(minLength: 0)
+
+            bottomPanel
+        }
+    }
+
     private var topBar: some View {
         HStack {
             CircleIconButton(systemImage: "chevron.left") { dismiss() }
             Spacer()
-            if viewModel.phase == .aiming || viewModel.phase == .analyzing {
-                CircleIconButton(systemImage: viewModel.isTorchOn ? "bolt.fill" : "bolt.slash.fill") {
-                    viewModel.toggleTorch()
-                }
+            CircleIconButton(systemImage: viewModel.isTorchOn ? "bolt.fill" : "bolt.slash.fill") {
+                viewModel.toggleTorch()
             }
         }
         .padding(.horizontal, 16)

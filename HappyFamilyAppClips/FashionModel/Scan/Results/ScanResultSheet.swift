@@ -12,6 +12,7 @@ struct ScanResultSheet: View {
         case checking
         case success
         case needsProcessing(accessories: [String])
+        case multipleGarments
     }
 
     let outcome: Outcome
@@ -53,6 +54,8 @@ struct ScanResultSheet: View {
             success
         case let .needsProcessing(accessories):
             needsProcessing(accessories)
+        case .multipleGarments:
+            multipleGarments
         }
     }
 
@@ -99,19 +102,25 @@ struct ScanResultSheet: View {
         }
     }
 
-    private func needsProcessing(_ accessories: [String]) -> some View {
+    private func rejectionHeading(_ title: String) -> some View {
         VStack(spacing: 0) {
             Image(systemName: "xmark.circle.fill")
                 .font(.system(size: 62))
                 .foregroundStyle(.red)
                 .padding(.top, 36)
 
-            Text("Pakaian Butuh Diproses Lagi")
+            Text(title)
                 .font(.system(size: 19, weight: .bold))
                 .foregroundStyle(Self.heading)
                 .multilineTextAlignment(.center)
                 .padding(.top, 20)
                 .padding(.horizontal, 32)
+        }
+    }
+
+    private func needsProcessing(_ accessories: [String]) -> some View {
+        VStack(spacing: 0) {
+            rejectionHeading("Pakaian Butuh Diproses Lagi")
 
             Text("Lepaskan aksesoris berikut:")
                 .font(.subheadline)
@@ -123,6 +132,26 @@ struct ScanResultSheet: View {
             }
             .padding(.top, 16)
             .padding(.horizontal, 24)
+
+            primaryButton("Foto Ulang")
+                .padding(.top, 26)
+        }
+    }
+
+    private var multipleGarments: some View {
+        VStack(spacing: 0) {
+            rejectionHeading("Terdeteksi Lebih dari Satu Pakaian")
+
+            Text(
+                "Scan hanya bisa dilakukan untuk satu helai pakaian. "
+                    + "Foto ulang dengan satu baju, celana, atau rok saja — "
+                    + "pastikan memenuhi bingkai."
+            )
+            .font(.subheadline)
+            .foregroundStyle(Self.secondary)
+            .multilineTextAlignment(.center)
+            .padding(.top, 14)
+            .padding(.horizontal, 32)
 
             primaryButton("Foto Ulang")
                 .padding(.top, 26)
@@ -153,4 +182,8 @@ struct ScanResultSheet: View {
 
 #Preview("Butuh Diproses") {
     ScanResultSheet(outcome: .needsProcessing(accessories: ["Kancing", "Tag", "Resleting"]))
+}
+
+#Preview("Lebih dari Satu") {
+    ScanResultSheet(outcome: .multipleGarments)
 }
