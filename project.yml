@@ -44,7 +44,6 @@ targets:
       - Core
       - DesignSystem
       - Resources
-      - HappyFamilyAppClips/FashionModel
     entitlements:
       path: App/happyFamily.entitlements
       properties:
@@ -87,7 +86,6 @@ targets:
       - Core
       - DesignSystem
       - Resources
-      - HappyFamilyAppClips/FashionModel
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
@@ -107,17 +105,17 @@ targets:
       Staging: Config/Staging.xcconfig
       Release: Config/Release.xcconfig
     sources:
-      # FashionModel/Scan is the main app's own scan UI, reached through
-      # OpenCamera, and it redeclares CameraPreview, ScanResultSheet and
-      # ScanResultView — all of which the clip already has under ClothesBox.
-      # The clip compiles the model itself (Core + Model) and nothing else.
+      # DesingSystem/Colors/AppColor.swift is a byte-identical copy of the
+      # DesignSystem file referenced below. Two sources with the same filename
+      # in one module is a hard compiler error, so only the shared one is built.
+      #
+      # The old FashionModel/Scan excludes are gone: ClothesBox (which they
+      # avoided colliding with) was replaced by Features/FashionModel/Scan,
+      # so the clip now builds that scan UI as its own.
       - path: HappyFamilyAppClips
         excludes:
-          - FashionModel/Scan
-          - FashionModel/OpenCamera.swift
-          - FashionModel/Assets
+          - DesingSystem
       - DesignSystem/Colors/AppColor.swift
-      - Features/Home/Views/Components/MapView.swift
     info:
       path: HappyFamilyAppClips/Info.plist
       properties:
@@ -163,14 +161,11 @@ targets:
       - PreviewHost
       - path: HappyFamilyAppClips
         excludes:
-          - Entitlements
-          - HappyFamilyAppClipsApp.swift
+          - DesingSystem
+          - App/Entitlements
+          - App/HappyFamilyAppClipsApp.swift
           - Info.plist
-          - FashionModel/Scan
-          - FashionModel/OpenCamera.swift
-          - FashionModel/Assets
       - DesignSystem/Colors/AppColor.swift
-      - Features/Home/Views/Components/MapView.swift
     settings:
       base:
         ASSETCATALOG_COMPILER_APPICON_NAME: ""
