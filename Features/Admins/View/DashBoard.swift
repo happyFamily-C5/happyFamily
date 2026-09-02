@@ -59,7 +59,9 @@ struct DashBoard: View {
                         ActiveEvent()
                             .frame(height: 132)
 
-                        DonationRecapCanvas(recap: .mock)
+                        RecapCard(isDataEmpty: true) {
+                            print("Recap card tapped")
+                        }
                     }
                     .padding(.top, 48)
                     .padding(.bottom, 40)
