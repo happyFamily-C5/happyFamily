@@ -98,6 +98,9 @@ struct LocationPickerView: View {
                 selectedAddress: $selectedAddress,
                 selectedCoordinate: $selectedCoordinate
             )
+            // Swiping the map down used to dismiss the picker, which is easy to
+            // trigger by accident while panning. Leaving is the back button's job.
+            .interactiveDismissDisabled()
         }
     }
 }
@@ -229,14 +232,6 @@ struct MainMapPickerView: View {
                     VStack {
                         Spacer()
                         VStack(alignment: .leading, spacing: 16) {
-                            HStack {
-                                Spacer()
-                                Capsule()
-                                    .fill(Color(.systemGray3))
-                                    .frame(width: 36, height: 4)
-                                Spacer()
-                            }
-                            
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Lokasi Event")
                                     .font(.system(size: 18, weight: .bold))
