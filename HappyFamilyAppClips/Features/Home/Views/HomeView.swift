@@ -23,7 +23,8 @@ struct HomeView: View {
                 // MARK: - Banner
 
                 ScrollView(showsIndicators: true) {
-                    BannerEvent(image: .none)
+                    BannerEvent(image: Image("Image 2"))
+                        .clipShape(RoundedRectangle(cornerRadius: 40))
                         .ignoresSafeArea()
 
                     // MARK: - Event Information
