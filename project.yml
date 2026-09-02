@@ -7,11 +7,13 @@ options:
 
 configs:
   Debug: debug
+  Local: debug
   Staging: release
   Release: release
 
 configFiles:
   Debug: Config/Debug.xcconfig
+  Local: Config/Local.xcconfig
   Staging: Config/Staging.xcconfig
   Release: Config/Release.xcconfig
 
@@ -21,6 +23,12 @@ settings:
     CODE_SIGN_STYLE: Automatic
     DEVELOPMENT_TEAM: K39QVFTK2A
     STRING_CATALOG_GENERATE_SYMBOLS: YES
+  configs:
+    Local:
+      # Resolve the Personal Team from the ignored LocalOverrides.xcconfig.
+      # Keeping this indirection here prevents the owner's team from being used
+      # when another developer builds the local-only target on a device.
+      DEVELOPMENT_TEAM: $(HAPPYFAMILY_LOCAL_DEVELOPMENT_TEAM)
 
 targets:
   happyFamily:
@@ -36,9 +44,17 @@ targets:
       - Core
       - DesignSystem
       - Resources
+    entitlements:
+      path: App/happyFamily.entitlements
+      properties:
+        com.apple.developer.associated-appclip-app-identifiers:
+          - $(AppIdentifierPrefix)$(APP_CLIP_BUNDLE_IDENTIFIER)
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
+        INFOPLIST_KEY_NSCameraUsageDescription: Kamera dipakai untuk memindai pakaian.
+        INFOPLIST_KEY_NSPhotoLibraryUsageDescription: Galeri dipakai untuk memilih foto pakaian yang akan dipindai.
       configs:
         Debug:
           # Fully resolved IDs — custom vars like $(APP_CLIP_BUNDLE_IDENTIFIER) are NOT
@@ -47,13 +63,39 @@ targets:
         Staging:
           CODE_SIGN_ENTITLEMENTS: App/Entitlements/Staging.entitlements
         Release:
+          CODE_SIGN_IDENTITY: Apple Distribution
+          CODE_SIGN_STYLE: Manual
           CODE_SIGN_ENTITLEMENTS: App/Entitlements/Release.entitlements
+          PROVISIONING_PROFILE_SPECIFIER: happyFamily App Store Associated Domains 2026-09-01
     dependencies:
       - target: HappyFamilyAppClips
     scheme:
       testTargets:
         - happyFamilyTests
         - happyFamilyUITests
+
+  # Personal Team target for contributors who are not members of the owner's
+  # Apple Developer team. It intentionally excludes the App Clip dependency and
+  # association entitlements, which require matching paid-team App IDs.
+  happyFamilyPersonal:
+    type: application
+    platform: iOS
+    sources:
+      - App
+      - Features
+      - Core
+      - DesignSystem
+      - Resources
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_NSCameraUsageDescription: Kamera dipakai untuk memindai pakaian.
+        INFOPLIST_KEY_NSPhotoLibraryUsageDescription: Galeri dipakai untuk memilih foto pakaian yang akan dipindai.
+      configs:
+        Local:
+          CODE_SIGN_ENTITLEMENTS: ""
+          DEVELOPMENT_TEAM: $(HAPPYFAMILY_LOCAL_DEVELOPMENT_TEAM)
+          PRODUCT_BUNDLE_IDENTIFIER: $(HAPPYFAMILY_LOCAL_BUNDLE_IDENTIFIER)
 
   HappyFamilyAppClips:
     type: application.on-demand-install-capable
@@ -63,11 +105,22 @@ targets:
       Staging: Config/Staging.xcconfig
       Release: Config/Release.xcconfig
     sources:
-      - HappyFamilyAppClips
+      # DesingSystem/Colors/AppColor.swift is a byte-identical copy of the
+      # DesignSystem file referenced below. Two sources with the same filename
+      # in one module is a hard compiler error, so only the shared one is built.
+      #
+      # The old FashionModel/Scan excludes are gone: ClothesBox (which they
+      # avoided colliding with) was replaced by Features/FashionModel/Scan,
+      # so the clip now builds that scan UI as its own.
+      - path: HappyFamilyAppClips
+        excludes:
+          - DesingSystem
       - DesignSystem/Colors/AppColor.swift
     info:
       path: HappyFamilyAppClips/Info.plist
       properties:
+        ITSAppUsesNonExemptEncryption: false
+        NSCameraUsageDescription: Kamera dipakai untuk memindai pakaian.
         NSAppClip:
           NSAppClipRequestEphemeralUserNotification: false
           NSAppClipRequestLocationConfirmation: false
@@ -89,8 +142,40 @@ targets:
           CODE_SIGN_ENTITLEMENTS: HappyFamilyAppClips/Entitlements/Staging.entitlements
           PRODUCT_BUNDLE_IDENTIFIER: com.academy.hendraaaa.happyFamily.staging.Clip
         Release:
+          CODE_SIGN_IDENTITY: Apple Distribution
+          CODE_SIGN_STYLE: Manual
           CODE_SIGN_ENTITLEMENTS: HappyFamilyAppClips/Entitlements/Release.entitlements
           PRODUCT_BUNDLE_IDENTIFIER: com.academy.hendraaaa.happyFamily.Clip
+          PROVISIONING_PROFILE_SPECIFIER: happyFamily Clip App Store Associated Domains 2026-09-01
+
+  # App Clip executables cannot use Xcode's JIT preview executor directly.
+  # This normal app target hosts the same UI sources for canvas previews only.
+  HappyFamilyPreviewHost:
+    type: application
+    platform: iOS
+    configFiles:
+      Debug: Config/Debug.xcconfig
+      Staging: Config/Staging.xcconfig
+      Release: Config/Release.xcconfig
+    sources:
+      - PreviewHost
+      - path: HappyFamilyAppClips
+        excludes:
+          - DesingSystem
+          - App/Entitlements
+          - App/HappyFamilyAppClipsApp.swift
+          - Info.plist
+      - DesignSystem/Colors/AppColor.swift
+    settings:
+      base:
+        ASSETCATALOG_COMPILER_APPICON_NAME: ""
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: ""
+        INFOPLIST_KEY_CFBundleDisplayName: happyFamily Preview Host
+        INFOPLIST_KEY_NSCameraUsageDescription: Kamera dipakai untuk memindai pakaian.
+        PRODUCT_BUNDLE_IDENTIFIER: com.academy.hendraaaa.happyFamily.PreviewHost
+        SKIP_INSTALL: YES
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: $(inherited) APPCLIP PREVIEW_HOST
 
   happyFamilyTests:
     type: bundle.unit-test
@@ -117,6 +202,22 @@ targets:
       - target: happyFamily
 
 schemes:
+  happyFamily Personal:
+    build:
+      targets:
+        happyFamilyPersonal: all
+    run:
+      config: Local
+    analyze:
+      config: Local
+
+  HappyFamilyPreviewHost:
+    build:
+      targets:
+        HappyFamilyPreviewHost: all
+    run:
+      config: Debug
+
   HappyFamilyAppClips:
     build:
       targets:

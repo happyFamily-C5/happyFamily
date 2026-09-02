@@ -4,7 +4,11 @@
 <dict>
 	<key>com.apple.developer.associated-appclip-app-identifiers</key>
 	<array>
-		<string>$(AppIdentifierPrefix)com.academy.hendraaaa.happyFamily.Clip</string>
+		<string>K39QVFTK2A.com.academy.hendraaaa.happyFamily.Clip</string>
+	</array>
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>appclips:happyfamily-appclip-site.vercel.app</string>
 	</array>
 </dict>
 </plist>

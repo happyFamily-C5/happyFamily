@@ -25,10 +25,7 @@ struct BannerEvent: View {
                     .foregroundStyle(AppColor.baseColor)
             }
         }
-        .frame(maxWidth: .infinity)
-        .frame(height: 300)
-//        .aspectRatio(4 / 3, contentMode: .fit)
-        .clipShape(RoundedRectangle(cornerRadius: 40))
+        .aspectRatio(4 / 3, contentMode: .fit)
     }
 }
 

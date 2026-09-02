@@ -9,21 +9,23 @@ import MapKit
 import SwiftUI
 
 struct HomeView: View {
-    @State var isPressed = false
+    @State private var isPressed = false
 
-    var title: String
-    var manager: String
-    var capacity: Int
-    var maxCapacity: Int
+    @Environment(AppRouter.self) private var router
+
+    let title: String
+    let manager: String
+    let capacity: Int
+    let maxCapacity: Int
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            ScrollView {
-                VStack(spacing: 16) {
-                    // MARK: - Banner
+            VStack(spacing: 16) {
+                // MARK: - Banner
 
+                ScrollView(showsIndicators: true) {
                     BannerEvent(image: .none)
-                        .ignoresSafeArea(edges: .top)
+                        .ignoresSafeArea()
 
                     // MARK: - Event Information
 
@@ -31,7 +33,7 @@ struct HomeView: View {
                         HStack(alignment: .top) {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(title)
-                                    .font(Font.title.bold())
+                                    .font(.title.bold())
 
                                 Text(manager)
                                     .font(.headline)
@@ -40,9 +42,7 @@ struct HomeView: View {
                             Spacer()
 
                             HStack(spacing: 16) {
-                                Button {
-                                    // action
-                                } label: {
+                                Button {} label: {
                                     Image(systemName: "square.and.arrow.up")
                                         .font(.system(size: 24))
                                 }
@@ -105,42 +105,30 @@ struct HomeView: View {
                     }
                     .padding(.horizontal, 20)
                 }
-            }
-            .ignoresSafeArea(edges: .top)
 
-            // MARK: - Tab-bar-style floating button
+                // MARK: - Tab-bar-style floating button
 
-            VStack(spacing: 0) {
-                Button {
-                    // Send clothes action
-                } label: {
-                    Text("Send My Clothes")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
+                VStack {
+                    Button {
+                        router.push(to: .donationForm)
+                    } label: {
+                        Text("Send My Clothes")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .padding(.horizontal, 20)
                 }
-                .buttonStyle(.borderedProminent)
-                .padding(.horizontal, 20)
-                .padding(.top, 12)
-                .padding(.bottom, 20)
+                .padding(.vertical, 24)
             }
-            .background(.bar)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .ignoresSafeArea()
 
-//        Button {
-//            // Send clothes action
-//        } label: {
-//            Text("Send My Clothes")
-//                .font(.headline)
-//                .frame(maxWidth: .infinity)
-//                .padding(.vertical, 8)
-//        }
-//        .padding(.horizontal, 20)
-//        .padding(.vertical)
-//        .background(.bar)
-//        .buttonStyle(.borderedProminent)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .ignoresSafeArea()
+        }
+        .toolbar(.hidden, for: .navigationBar)
+        .toolbarBackground(.hidden, for: .navigationBar)
     }
 }
 
@@ -151,4 +139,5 @@ struct HomeView: View {
         capacity: 250,
         maxCapacity: 500
     )
+    .environment(AppRouter())
 }

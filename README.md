@@ -1,7 +1,7 @@
 # 👨‍👩‍👧‍👦 happyFamily
 
-[![iOS 17.0+](https://img.shields.io/badge/iOS-17.0%2B-blue.svg?style=flat&logo=apple)](https://developer.apple.com/ios/)
-[![Swift 5.10](https://img.shields.io/badge/Swift-5.10-orange.svg?style=flat&logo=swift)](https://swift.org)
+[![iOS 26.0+](https://img.shields.io/badge/iOS-26.0%2B-blue.svg?style=flat&logo=apple)](https://developer.apple.com/ios/)
+[![Swift 6](https://img.shields.io/badge/Swift-6-orange.svg?style=flat&logo=swift)](https://swift.org)
 [![XcodeGen](https://img.shields.io/badge/XcodeGen-spec-brightgreen.svg?style=flat)](https://github.com/yonaskolb/XcodeGen)
 [![Fastlane](https://img.shields.io/badge/Fastlane-ready-red.svg?style=flat&logo=fastlane)](https://fastlane.tools)
 [![SwiftLint](https://img.shields.io/badge/SwiftLint-integrated-yellow.svg?style=flat)](https://github.com/realm/SwiftLint)
@@ -18,7 +18,7 @@ happyFamily/
 ├── Features/           # Feature-specific modules and UI screens
 ├── Core/               # Core models, utilities, services, and networking
 ├── DesignSystem/       # Shared UI components, colors, and design tokens
-├── Config/             # Environment xcconfigs (Base, Debug, Staging, Release)
+├── Config/             # Environment xcconfigs (Base, Local, Debug, Staging, Release)
 ├── Resources/          # Assets, icons, fonts, and localization files
 ├── Tests/              # Unit test suites
 ├── UITests/            # UI test suites
@@ -35,7 +35,7 @@ happyFamily/
 ## 🛠️ Prerequisites & Tools
 
 Ensure you have the following installed on your macOS machine:
-- **macOS Sonoma / Sequoia** with **Xcode 15+** (iOS 17+ SDK)
+- **Xcode 26+** with the **iOS 26+ SDK**
 - **Homebrew**:
   ```bash
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -51,7 +51,7 @@ Ensure you have the following installed on your macOS machine:
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### 1. Generate Xcode Project
 Since this project uses [XcodeGen](https://github.com/yonaskolb/XcodeGen), the `.xcodeproj` file is generated from `project.yml`:
@@ -65,19 +65,43 @@ open happyFamily.xcodeproj
 
 ---
 
-## ⚙️ Build Configurations & Environments
+## Build Configurations & Environments
 
 The project provides dedicated build configurations managed through `.xcconfig` files in the `Config/` directory:
 
 | Environment | Configuration | Bundle Identifier | Description |
 |---|---|---|---|
+| **Personal Team** | `Local` | Set per developer | Local iPhone development without the official App Clip/signing team |
 | **Debug** | `Debug` | `com.academy.hendraaaa.happyFamily.debug` | Local development with debug symbols |
 | **Staging** | `Staging` | `com.academy.hendraaaa.happyFamily.staging` | Internal QA and TestFlight staging builds |
 | **Release** | `Release` | `com.academy.hendraaaa.happyFamily` | Production App Store & TestFlight builds |
 
+### Personal Team setup
+
+Contributors who are not members of the official Apple Developer team can run
+the main app on their own iPhone with Xcode's free Personal Team provisioning:
+
+```bash
+cp Config/LocalOverrides.xcconfig.example Config/LocalOverrides.xcconfig
+open Config/LocalOverrides.xcconfig
+xcodegen generate
+open happyFamily.xcodeproj
+```
+
+Replace both placeholder values in `LocalOverrides.xcconfig`, then select the
+`happyFamily Personal` scheme and the contributor's iPhone. If the Personal
+Team ID is not known yet, select the Personal Team once under the
+`happyFamilyPersonal` target's Signing & Capabilities settings, then copy the
+resulting `DEVELOPMENT_TEAM` value into the local override before regenerating.
+
+The Personal Team target intentionally excludes the App Clip and its association
+entitlements. Use the official Debug/Staging/Release targets for App Clip,
+TestFlight, and release validation. Never commit `LocalOverrides.xcconfig`, a
+certificate, provisioning profile, or Apple Account credential.
+
 ---
 
-## 🧹 Code Quality & Linting
+## Code Quality & Linting
 
 Format and validate your Swift code before committing:
 
@@ -91,7 +115,7 @@ bundle exec fastlane format
 
 ---
 
-## 🚢 Fastlane & CI/CD Pipelines
+## Fastlane & CI/CD Pipelines
 
 ### Fastlane Lanes
 - **Lint & Format**: `bundle exec fastlane lint` / `bundle exec fastlane format`
