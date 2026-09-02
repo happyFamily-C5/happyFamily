@@ -2,8 +2,10 @@ import SwiftUI
 
 @MainActor
 struct DonationCapacityCardView: View {
-    @Binding var selectedCapacity: Int //  kg (10, 20, 30, ..., 100)
+    @Binding var selectedCapacity: Int // kg (10, 20, ..., 100, 200, 300, 400, 500)
     @State private var isPickerOpen: Bool = false
+    
+    private let capacityOptions = Array(stride(from: 10, through: 100, by: 10)) + [200, 300, 400, 500]
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -44,13 +46,13 @@ struct DonationCapacityCardView: View {
                 }
                 .buttonStyle(PlainButtonStyle())
                 
-                // Wheel Picker Angka Kelipatan 10 (10 kg sampai 100 kg)
+                // Wheel Picker: 10-100 kg, lalu 200-500 kg
                 if isPickerOpen {
                     Divider()
                         .padding(.horizontal, 16)
                     
                     Picker("Kapasitas", selection: $selectedCapacity) {
-                        ForEach(Array(stride(from: 10, through: 100, by: 10)), id: \.self) { amount in
+                        ForEach(capacityOptions, id: \.self) { amount in
                             Text("\(amount) kg").tag(amount)
                         }
                     }

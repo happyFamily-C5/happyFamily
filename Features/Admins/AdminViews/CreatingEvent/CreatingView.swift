@@ -51,7 +51,7 @@ struct CreatingView: View {
         "Poliester"
     ]
     @State private var selectedCategories: Set<String> = []
-    @State private var donationCapacity: Int = 5 // Default kapasitas donasi (1 - 10 kg)
+    @State private var donationCapacity: Int = 10
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -324,7 +324,7 @@ struct CreatingView: View {
             .padding(.horizontal, 20)
             
             // Grid Tag Chip Kategori
-            FlowLayout(spacing: 10) {
+            AdminFlowLayout(spacing: 10) {
                 ForEach(availableCategories, id: \.self) { category in
                     let isSelected = selectedCategories.contains(category)
                     
