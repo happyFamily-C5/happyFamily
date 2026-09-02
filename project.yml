@@ -44,7 +44,6 @@ targets:
       - Core
       - DesignSystem
       - Resources
-      - HappyFamilyAppClips/FashionModel
     entitlements:
       path: App/happyFamily.entitlements
       properties:
@@ -83,7 +82,6 @@ targets:
       - Core
       - DesignSystem
       - Resources
-      - HappyFamilyAppClips/FashionModel
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
@@ -113,7 +111,6 @@ targets:
           - FashionModel/OpenCamera.swift
           - FashionModel/Assets
       - DesignSystem/Colors/AppColor.swift
-      - Features/Home/Views/Components/MapView.swift
     info:
       path: HappyFamilyAppClips/Info.plist
       properties:
@@ -162,7 +159,6 @@ targets:
           - FashionModel/OpenCamera.swift
           - FashionModel/Assets
       - DesignSystem/Colors/AppColor.swift
-      - Features/Home/Views/Components/MapView.swift
     settings:
       base:
         ASSETCATALOG_COMPILER_APPICON_NAME: ""
