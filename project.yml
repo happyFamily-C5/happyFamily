@@ -45,14 +45,10 @@ targets:
       - DesignSystem
       - Resources
       - FashionModel
-    entitlements:
-      path: App/happyFamily.entitlements
-      properties:
-        com.apple.developer.associated-appclip-app-identifiers:
-          - $(AppIdentifierPrefix)$(APP_CLIP_BUNDLE_IDENTIFIER)
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
         INFOPLIST_KEY_NSCameraUsageDescription: Kamera dipakai untuk memindai pakaian.
         INFOPLIST_KEY_NSPhotoLibraryUsageDescription: Galeri dipakai untuk memilih foto pakaian yang akan dipindai.
       configs:
@@ -63,7 +59,10 @@ targets:
         Staging:
           CODE_SIGN_ENTITLEMENTS: App/Entitlements/Staging.entitlements
         Release:
+          CODE_SIGN_IDENTITY: Apple Distribution
+          CODE_SIGN_STYLE: Manual
           CODE_SIGN_ENTITLEMENTS: App/Entitlements/Release.entitlements
+          PROVISIONING_PROFILE_SPECIFIER: happyFamily App Store Associated Domains 2026-09-01
     dependencies:
       - target: HappyFamilyAppClips
     scheme:
@@ -114,6 +113,7 @@ targets:
     info:
       path: HappyFamilyAppClips/Info.plist
       properties:
+        ITSAppUsesNonExemptEncryption: false
         NSCameraUsageDescription: Kamera dipakai untuk memindai pakaian.
         NSAppClip:
           NSAppClipRequestEphemeralUserNotification: false
@@ -136,8 +136,11 @@ targets:
           CODE_SIGN_ENTITLEMENTS: HappyFamilyAppClips/Entitlements/Staging.entitlements
           PRODUCT_BUNDLE_IDENTIFIER: com.academy.hendraaaa.happyFamily.staging.Clip
         Release:
+          CODE_SIGN_IDENTITY: Apple Distribution
+          CODE_SIGN_STYLE: Manual
           CODE_SIGN_ENTITLEMENTS: HappyFamilyAppClips/Entitlements/Release.entitlements
           PRODUCT_BUNDLE_IDENTIFIER: com.academy.hendraaaa.happyFamily.Clip
+          PROVISIONING_PROFILE_SPECIFIER: happyFamily Clip App Store Associated Domains 2026-09-01
 
   # App Clip executables cannot use Xcode's JIT preview executor directly.
   # This normal app target hosts the same UI sources for canvas previews only.

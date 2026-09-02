@@ -6,5 +6,9 @@
 	<array>
 		<string>$(AppIdentifierPrefix)com.academy.hendraaaa.happyFamily.staging.Clip</string>
 	</array>
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>appclips:happyfamily-appclip-site.vercel.app</string>
+	</array>
 </dict>
 </plist>
