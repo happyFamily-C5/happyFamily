@@ -41,6 +41,7 @@ targets:
     sources:
       - App
       - Features
+      - Core
       - DesignSystem
       - Resources
     entitlements:
@@ -51,6 +52,7 @@ targets:
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
         INFOPLIST_KEY_NSCameraUsageDescription: Kamera dipakai untuk memindai pakaian.
         INFOPLIST_KEY_NSPhotoLibraryUsageDescription: Galeri dipakai untuk memilih foto pakaian yang akan dipindai.
       configs:
@@ -61,7 +63,10 @@ targets:
         Staging:
           CODE_SIGN_ENTITLEMENTS: App/Entitlements/Staging.entitlements
         Release:
+          CODE_SIGN_IDENTITY: Apple Distribution
+          CODE_SIGN_STYLE: Manual
           CODE_SIGN_ENTITLEMENTS: App/Entitlements/Release.entitlements
+          PROVISIONING_PROFILE_SPECIFIER: happyFamily App Store Associated Domains 2026-09-01
     dependencies:
       - target: HappyFamilyAppClips
     scheme:
@@ -78,6 +83,7 @@ targets:
     sources:
       - App
       - Features
+      - Core
       - DesignSystem
       - Resources
     settings:
@@ -99,23 +105,21 @@ targets:
       Staging: Config/Staging.xcconfig
       Release: Config/Release.xcconfig
     sources:
-      # FashionModel/Scan is the main app's own scan UI, reached through
-      # OpenCamera, and it redeclares CameraPreview, ScanResultSheet and
-      # ScanResultView — all of which the clip already has under ClothesBox.
-      # The clip compiles the model itself (Core + Model) and nothing else.
       # DesingSystem/Colors/AppColor.swift is a byte-identical copy of the
       # DesignSystem file referenced below. Two sources with the same filename
       # in one module is a hard compiler error, so only the shared one is built.
+      #
+      # The old FashionModel/Scan excludes are gone: ClothesBox (which they
+      # avoided colliding with) was replaced by Features/FashionModel/Scan,
+      # so the clip now builds that scan UI as its own.
       - path: HappyFamilyAppClips
         excludes:
           - DesingSystem
-          - FashionModel/Scan
-          - FashionModel/OpenCamera.swift
-          - FashionModel/Assets
       - DesignSystem/Colors/AppColor.swift
     info:
       path: HappyFamilyAppClips/Info.plist
       properties:
+        ITSAppUsesNonExemptEncryption: false
         NSCameraUsageDescription: Kamera dipakai untuk memindai pakaian.
         NSAppClip:
           NSAppClipRequestEphemeralUserNotification: false
@@ -138,8 +142,11 @@ targets:
           CODE_SIGN_ENTITLEMENTS: HappyFamilyAppClips/Entitlements/Staging.entitlements
           PRODUCT_BUNDLE_IDENTIFIER: com.academy.hendraaaa.happyFamily.staging.Clip
         Release:
+          CODE_SIGN_IDENTITY: Apple Distribution
+          CODE_SIGN_STYLE: Manual
           CODE_SIGN_ENTITLEMENTS: HappyFamilyAppClips/Entitlements/Release.entitlements
           PRODUCT_BUNDLE_IDENTIFIER: com.academy.hendraaaa.happyFamily.Clip
+          PROVISIONING_PROFILE_SPECIFIER: happyFamily Clip App Store Associated Domains 2026-09-01
 
   # App Clip executables cannot use Xcode's JIT preview executor directly.
   # This normal app target hosts the same UI sources for canvas previews only.
@@ -155,12 +162,9 @@ targets:
       - path: HappyFamilyAppClips
         excludes:
           - DesingSystem
-          - Entitlements
-          - HappyFamilyAppClipsApp.swift
+          - App/Entitlements
+          - App/HappyFamilyAppClipsApp.swift
           - Info.plist
-          - FashionModel/Scan
-          - FashionModel/OpenCamera.swift
-          - FashionModel/Assets
       - DesignSystem/Colors/AppColor.swift
     settings:
       base:

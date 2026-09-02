@@ -8,20 +8,13 @@
 import SwiftUI
 
 struct ContentView: View {
-    var body: some View {
-        ZStack {
-            AppColor.baseColor
-                .ignoresSafeArea()
+    // ScanView replaces staging's CameraScanView, which lived under the
+    // ClothesBox tree this branch rewrote into Features/FashionModel/Scan.
+    @State private var donationVM = DonationViewModel()
 
-            VStack(spacing: 12) {
-                Image(systemName: "globe")
-                    .imageScale(.large)
-                    .foregroundStyle(AppColor.accentColor)
-                Text("Hello, world! This is AppClip")
-                    .font(.title2)
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    var body: some View {
+        ScanView()
+            .environment(donationVM)
     }
 }
 

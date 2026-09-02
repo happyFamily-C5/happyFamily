@@ -54,25 +54,19 @@ struct DashBoard: View {
                 }
                 .padding(.top, 34)
 
-                ActiveEvent()
-                    .frame(height: 132)
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 24) {
+                        ActiveEvent()
+                            .frame(height: 132)
+
+                        RecapCard(isDataEmpty: true) {
+                            print("Recap card tapped")
+                        }
+                    }
                     .padding(.top, 48)
-
-                Spacer()
-
-                VStack(spacing: 12) {
-                    Image(systemName: "shippingbox.fill")
-                        .font(.system(size: 32))
-                        .foregroundStyle(Color("2-BoldDarkSoftCyan").opacity(0.72))
-
-                    Text("click \"+\" above to\ncreate a new one!")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .multilineTextAlignment(.center)
-                        .foregroundStyle(Color("2-BoldDarkSoftCyan").opacity(0.72))
+                    .padding(.bottom, 40)
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.bottom, 160)
+                .scrollBounceBehavior(.basedOnSize)
             }
             .padding(.horizontal, 28)
         }
