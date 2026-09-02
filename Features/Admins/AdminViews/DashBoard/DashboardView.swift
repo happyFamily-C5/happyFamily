@@ -13,7 +13,9 @@ struct DashboardView: View {
     
     // Model data event sementara untuk simulasi
     @State private var userEvents: [AdminEvent] = []
-    
+
+    @FocusState private var isSearchFocused: Bool
+
     var body: some View {
         ZStack(alignment: .bottom) {
             Group {
@@ -53,7 +55,7 @@ struct DashboardView: View {
                                             HStack(spacing: 0) {
                                                 ForEach(ongoingEvents) { event in
                                                     OngoingEventBanner(
-                                                        bannerImage: Image("DummyImageBanner"),
+                                                        bannerImage: event.bannerImage,
                                                         title: event.name,
                                                         date: event.formattedDateRange
                                                     ) {
@@ -82,7 +84,7 @@ struct DashboardView: View {
                                             HStack(spacing: 16) {
                                                 ForEach(upcomingEvents) { event in
                                                     EventCard(
-                                                        cardImage: Image("DummyImageBanner"),
+                                                        cardImage: event.bannerImage,
                                                         title: event.name,
                                                         date: event.formattedDateRange
                                                     ) {
@@ -117,22 +119,45 @@ struct DashboardView: View {
                             Spacer().frame(height: 100)
                         }
                     }
+                    .scrollDismissesKeyboard(.immediately)
                 }
             }
             
+            // While editing, a transparent layer over the dashboard catches
+            // taps and resigns focus. It sits above the content but below the
+            // search bar, so tapping the field itself still reaches the field,
+            // and it only exists while editing so it never interferes
+            // otherwise. Attaching the gesture to the content instead was
+            // unreliable once the field had text in it.
+            if isSearchFocused {
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture { isSearchFocused = false }
+            }
+
             // Floating Search Bar hanya muncul saat dashboard aktif
             if hasAnyEvent {
                 FloatingSearchBar(
                     searchText: $searchText,
+                    isSearchFocused: $isSearchFocused,
                     onMicTapped: { print("Mic diklik!") },
                     onQrTapped: { print("QR diklik!") }
                 )
                 .padding(.bottom, 16)
             }
         }
-        .edgesIgnoringSafeArea(.bottom)
-        // Memanggil CreatingView multi-step (Step 1 - 3) di dalam Sheet Modal
-        .sheet(isPresented: $isShowingCreateModal) {
+        // Only the container's bottom inset (the home indicator) is ignored.
+        // The old .edgesIgnoringSafeArea(.bottom) also ignored the *keyboard*
+        // safe area, which is why the search bar stayed pinned underneath the
+        // keyboard instead of riding above it.
+        .ignoresSafeArea(.container, edges: .bottom)
+        // CreatingView multi-step (Step 1 - 3). Presented full screen rather
+        // than as a sheet: every field lives in its @State, so a card that can
+        // be dragged away is an accidental swipe from losing a part-filled
+        // form. A full screen cover has no grabber and cannot be swiped at all.
+        // The header's back button is the way out — it steps backwards, and
+        // closes the flow from step 1.
+        .fullScreenCover(isPresented: $isShowingCreateModal) {
             NavigationView {
                 CreatingView { newEvent in
                     userEvents.append(newEvent)
@@ -155,7 +180,20 @@ struct AdminEvent: Identifiable {
     let endDate: Date
     let capacityKg: Int
     var collectedKg: Double
-    
+
+    /// The cover the organiser picked in CreatingView, kept as Data so the
+    /// event stays a plain value type — SwiftUI's Image is not persistable.
+    var bannerImageData: Data?
+
+    /// The organiser's cover, falling back to the placeholder when they
+    /// skipped the picker (the cover is optional in step 1).
+    var bannerImage: Image {
+        if let bannerImageData, let uiImage = UIImage(data: bannerImageData) {
+            return Image(uiImage: uiImage)
+        }
+        return Image("DummyImageBanner")
+    }
+
     var progress: Double {
         guard capacityKg > 0 else { return 0 }
         return min(collectedKg / Double(capacityKg), 1)

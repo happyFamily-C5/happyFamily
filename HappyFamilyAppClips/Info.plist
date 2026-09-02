@@ -27,5 +27,7 @@
 	</dict>
 	<key>NSCameraUsageDescription</key>
 	<string>Kamera dipakai untuk memindai pakaian.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Label donasi disimpan ke galeri.</string>
 </dict>
 </plist>

@@ -80,7 +80,7 @@ struct ResultView: View {
         LabelCard(
             senderName: donationVM.name,
             receiverName: "EcoTouch Indonesia",
-            receiverPhone: donationVM.phone,
+            receiverPhone: "0878-8271-0777",
             receiverAddress: "Jl. Arjuna Utara No.14D, RT.1/RW.1, Tj. Duren Sel., Kec. Grogol petamburan, Kota Jakarta Barat, Daerah Khusus Ibukota Jakarta 11470",
             qrContent: donationVM.bookingID
         )

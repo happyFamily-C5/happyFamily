@@ -2,6 +2,8 @@ import SwiftUI
 
 struct FloatingSearchBar: View {
     @Binding var searchText: String
+    /// Owned by the parent so tapping anywhere outside can clear focus.
+    @FocusState.Binding var isSearchFocused: Bool
     var onMicTapped: () -> Void
     var onQrTapped: () -> Void
     
@@ -14,6 +16,8 @@ struct FloatingSearchBar: View {
                 
                 TextField("Search", text: $searchText)
                     .font(.system(size: 15))
+                    .focused($isSearchFocused)
+                    .submitLabel(.search)
                 
                 Button(action: onMicTapped) {
                     Image(systemName: "mic.fill")
@@ -48,9 +52,11 @@ struct FloatingSearchBar: View {
 // MARK: - Preview
 #Preview(traits: .sizeThatFitsLayout) {
     @Previewable @State var text: String = ""
-    
+    @Previewable @FocusState var focused: Bool
+
     FloatingSearchBar(
         searchText: $text,
+        isSearchFocused: $focused,
         onMicTapped: { print("Mic diklik!") },
         onQrTapped: { print("QR diklik!") }
     )
