@@ -137,15 +137,15 @@ targets:
         # $(PARENT_APPLICATION_IDENTIFIER) when registering App Clip identifiers
         # (error: attribute 'name' is invalid: 'XC $(PARENT_APPLICATION_IDENTIFIER)').
         Debug:
-          CODE_SIGN_ENTITLEMENTS: HappyFamilyAppClips/Entitlements/Debug.entitlements
+          CODE_SIGN_ENTITLEMENTS: HappyFamilyAppClips/App/Entitlements/Debug.entitlements
           PRODUCT_BUNDLE_IDENTIFIER: com.academy.hendraaaa.happyFamily.debug.Clip
         Staging:
-          CODE_SIGN_ENTITLEMENTS: HappyFamilyAppClips/Entitlements/Staging.entitlements
+          CODE_SIGN_ENTITLEMENTS: HappyFamilyAppClips/App/Entitlements/Staging.entitlements
           PRODUCT_BUNDLE_IDENTIFIER: com.academy.hendraaaa.happyFamily.staging.Clip
         Release:
           CODE_SIGN_IDENTITY: Apple Distribution
           CODE_SIGN_STYLE: Manual
-          CODE_SIGN_ENTITLEMENTS: HappyFamilyAppClips/Entitlements/Release.entitlements
+          CODE_SIGN_ENTITLEMENTS: HappyFamilyAppClips/App/Entitlements/Release.entitlements
           PRODUCT_BUNDLE_IDENTIFIER: com.academy.hendraaaa.happyFamily.Clip
           PROVISIONING_PROFILE_SPECIFIER: happyFamily Clip App Store Associated Domains 2026-09-01
 
