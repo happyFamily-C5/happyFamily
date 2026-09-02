@@ -41,7 +41,6 @@ targets:
     sources:
       - App
       - Features
-      - Core
       - DesignSystem
       - Resources
     entitlements:
@@ -83,7 +82,6 @@ targets:
     sources:
       - App
       - Features
-      - Core
       - DesignSystem
       - Resources
     settings:
