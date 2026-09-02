@@ -86,6 +86,7 @@ struct CreatingView: View {
                 }
                 .padding(.vertical, 24)
             }
+            .scrollDismissesKeyboard(.interactively)
             
             // MARK: - 3. Tombol Aksi Bawah (Lanjut / Selesai)
             VStack {
@@ -99,7 +100,8 @@ struct CreatingView: View {
                             startDate: startDate,
                             endDate: endDate,
                             capacityKg: donationCapacity,
-                            collectedKg: 0
+                            collectedKg: 0,
+                            bannerImageData: selectedImageData
                         )
                         // Kirim data ke DashboardView
                         onEventCreated(newEvent)
@@ -113,6 +115,8 @@ struct CreatingView: View {
             }
             .padding(.bottom, 16)
         }
+        .contentShape(Rectangle())
+        .onTapGesture { focusedField = nil }
         .navigationBarHidden(true)
         // MARK: - Sheet Date Picker dengan Logika Batasan Tanggal
         .sheet(item: $activeDateSheet) { target in
@@ -130,13 +134,6 @@ struct CreatingView: View {
                 }
                 .navigationTitle(target == .start ? "Tanggal Mulai" : "Tanggal Selesai")
                 .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Selesai") {
-                            activeDateSheet = nil
-                        }
-                    }
-                }
             }
             .presentationDetents([.medium])
         }

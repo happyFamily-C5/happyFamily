@@ -119,6 +119,9 @@ targets:
       properties:
         ITSAppUsesNonExemptEncryption: false
         NSCameraUsageDescription: Kamera dipakai untuk memindai pakaian.
+        # Without this key iOS silently hides the share sheet's "Save Image"
+        # action — it does not error, the option simply never appears.
+        NSPhotoLibraryAddUsageDescription: Label donasi disimpan ke galeri.
         NSAppClip:
           NSAppClipRequestEphemeralUserNotification: false
           NSAppClipRequestLocationConfirmation: false
