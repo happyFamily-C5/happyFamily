@@ -1,0 +1,10 @@
+// Copy this file to LocalOverrides.xcconfig, then replace both values.
+// LocalOverrides.xcconfig is ignored by Git and must never be committed.
+
+// Your Personal Team ID. Select your Personal Team once in Xcode if you need
+// Xcode to reveal/populate this value.
+HAPPYFAMILY_LOCAL_DEVELOPMENT_TEAM = YOUR_TEAM_ID
+
+// Use a unique reverse-DNS identifier owned by you. Do not reuse the official
+// com.academy.hendraaaa identifiers from Debug, Staging, Release, or App Clip.
+HAPPYFAMILY_LOCAL_BUNDLE_IDENTIFIER = com.yourname.happyfamily.local

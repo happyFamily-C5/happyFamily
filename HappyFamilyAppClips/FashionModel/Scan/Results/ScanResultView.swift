@@ -7,20 +7,15 @@
 
 import SwiftUI
 
+/// The backdrop behind the result sheet: the still frame, dimmed, with a way out.
+/// `ScanView` owns the sheet itself so it gets real detents and a real drag.
 struct ScanResultView: View {
     let photo: UIImage?
-    let outcome: ScanResultSheet.Outcome
     var onClose: () -> Void = {}
-    var onPrimaryAction: () -> Void = {}
 
     var body: some View {
         ZStack(alignment: .top) {
             backdrop
-
-            VStack(spacing: 0) {
-                Spacer(minLength: 0)
-                ScanResultSheet(outcome: outcome, onPrimaryAction: onPrimaryAction)
-            }
 
             HStack {
                 CircleIconButton(systemImage: "xmark", action: onClose)
@@ -49,17 +44,6 @@ struct ScanResultView: View {
     }
 }
 
-#Preview("Checking") {
-    ScanResultView(photo: nil, outcome: .checking)
-}
-
-#Preview("Berhasil") {
-    ScanResultView(photo: nil, outcome: .success)
-}
-
-#Preview("Butuh Diproses") {
-    ScanResultView(
-        photo: nil,
-        outcome: .needsProcessing(accessories: ["Kancing", "Tag", "Resleting"])
-    )
+#Preview {
+    ScanResultView(photo: nil)
 }
