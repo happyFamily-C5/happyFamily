@@ -20,12 +20,14 @@ final class CameraSession: NSObject {
     enum SetupError: LocalizedError {
         case noCamera
         case cannotAddInput
+        case notReady
         case captureFailed
 
         var errorDescription: String? {
             switch self {
             case .noCamera: "Tidak ada kamera di perangkat ini."
             case .cannotAddInput: "Kamera tidak bisa dipakai sekarang."
+            case .notReady: "Kamera belum siap. Coba sebentar lagi."
             case .captureFailed: "Gagal mengambil foto."
             }
         }
@@ -100,6 +102,14 @@ final class CameraSession: NSObject {
     }
 
     func capturePhoto() async throws -> UIImage {
+        // `capturePhoto(with:delegate:)` raises an ObjC exception — not a Swift
+        // error — when the output has no live connection, so the shutter has to
+        // be checked before it is pulled. Happens whenever the session never
+        // configured (no camera, denied permission) or is still starting up.
+        guard let connection = photoOutput.connection(with: .video),
+              connection.isActive, connection.isEnabled
+        else { throw SetupError.notReady }
+
         defer { photoCaptureDelegate = nil }
         return try await withCheckedThrowingContinuation { continuation in
             let delegate = PhotoCaptureDelegate(continuation: continuation)
