@@ -9,6 +9,7 @@ struct DashboardView: View {
     
     // State untuk membuka modal CreatingView multi-step
     @State private var isShowingCreateModal: Bool = false
+    @State private var isShowingRecapDonation: Bool = false
     
     // Model data event sementara untuk simulasi
     @State private var userEvents: [AdminEvent] = []
@@ -98,9 +99,9 @@ struct DashboardView: View {
                                 VStack(alignment: .leading, spacing: 12) {
                                     SectionHeader(
                                         title: "Rekap Donasi",
-                                        showArrow: !isRecapDataEmpty
+                                        showArrow: true
                                     ) {
-                                        print("Lihat detail rekap donasi")
+                                        isShowingRecapDonation = true
                                     }
                                     
                                     RecapCard(
@@ -108,7 +109,7 @@ struct DashboardView: View {
                                         totalWeight: isRecapDataEmpty ? "0 kg" : "1.045 kg",
                                         periodTitle: "Bulan ini"
                                     ) {
-                                        print("Recap card diklik")
+                                        isShowingRecapDonation = true
                                     }
                                 }
                             }
@@ -139,6 +140,9 @@ struct DashboardView: View {
                     isRecapDataEmpty = true
                 }
             }
+        }
+        .fullScreenCover(isPresented: $isShowingRecapDonation) {
+            RecapDonation()
         }
     }
 }
