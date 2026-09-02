@@ -41,7 +41,6 @@ targets:
     sources:
       - App
       - Features
-      - Core
       - DesignSystem
       - Resources
     entitlements:
@@ -79,7 +78,6 @@ targets:
     sources:
       - App
       - Features
-      - Core
       - DesignSystem
       - Resources
     settings:
@@ -105,8 +103,12 @@ targets:
       # OpenCamera, and it redeclares CameraPreview, ScanResultSheet and
       # ScanResultView — all of which the clip already has under ClothesBox.
       # The clip compiles the model itself (Core + Model) and nothing else.
+      # DesingSystem/Colors/AppColor.swift is a byte-identical copy of the
+      # DesignSystem file referenced below. Two sources with the same filename
+      # in one module is a hard compiler error, so only the shared one is built.
       - path: HappyFamilyAppClips
         excludes:
+          - DesingSystem
           - FashionModel/Scan
           - FashionModel/OpenCamera.swift
           - FashionModel/Assets
@@ -152,6 +154,7 @@ targets:
       - PreviewHost
       - path: HappyFamilyAppClips
         excludes:
+          - DesingSystem
           - Entitlements
           - HappyFamilyAppClipsApp.swift
           - Info.plist
