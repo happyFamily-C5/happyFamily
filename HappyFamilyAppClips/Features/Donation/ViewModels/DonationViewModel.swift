@@ -32,6 +32,7 @@ enum ShippingMethod: String, CaseIterable, Identifiable {
 public class DonationViewModel {
     var name: String = ""
     var phone: String = ""
+    var donationWeight: String = ""
     var agreedToTerms: Bool = false
     
     let bookingID: String = UUID().uuidString
@@ -44,10 +45,19 @@ public class DonationViewModel {
     var displayBookingID: String {
         String(bookingID.prefix(8)).uppercased()
     }
+
+    var qrContent: String {
+        """
+        Nama: \(name)
+        No. Telp: \(phone)
+        Berat Donasi: \(donationWeight) kg
+        Booking ID: \(displayBookingID)
+        """
+    }
     
     // MARK: - Validasi tiap step
     var canProceedFromPersonalInfo: Bool {
-        !name.isEmpty && !phone.isEmpty && agreedToTerms
+        !name.isEmpty && !phone.isEmpty && !donationWeight.isEmpty && agreedToTerms
     }
     
     var canProceedFromCapture: Bool {
@@ -68,6 +78,7 @@ public class DonationViewModel {
 func generateQRCode(from string: String) -> UIImage {
     let context = CIContext()
     let filter = CIFilter.qrCodeGenerator()
+    filter.correctionLevel = "H"
     filter.message = Data(string.utf8)
     
     if let outputImage = filter.outputImage {

@@ -10,6 +10,7 @@ struct DashboardView: View {
     // State untuk membuka modal CreatingView multi-step
     @State private var isShowingCreateModal: Bool = false
     @State private var isShowingRecapDonation: Bool = false
+    @State private var isShowingQRScanner: Bool = false
     
     // Model data event sementara untuk simulasi
     @State private var userEvents: [AdminEvent] = []
@@ -141,7 +142,7 @@ struct DashboardView: View {
                     searchText: $searchText,
                     isSearchFocused: $isSearchFocused,
                     onMicTapped: { print("Mic diklik!") },
-                    onQrTapped: { print("QR diklik!") }
+                    onQrTapped: { isShowingQRScanner = true }
                 )
                 .padding(.bottom, 16)
             }
@@ -168,6 +169,9 @@ struct DashboardView: View {
         }
         .fullScreenCover(isPresented: $isShowingRecapDonation) {
             RecapDonation()
+        }
+        .sheet(isPresented: $isShowingQRScanner) {
+            QRScannerView()
         }
     }
 }
