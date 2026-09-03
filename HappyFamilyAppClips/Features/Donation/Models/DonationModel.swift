@@ -13,7 +13,7 @@ enum DonationStep: Int, CaseIterable {
     case reviewItems
 }
 
-struct ClothingItem: Identifiable {
+struct ClothingItem: Identifiable, Hashable {
     let id = UUID()
     var image: UIImage
     var isPassed: Bool
