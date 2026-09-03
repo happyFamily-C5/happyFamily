@@ -44,13 +44,17 @@ targets:
       - DesignSystem
       - Resources
       - Core
-    entitlements:
-      path: App/happyFamily.entitlements
-      properties:
-        com.apple.developer.associated-appclip-app-identifiers:
-          - $(AppIdentifierPrefix)$(APP_CLIP_BUNDLE_IDENTIFIER)
     settings:
       base:
+        # NOTE: do NOT use xcodegen's `entitlements:` block on this target.
+        # It writes CODE_SIGN_ENTITLEMENTS into every build configuration,
+        # silently overriding the per-config files below, and then builds
+        # sign with App/happyFamily.entitlements whose $(APP_CLIP_BUNDLE_IDENTIFIER)
+        # expands to nothing -> "provisioning profile doesn't match ...
+        # associated-appclip-app-identifiers" at automatic-signing time.
+        # App/happyFamily.entitlements is only a fallback for configs without
+        # a dedicated file; it relies on APP_CLIP_BUNDLE_IDENTIFIER from Base.xcconfig.
+        CODE_SIGN_ENTITLEMENTS: App/happyFamily.entitlements
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
         INFOPLIST_KEY_NSCameraUsageDescription: Kamera dipakai untuk memindai pakaian.
