@@ -12,6 +12,8 @@ struct ClothsView: View {
     @Environment(AppRouter.self) var router
     @Environment(DonationViewModel.self) var donationVM
     
+    @State private var selectedItem: ClothingItem?
+    
     let onNext: () -> Void
     
     let columns = [
@@ -62,7 +64,9 @@ struct ClothsView: View {
                 ScrollView {
                     LazyVGrid(columns: columns, spacing: 16) {
                         ForEach(donationVM.clothingItems) { item in
-                            ClothingCard(item: item)
+                            ClothingCard(item: item) {
+                                selectedItem = item
+                            }
                         }
                         
                         AddClothingCard {
@@ -73,7 +77,7 @@ struct ClothsView: View {
                 
                 Button{
                     onNext()
-    //                router.push(to: .scan)
+                    //                router.push(to: .scan)
                 }label: {
                     Text("Lanjut")
                         .padding()
@@ -85,6 +89,15 @@ struct ClothsView: View {
                             in: RoundedRectangle(cornerRadius: 30)
                         )
                 }
+            }
+            .sheet(item: $selectedItem) { item in
+                NavigationStack {
+                    ClothDetailView(item: item)
+                        .environment(donationVM)
+                }
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+                .presentationCornerRadius(32)
             }
             .navigationBarBackButtonHidden(true)
             .toolbar {
@@ -105,7 +118,7 @@ struct ClothsView: View {
 #Preview {
     NavigationStack {
         ClothsView{}
-        .environment(AppRouter())
-        .environment(DonationViewModel())
+            .environment(AppRouter())
+            .environment(DonationViewModel())
     }
 }

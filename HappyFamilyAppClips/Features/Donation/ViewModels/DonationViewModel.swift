@@ -38,7 +38,7 @@ public class DonationViewModel {
     
     
     var clothingItems: [ClothingItem] = [
-//        ClothingItem(image: UIImage(named: "Image 3") ?? UIImage(), isPassed: true)
+        ClothingItem(image: UIImage(named: "Image 3") ?? UIImage(), isPassed: true)
     ]
     
     var displayBookingID: String {
