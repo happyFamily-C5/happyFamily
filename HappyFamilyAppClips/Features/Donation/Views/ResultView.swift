@@ -73,7 +73,11 @@ struct ResultView: View {
             }
         }
         .navigationBarBackButtonHidden(true)
-        .task { renderLabel() }
+        .task {
+            print("ISI QR:")
+            print(donationVM.qrContent)
+            renderLabel()
+        }
     }
 
     private var labelCard: LabelCard {
@@ -82,7 +86,7 @@ struct ResultView: View {
             receiverName: "EcoTouch Indonesia",
             receiverPhone: "0878-8271-0777",
             receiverAddress: "Jl. Arjuna Utara No.14D, RT.1/RW.1, Tj. Duren Sel., Kec. Grogol petamburan, Kota Jakarta Barat, Daerah Khusus Ibukota Jakarta 11470",
-            qrContent: donationVM.bookingID
+            qrContent: donationVM.qrContent
         )
     }
 

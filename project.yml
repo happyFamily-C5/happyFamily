@@ -204,6 +204,15 @@ targets:
       - target: happyFamily
 
 schemes:
+  happyFamily:
+    build:
+      targets:
+        happyFamily: all
+    run:
+      config: Debug
+    analyze:
+      config: Debug
+
   happyFamily Personal:
     build:
       targets:
