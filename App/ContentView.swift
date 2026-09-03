@@ -1,11 +1,33 @@
 import SwiftUI
 
-/// The main app is the organiser-facing side of .kumpul: the donor flow
-/// (Home, Donation form, scan, label) now lives entirely in the App Clip.
+/// The main app is the organiser-facing side of .kumpul: unauthenticated
+/// users land on the login screen; authenticated ones get the dashboard.
+/// The donor flow (Home, Donation form, scan, label) lives in the App Clip.
 struct ContentView: View {
+    private enum AccessState {
+        case checking
+        case needsLogin
+        case authenticated
+    }
+
+    @State private var accessState: AccessState = .checking
+    @State private var authSession: (any AuthSession)? = BackendDependencies.authSessionOrDefault()
     @State private var invocation = FullAppInvocationModel()
 
     var body: some View {
+        switch accessState {
+        case .checking:
+            ProgressView("Memuat…")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .task { await restoreSession() }
+        case .needsLogin:
+            LoginView { accessState = .authenticated }
+        case .authenticated:
+            dashboard
+        }
+    }
+
+    private var dashboard: some View {
         DashboardView()
             .overlay {
                 if invocation.isLoading {
@@ -43,6 +65,19 @@ struct ContentView: View {
             } message: {
                 Text(invocation.errorMessage ?? "Terjadi kesalahan.")
             }
+    }
+
+    private func restoreSession() async {
+        guard let authSession else {
+            accessState = .needsLogin
+            return
+        }
+        do {
+            _ = try await authSession.current()
+            accessState = .authenticated
+        } catch {
+            accessState = .needsLogin
+        }
     }
 }
 
