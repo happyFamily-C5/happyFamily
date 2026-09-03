@@ -2,6 +2,9 @@ name: happyFamily
 
 options:
   bundleIdPrefix: com.academy.hendraaaa
+  # Schemes are rewritten on every generate; re-apply the queue-debugging
+  # workaround for device debugging on recent iOS runtimes.
+  postGenCommand: sh Scripts/patch-schemes.sh
   deploymentTarget:
     iOS: "26.0"
 
@@ -250,6 +253,19 @@ schemes:
       config: Local
     analyze:
       config: Local
+
+  # Hosted backend for real-device testing: Debug/Local points at the local
+  # stack on 127.0.0.1, which a physical iPhone cannot reach.
+  happyFamily Staging:
+    build:
+      targets:
+        happyFamily: all
+    run:
+      config: Staging
+    analyze:
+      config: Staging
+    archive:
+      config: Staging
 
   HappyFamilyPreviewHost:
     build:
