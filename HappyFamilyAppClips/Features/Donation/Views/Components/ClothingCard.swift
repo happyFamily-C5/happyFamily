@@ -8,7 +8,9 @@
 import SwiftUI
 
 struct ClothingCard: View {
+    
     var item: ClothingItem
+    let onOpenDetail: () -> Void
     
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -20,7 +22,7 @@ struct ClothingCard: View {
                     .clipShape(RoundedRectangle(cornerRadius: 20))
                 
                 Button {
-                    // expand / lihat detail foto
+                    onOpenDetail()
                 } label: {
                     Image(systemName: "arrow.up.right")
                         .foregroundColor(.white)
@@ -67,6 +69,6 @@ struct ClothingCard: View {
             image: UIImage(named: "Image 3") ?? UIImage(),
             isPassed: true
         )
-    )
-    .padding()
+    ){}
+    .environment(AppRouter())
 }

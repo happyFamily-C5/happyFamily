@@ -16,6 +16,10 @@ final class AppRouter {
     func push(to destination: DonationsRouter) {
         path.append(destination)
     }
+
+    func pop() {
+        path.removeLast()
+    }
     
     func nextStep() {
         currentStep += 1
@@ -32,7 +36,7 @@ extension View {
             case .scan:
                 ClothsView { router.nextStep() }
             case .openCamera:
-                ScanView()
+                ScanView()          
             case .result:
                 ResultView()
             }
