@@ -43,6 +43,7 @@ targets:
       - Features
       - DesignSystem
       - Resources
+      - Core
     entitlements:
       path: App/happyFamily.entitlements
       properties:
