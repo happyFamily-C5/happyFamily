@@ -33,10 +33,11 @@ enum ShippingMethod: String, CaseIterable, Identifiable {
 final class DonationViewModel {
     var name: String = ""
     var phone: String = ""
+    var donationWeight: String = ""
     var agreedToTerms: Bool = false
     var selectedShippingMethod: ShippingMethod?
     var clothingItems: [ClothingItem] = [
-//        ClothingItem(image: UIImage(named: "Image 3") ?? UIImage(), isPassed: true)
+        ClothingItem(image: UIImage(named: "Image 3") ?? UIImage(), isPassed: true)
     ]
 
     private(set) var resolvedEvent: PublicEventDTO?
@@ -71,10 +72,19 @@ final class DonationViewModel {
             .appending(path: "storage/v1/object/public/event-banners", directoryHint: .isDirectory)
             .appending(path: path)
     }
+
+    var qrContent: String {
+        """
+        Nama: \(name)
+        No. Telp: \(phone)
+        Berat Donasi: \(donationWeight) kg
+        Booking ID: \(displayBookingID)
+        """
+    }
     
     // MARK: - Validasi tiap step
     var canProceedFromPersonalInfo: Bool {
-        !name.isEmpty && !phone.isEmpty && agreedToTerms
+        !name.isEmpty && !phone.isEmpty && !donationWeight.isEmpty && agreedToTerms
     }
     
     var canProceedFromCapture: Bool {
@@ -211,6 +221,7 @@ private extension ShippingMethod {
 func generateQRCode(from string: String) -> UIImage {
     let context = CIContext()
     let filter = CIFilter.qrCodeGenerator()
+    filter.correctionLevel = "H"
     filter.message = Data(string.utf8)
     
     if let outputImage = filter.outputImage {

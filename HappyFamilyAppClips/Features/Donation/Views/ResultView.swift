@@ -73,7 +73,11 @@ struct ResultView: View {
             }
         }
         .navigationBarBackButtonHidden(true)
-        .task { renderLabel() }
+        .task {
+            print("ISI QR:")
+            print(donationVM.qrContent)
+            renderLabel()
+        }
     }
 
     private var labelCard: LabelCard {

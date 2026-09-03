@@ -112,4 +112,5 @@ private struct FullAppInvocationView: View {
 
 #Preview {
     ContentView()
+        .environment(AppRouter())
 }
