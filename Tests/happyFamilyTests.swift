@@ -1,8 +1,9 @@
 @testable import happyFamily
-import XCTest
+import Testing
 
-final class HappyFamilyTests: XCTestCase {
-    func testAccessoryScanResultClassifiesPresentAndRemovableFindings() {
+@Suite("Accessory scan domain")
+struct HappyFamilyTests {
+    @Test func accessoryScanResultClassifiesPresentAndRemovableFindings() {
         let removable = AccessoryFinding(attribute: "kancing", confidence: 0.9, isPresent: true)
         let safe = AccessoryFinding(attribute: "tag", confidence: 0.8, isPresent: true)
         let absent = AccessoryFinding(attribute: "resleting", confidence: 0.1, isPresent: false)
@@ -13,8 +14,8 @@ final class HappyFamilyTests: XCTestCase {
             hasMultipleGarments: false
         )
 
-        XCTAssertEqual(result.present, [removable, safe])
-        XCTAssertEqual(result.removable, [removable])
-        XCTAssertTrue(result.needsProcessing)
+        #expect(result.present == [removable, safe])
+        #expect(result.removable == [removable])
+        #expect(result.needsProcessing)
     }
 }

@@ -1,7 +1,7 @@
-import SwiftUI
-import PhotosUI
-import MapKit
 import CoreLocation
+import MapKit
+import PhotosUI
+import SwiftUI
 
 struct CreatingView: View {
     @Environment(\.dismiss) var dismiss
@@ -17,23 +17,23 @@ struct CreatingView: View {
     // State untuk Form Step 1 (Informasi Dasar)
     @State private var eventName: String = ""
     @State private var eventDescription: String = ""
-    @State private var selectedItem: PhotosPickerItem? = nil
-    @State private var selectedBannerImage: Image? = nil
-    @State private var selectedImageData: Data? = nil
+    @State private var selectedItem: PhotosPickerItem?
+    @State private var selectedBannerImage: Image?
+    @State private var selectedImageData: Data?
     
     // State untuk Form Step 2 (Jadwal dan Lokasi)
-    @State private var startDate: Date = Date()
+    @State private var startDate = Date()
     @State private var endDate: Date = Calendar.current.date(byAdding: .day, value: 6, to: Date()) ?? Date()
-    @State private var selectedLocationName: String? = nil
-    @State private var selectedLocationAddress: String? = nil
-    @State private var selectedCoordinate: CLLocationCoordinate2D? = nil
+    @State private var selectedLocationName: String?
+    @State private var selectedLocationAddress: String?
+    @State private var selectedCoordinate: CLLocationCoordinate2D?
     @State private var operationalMode: String = "Akhir Pekan"
     @State private var activeDays: [Bool] = [true, false, false, false, false, false, true]
     @State private var startTime: Date = Calendar.current.date(from: DateComponents(hour: 8, minute: 0)) ?? Date()
     @State private var endTime: Date = Calendar.current.date(from: DateComponents(hour: 16, minute: 0)) ?? Date()
     
     // State untuk Popup Date Picker Native iOS
-    @State private var activeDateSheet: DateFieldTarget? = nil
+    @State private var activeDateSheet: DateFieldTarget?
     enum DateFieldTarget {
         case start, end
     }
@@ -97,11 +97,25 @@ struct CreatingView: View {
                         // Buat objek event baru dari data form
                         let newEvent = AdminEvent(
                             name: eventName,
-                            startDate: startDate,
-                            endDate: endDate,
+                            description: eventDescription.nilIfBlank,
+                            startDate: eventDate(startDate, endOfDay: false),
+                            endDate: eventDate(endDate, endOfDay: true),
                             capacityKg: donationCapacity,
                             collectedKg: 0,
-                            bannerImageData: selectedImageData
+                            bannerImageData: selectedImageData,
+                            timezoneName: selectedTimezoneName,
+                            operationalDays: activeDays.enumerated().compactMap { index, isActive in
+                                isActive ? index + 1 : nil
+                            },
+                            opensAtLocal: localTime(startTime),
+                            closesAtLocal: localTime(endTime),
+                            locationName: selectedLocationName,
+                            locationAddress: selectedLocationAddress,
+                            latitude: selectedCoordinate?.latitude,
+                            longitude: selectedCoordinate?.longitude,
+                            criteria: selectedCategories.compactMap {
+                                CriteriaByLabel(rawValue: $0)?.code
+                            }
                         )
                         // Kirim data ke DashboardView
                         onEventCreated(newEvent)
@@ -212,7 +226,7 @@ struct CreatingView: View {
                     if let data = try? await newItem?.loadTransferable(type: Data.self),
                        let uiImage = UIImage(data: data) {
                         await MainActor.run {
-                            selectedImageData = data
+                            selectedImageData = uiImage.kumpulBannerJPEGData()
                             selectedBannerImage = Image(uiImage: uiImage)
                         }
                     }
@@ -336,7 +350,6 @@ struct CreatingView: View {
             }
             .padding(.horizontal, 20)
             
-            
             DonationCapacityCardView(selectedCapacity: $donationCapacity)
                 .padding(.horizontal, 20)
         }
@@ -345,7 +358,7 @@ struct CreatingView: View {
     private func formattedDate(_ date: Date) -> String {
         date.formatted(.dateTime.day().month(.abbreviated).year())
     }
-    
+
     private func dateBinding(for target: DateFieldTarget) -> Binding<Date> {
         switch target {
         case .start:
@@ -375,8 +388,94 @@ struct CreatingView: View {
     }
 }
 
+private extension CreatingView {
+    var selectedTimezoneName: String {
+        guard let longitude = selectedCoordinate?.longitude else {
+            return "Asia/Jakarta"
+        }
+        if longitude < 120 {
+            return "Asia/Jakarta"
+        }
+        if longitude < 135 {
+            return "Asia/Makassar"
+        }
+        return "Asia/Jayapura"
+    }
+
+    func eventDate(_ date: Date, endOfDay: Bool) -> Date {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: selectedTimezoneName) ?? .current
+        let startOfDay = calendar.startOfDay(for: date)
+        guard endOfDay else { return startOfDay }
+        return calendar.date(byAdding: DateComponents(day: 1, second: -1), to: startOfDay) ?? date
+    }
+
+    func localTime(_ date: Date) -> String {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: selectedTimezoneName) ?? .current
+        let components = calendar.dateComponents([.hour, .minute], from: date)
+        return String(format: "%02d:%02d:00", components.hour ?? 0, components.minute ?? 0)
+    }
+
+    enum CriteriaByLabel: String {
+        case cotton = "Katun"
+        case linen = "Linen"
+        case rayon = "Rayon"
+        case wool = "Wol"
+        case tencel = "Tencel"
+        case silk = "Sutra"
+        case nonStretch = "Tidak Elastis"
+        case denim = "Denim"
+        case noLace = "Tidak berenda"
+        case polyester = "Poliester"
+
+        var code: EventCriterionCode {
+            switch self {
+            case .cotton: .cotton
+            case .linen: .linen
+            case .rayon: .rayon
+            case .wool: .wool
+            case .tencel: .tencel
+            case .silk: .silk
+            case .nonStretch: .nonStretch
+            case .denim: .denim
+            case .noLace: .noLace
+            case .polyester: .polyester
+            }
+        }
+    }
+}
+
+private extension String {
+    var nilIfBlank: String? {
+        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
 extension CreatingView.DateFieldTarget: Identifiable {
     var id: Self { self }
+}
+
+private extension UIImage {
+    func kumpulBannerJPEGData() -> Data? {
+        let maximumDimension: CGFloat = 4096
+        let longestSide = max(size.width, size.height)
+        guard longestSide > maximumDimension else {
+            return jpegData(compressionQuality: 0.85)
+        }
+        let scale = maximumDimension / longestSide
+        let targetSize = CGSize(
+            width: max(1, floor(size.width * scale)),
+            height: max(1, floor(size.height * scale))
+        )
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1
+        let resized = UIGraphicsImageRenderer(size: targetSize, format: format).image { _ in
+            draw(in: CGRect(origin: .zero, size: targetSize))
+        }
+        return resized.jpegData(compressionQuality: 0.85)
+    }
 }
 
 #Preview {

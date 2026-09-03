@@ -12,6 +12,7 @@ struct FormView: View {
     @Environment(AppRouter.self) var router
     @State var showNameError = false
     @State var showPhoneError = false
+    @State private var showConsentError = false
 
     /// Phone uses a number pad, which has no Return key — without an explicit
     /// dismissal that keyboard can never be closed. Tapping anywhere off a
@@ -29,21 +30,25 @@ struct FormView: View {
         @Bindable var donationVM = donationVM
 
         VStack(alignment: .leading, spacing: 36) {
-            VStack(spacing: 16){
+            VStack(spacing: 16) {
+                HStack(spacing: 16) {
+                    AsyncImage(url: donationVM.bannerURL) { phase in
+                        if let image = phase.image {
+                            image.resizable().scaledToFit()
+                        } else {
+                            Image("Image 2")
+                                .resizable()
+                                .scaledToFit()
+                        }
+                    }
+                    .frame(height: 80)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
 
-                HStack(spacing: 16){
-                    Image("Image 2")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: 80)
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-
-                    VStack(alignment: .leading, spacing: 4){
-                        Text("Ecoday | Drop Your Unused Shirt")
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(donationVM.resolvedEvent?.name ?? "Acara .kumpul")
                             .font(.title).bold()
-                        Text("EcoTouch Indonesia")
+                        Text(donationVM.resolvedEvent?.receiverName ?? "Penerima donasi")
                             .font(.headline)
-
                     }
                 }
             }
@@ -53,7 +58,7 @@ struct FormView: View {
                         .font(Font.title.bold())
                     Divider()
                 }
-                VStack(alignment: .leading, spacing: 8){
+                VStack(alignment: .leading, spacing: 8) {
                     Text("Name")
                         .font(.body)
                     TextField("Enter your name", text: $donationVM.name)
@@ -75,7 +80,7 @@ struct FormView: View {
                     }
                 }
 
-                VStack(alignment: .leading, spacing: 8){
+                VStack(alignment: .leading, spacing: 8) {
                     Text("Phone Number")
                         .font(.body)
                     TextField("Active phone number", text: $donationVM.phone)
@@ -95,9 +100,28 @@ struct FormView: View {
                             .foregroundColor(.red)
                     }
                 }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Toggle("Saya menyetujui syarat layanan dan kebijakan privasi.", isOn: $donationVM.agreedToTerms)
+                        .toggleStyle(.switch)
+
+                    if let legal = donationVM.legal {
+                        HStack(spacing: 16) {
+                            Link("Syarat Layanan", destination: legal.termsURL)
+                            Link("Kebijakan Privasi", destination: legal.privacyURL)
+                        }
+                        .font(.footnote)
+                    }
+
+                    if showConsentError {
+                        Text("*Persetujuan diperlukan untuk membuat booking")
+                            .font(.caption2)
+                            .foregroundColor(.red)
+                    }
+                }
             }
             Spacer()
-            Button{
+            Button {
                 focusedField = nil
                 if donationVM.name.isEmpty {
                     showNameError = true
@@ -109,10 +133,11 @@ struct FormView: View {
                 } else {
                     showPhoneError = false
                 }
-                if !donationVM.name.isEmpty && !donationVM.phone.isEmpty {
+                showConsentError = !donationVM.agreedToTerms
+                if donationVM.canProceedFromPersonalInfo {
                     onNext()
                 }
-            }label: {
+            } label: {
                 Text("Lanjut")
                     .padding()
                     .padding(.horizontal, 30)
@@ -123,7 +148,6 @@ struct FormView: View {
                         in: RoundedRectangle(cornerRadius: 30)
                     )
             }
-
         }
         // Fill the step's area so the empty space around the fields is tappable,
         // then treat a tap on that space as "dismiss the keyboard".
@@ -138,15 +162,18 @@ struct FormView: View {
             if !newValue.isEmpty {
                 showPhoneError = false
             }
+        }.onChange(of: donationVM.agreedToTerms) { _, agreed in
+            if agreed {
+                showConsentError = false
+            }
         }
     }
 }
 
 #Preview {
     NavigationStack {
-        FormView{}
+        FormView {}
             .environment(AppRouter())
             .environment(DonationViewModel())
     }
-
 }

@@ -1,0 +1,136 @@
+name: Backend CI
+
+on:
+  pull_request:
+    paths:
+      - "supabase/**"
+      - "Core/Backend/**"
+      - "Tests/**"
+      - "Config/**"
+      - "project.yml"
+      - ".github/workflows/backend-ci.yml"
+  push:
+    branches:
+      - staging
+      - main
+    paths:
+      - "supabase/**"
+      - "Core/Backend/**"
+      - "Tests/**"
+      - "Config/**"
+      - "project.yml"
+      - ".github/workflows/backend-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-backend:
+    name: Migration, contracts, and security
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Install Deno 2.9.6
+        uses: denoland/setup-deno@667a34cdef165d8d2b2e98dde39547c9daac7282 # v2.0.5
+        with:
+          deno-version: v2.9.6
+
+      - name: Install Supabase CLI 2.116.0
+        uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf # v2.1.1
+        with:
+          version: v2.116.0
+
+      - name: Verify pinned toolchain
+        run: |
+          set -euo pipefail
+          test "$(supabase --version)" = "2.116.0"
+          test "$(deno --version | head -n 1 | awk '{print $2}')" = "2.9.6"
+
+      - name: Generate isolated local-only function secrets
+        run: |
+          set -euo pipefail
+          pii_key="$(openssl rand -base64 32)"
+          echo "PII_ENCRYPTION_KEY_BASE64=$pii_key" >> "$GITHUB_ENV"
+          echo "PII_ENCRYPTION_KEYS_JSON={\"1\":\"$pii_key\"}" >> "$GITHUB_ENV"
+          echo "PII_HMAC_KEY_BASE64=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
+          echo "DONOR_ACCESS_SIGNING_KEY_BASE64=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
+          echo "BANNER_CLEANUP_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+          echo "TOKEN_KEY_VERSION=1" >> "$GITHUB_ENV"
+          echo "APP_ENVIRONMENT=local" >> "$GITHUB_ENV"
+          echo "APP_CLIP_BASE_URL=https://local.kumpul.invalid/invoke" >> "$GITHUB_ENV"
+          echo "PUBLIC_BOOKING_ENABLED=true" >> "$GITHUB_ENV"
+
+      - name: Start local Supabase
+        run: supabase start > /tmp/supabase-start.log
+
+      - name: Rebuild database from migrations and seed
+        run: supabase db reset
+
+      - name: Format, lint, type-check, and test Edge Functions
+        run: |
+          set -euo pipefail
+          deno fmt --check --config supabase/functions/deno.json \
+            supabase/functions supabase/tests/load/run.ts
+          deno lint --config supabase/functions/deno.json \
+            supabase/functions supabase/tests/load/run.ts
+          find supabase/functions -name '*.ts' -print0 \
+            | xargs -0 deno check --config supabase/functions/deno.json
+          deno check --config supabase/functions/deno.json supabase/tests/load/run.ts
+          deno test --config supabase/functions/deno.json --allow-env \
+            supabase/functions/_tests
+
+      - name: Run pgTAP and concurrency contracts
+        run: |
+          set -euo pipefail
+          supabase test db --local
+          bash supabase/tests/concurrency/run.sh
+
+      - name: Run HTTP boundary smoke tests
+        run: bash supabase/tests/http/smoke.sh
+
+      - name: Run 1,000-booking baseline load and latency guardrails
+        run: bash supabase/tests/load/run.sh
+
+      - name: Fail on database lint or advisor warnings
+        run: |
+          set -euo pipefail
+          supabase db lint --local --level warning --fail-on warning
+          supabase db advisors --local --type all --level warn --fail-on warn
+
+      - name: Detect schema drift
+        run: |
+          set -euo pipefail
+          supabase db diff --local --schema public,private,api --output-format text \
+            > /tmp/schema-drift.sql
+          if grep -Eq '[^[:space:]]' /tmp/schema-drift.sql; then
+            echo "Schema drift detected; create or update a migration."
+            cat /tmp/schema-drift.sql
+            exit 1
+          fi
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup
+
+  secret-scan:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - name: Scan committed history and working tree
+        uses: gitleaks/gitleaks-action@dcedce43c6f43de0b836d1fe38946645c9c638dc # v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

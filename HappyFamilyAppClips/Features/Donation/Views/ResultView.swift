@@ -77,12 +77,13 @@ struct ResultView: View {
     }
 
     private var labelCard: LabelCard {
-        LabelCard(
+        let snapshot = donationVM.booking?.labelSnapshot
+        return LabelCard(
             senderName: donationVM.name,
-            receiverName: "EcoTouch Indonesia",
-            receiverPhone: "0878-8271-0777",
-            receiverAddress: "Jl. Arjuna Utara No.14D, RT.1/RW.1, Tj. Duren Sel., Kec. Grogol petamburan, Kota Jakarta Barat, Daerah Khusus Ibukota Jakarta 11470",
-            qrContent: donationVM.bookingID
+            receiverName: snapshot?.receiverName ?? "Penerima donasi",
+            receiverPhone: snapshot?.receiverPhone ?? "-",
+            receiverAddress: snapshot?.receiverAddress ?? "-",
+            qrContent: donationVM.booking?.qrPayload.absoluteString ?? ""
         )
     }
 

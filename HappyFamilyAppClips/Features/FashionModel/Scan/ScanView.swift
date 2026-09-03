@@ -66,7 +66,14 @@ struct ScanView: View {
         switch outcome {
         case .success:
             if let image = viewModel.capturedImage {
-                    donationVM.clothingItems.append(ClothingItem(image: image, isPassed: true))
+                    donationVM.clothingItems.append(
+                        ClothingItem(
+                            image: image,
+                            isPassed: true,
+                            scannerModelVersion: viewModel.scannerModelVersion,
+                            metadata: viewModel.safeResultMetadata
+                        )
+                    )
                     print("✅ Append berhasil, total item:", donationVM.clothingItems.count)
                 } else {
                     print("❌ capturedImage nil, gak ada yang di-append")

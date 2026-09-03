@@ -18,6 +18,12 @@
 	<string>1</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>KumpulBackendEnvironment</key>
+	<string>$(KUMPUL_BACKEND_ENVIRONMENT)</string>
+	<key>KumpulBackendPublishableKey</key>
+	<string>$(KUMPUL_BACKEND_PUBLISHABLE_KEY)</string>
+	<key>KumpulBackendURL</key>
+	<string>$(KUMPUL_BACKEND_URL)</string>
 	<key>NSAppClip</key>
 	<dict>
 		<key>NSAppClipRequestEphemeralUserNotification</key>

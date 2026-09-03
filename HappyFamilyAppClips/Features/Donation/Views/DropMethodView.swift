@@ -10,6 +10,7 @@ import SwiftUI
 struct DropMethodView: View {
     
     @Environment(AppRouter.self) var router
+    @Environment(DonationViewModel.self) var donationVM
     @State private var selectedMethod: ShippingMethod?
     
 //    var donationVM: DonationViewModel
@@ -49,23 +50,46 @@ struct DropMethodView: View {
             }
         }
         Spacer()
+        if let errorMessage = donationVM.errorMessage {
+            Text(errorMessage)
+                .font(.footnote)
+                .foregroundStyle(.red)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+        }
         Button{
-            router.push(to: .result)
+            guard let selectedMethod else { return }
+            donationVM.selectedShippingMethod = selectedMethod
+            Task {
+                if await donationVM.createBooking() {
+                    router.push(to: .result)
+                }
+            }
         }label: {
-            Text("Lanjut")
+            if donationVM.isCreatingBooking {
+                ProgressView()
+                    .tint(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+            } else {
+                Text("Lanjut")
                 .padding()
                 .padding(.horizontal, 30)
                 .foregroundStyle(Color.white)
                 .frame(maxWidth: .infinity)
-                .background(
-                    AppColor.primaryCyan,
-                    in: RoundedRectangle(cornerRadius: 30)
-                )
+            }
         }
+        .background(
+            AppColor.primaryCyan,
+            in: RoundedRectangle(cornerRadius: 30)
+        )
+        .disabled(selectedMethod == nil || donationVM.isCreatingBooking)
+        .opacity(selectedMethod == nil ? 0.55 : 1)
     }
 }
 
 #Preview {
     DropMethodView{}
         .environment(AppRouter())
+        .environment(DonationViewModel())
 }

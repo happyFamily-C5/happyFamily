@@ -34,6 +34,21 @@ final class ScanViewModel: ObservableObject {
     let camera = CameraSession()
     private let scanner = FeaturePrintScanner()
 
+    var scannerModelVersion: String {
+        "accessory-head-v\(AccessoryHead.shared.version)"
+    }
+
+    var safeResultMetadata: [String: String] {
+        var metadata = [
+            "accessory_count": String(result.present.count),
+            "sensitivity": sensitivity,
+        ]
+        if let garmentType = result.garmentType {
+            metadata["garment_type"] = garmentType.name
+        }
+        return metadata
+    }
+
     /// How the current phase reads in the result sheet's vocabulary.
     /// `nil` while the camera is still the thing on screen.
     var outcome: ScanResultSheet.Outcome? {

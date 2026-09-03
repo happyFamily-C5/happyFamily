@@ -20,6 +20,11 @@ final class AppRouter {
     func nextStep() {
         currentStep += 1
     }
+
+    func reset() {
+        path = []
+        currentStep = 1
+    }
     
 }
 

@@ -36,6 +36,7 @@ struct AccessoryHead: Decodable {
         let threshold: Float
     }
 
+    let version: Int
     /// Images must be resized to this before FeaturePrint — scores drift with source resolution otherwise.
     let canonicalLongestSide: Int
     let attributes: [String]
@@ -49,8 +50,6 @@ struct AccessoryHead: Decodable {
     let defaultSensitivity: String
     let typeHead: TypeHead
     let countHead: CountHead
-
-    static let removeFlagAttributes: Set<String> = ["kancing", "resleting", "logam", "ornamen", "saku"]
 
     static let shared: AccessoryHead = {
         guard let url = Bundle.main.url(forResource: "accessory_head", withExtension: "json"),
