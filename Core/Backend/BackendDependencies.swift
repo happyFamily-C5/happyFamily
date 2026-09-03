@@ -4,8 +4,24 @@ import Supabase
 enum BackendDependencies {
     private static let eventStore = try? SwiftDataEventStore.make()
 
+    /// One Supabase client per process. Auth sessions live in each client's
+    /// in-memory auth actor, so a sign-in through one instance is invisible
+    /// to repositories built on another — every factory must share this one.
+    private static let sharedClient: SupabaseClient? = {
+        guard let environment = try? BackendEnvironment.load(bundle: .main) else {
+            return nil
+        }
+        return SupabaseClient(
+            supabaseURL: environment.baseURL,
+            supabaseKey: environment.publishableKey
+        )
+    }()
+
     static func makeClient(environment: BackendEnvironment) -> SupabaseClient {
-        SupabaseClient(
+        if let sharedClient {
+            return sharedClient
+        }
+        return SupabaseClient(
             supabaseURL: environment.baseURL,
             supabaseKey: environment.publishableKey
         )
@@ -40,6 +56,12 @@ enum BackendDependencies {
             auth: authSession(bundle: bundle),
             cache: eventStore ?? EmptySessionCache()
         )
+    }
+
+    /// Non-throwing variant for view-layer default arguments: returns nil
+    /// instead of throwing when backend configuration is incomplete.
+    static func authSessionOrDefault(bundle: Bundle = .main) -> (any AuthSession)? {
+        try? authSession(bundle: bundle)
     }
 
     static func receptionRepository(bundle: Bundle = .main) throws -> any ReceptionRepository {
