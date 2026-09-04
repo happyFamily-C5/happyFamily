@@ -120,7 +120,7 @@ struct CreatingView: View {
         .navigationBarHidden(true)
         // MARK: - Sheet Date Picker dengan Logika Batasan Tanggal
         .sheet(item: $activeDateSheet) { target in
-            NavigationStack {
+//            NavigationStack {
                 VStack {
                     DatePicker(
                         target == .start ? "Pilih Tanggal Mulai" : "Pilih Tanggal Selesai",
@@ -134,7 +134,7 @@ struct CreatingView: View {
                 }
                 .navigationTitle(target == .start ? "Tanggal Mulai" : "Tanggal Selesai")
                 .navigationBarTitleDisplayMode(.inline)
-            }
+//            }
             .presentationDetents([.medium])
         }
         .onChange(of: startTime) { _, newStart in

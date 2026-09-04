@@ -36,7 +36,7 @@ extension View {
             case .scan:
                 ClothsView { router.nextStep() }
             case .openCamera:
-                ScanView()          
+                ScanView()
             case .result:
                 ResultView()
             }
