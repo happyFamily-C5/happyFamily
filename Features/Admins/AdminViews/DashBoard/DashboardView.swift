@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreLocation
 
 struct DashboardView: View {
     @State private var searchText: String = ""
@@ -11,6 +12,7 @@ struct DashboardView: View {
     @State private var isShowingCreateModal: Bool = false
     @State private var isShowingRecapDonation: Bool = false
     @State private var isShowingQRScanner: Bool = false
+    @State private var selectedEvent: AdminEvent?
     
     // Model data event sementara untuk simulasi
     @State private var userEvents: [AdminEvent] = []
@@ -60,7 +62,7 @@ struct DashboardView: View {
                                                         title: event.name,
                                                         date: event.formattedDateRange
                                                     ) {
-                                                        print("Ongoing event diklik: \(event.name)")
+                                                        selectedEvent = event
                                                     }
                                                 }
                                             }
@@ -89,7 +91,7 @@ struct DashboardView: View {
                                                         title: event.name,
                                                         date: event.formattedDateRange
                                                     ) {
-                                                        print("Upcoming event diklik: \(event.name)")
+                                                        selectedEvent = event
                                                     }
                                                 }
                                             }
@@ -160,15 +162,42 @@ struct DashboardView: View {
         // closes the flow from step 1.
         .fullScreenCover(isPresented: $isShowingCreateModal) {
             NavigationView {
-                CreatingView { newEvent in
-                    userEvents.append(newEvent)
-                    hasAnyEvent = true
-                    isRecapDataEmpty = true
-                }
+                CreatingView(
+                    onEventCreated: { newEvent in
+                        userEvents.append(newEvent)
+                        hasAnyEvent = true
+                        isRecapDataEmpty = true
+                    },
+                    onViewCreatedEvent: { newEvent in
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                            selectedEvent = newEvent
+                        }
+                    }
+                )
             }
         }
         .fullScreenCover(isPresented: $isShowingRecapDonation) {
             RecapDonation()
+        }
+        .fullScreenCover(item: $selectedEvent) { event in
+            EventDetailView(
+                event: event,
+                onBackTapped: { selectedEvent = nil },
+                onShareTapped: { print("Share event: \(event.name)") },
+                onEditTapped: { print("Edit event: \(event.name)") },
+                onEventUpdated: { updatedEvent in
+                    if let index = userEvents.firstIndex(where: { $0.id == updatedEvent.id }) {
+                        userEvents[index] = updatedEvent
+                    }
+                    selectedEvent = updatedEvent
+                },
+                onEventDeleted: { deletedEvent in
+                    userEvents.removeAll { $0.id == deletedEvent.id }
+                    hasAnyEvent = !userEvents.isEmpty
+                    isRecapDataEmpty = userEvents.isEmpty
+                    selectedEvent = nil
+                }
+            )
         }
         .sheet(isPresented: $isShowingQRScanner) {
             QRScannerView()
@@ -178,10 +207,19 @@ struct DashboardView: View {
 
 // MARK: - Model Pendukung untuk Logika Tanggal Event
 struct AdminEvent: Identifiable {
-    let id = UUID()
+    let id: UUID
     let name: String
+    let description: String
     let startDate: Date
     let endDate: Date
+    let locationName: String
+    let locationAddress: String
+    let coordinate: CLLocationCoordinate2D?
+    let operationalMode: String
+    let activeDays: [Bool]
+    let startTime: Date
+    let endTime: Date
+    let donationCriteria: [String]
     let capacityKg: Int
     var collectedKg: Double
 
@@ -196,6 +234,42 @@ struct AdminEvent: Identifiable {
             return Image(uiImage: uiImage)
         }
         return Image("DummyImageBanner")
+    }
+    
+    init(
+        id: UUID = UUID(),
+        name: String,
+        description: String,
+        startDate: Date,
+        endDate: Date,
+        locationName: String,
+        locationAddress: String,
+        coordinate: CLLocationCoordinate2D?,
+        operationalMode: String,
+        activeDays: [Bool],
+        startTime: Date,
+        endTime: Date,
+        donationCriteria: [String],
+        capacityKg: Int,
+        collectedKg: Double,
+        bannerImageData: Data?
+    ) {
+        self.id = id
+        self.name = name
+        self.description = description
+        self.startDate = startDate
+        self.endDate = endDate
+        self.locationName = locationName
+        self.locationAddress = locationAddress
+        self.coordinate = coordinate
+        self.operationalMode = operationalMode
+        self.activeDays = activeDays
+        self.startTime = startTime
+        self.endTime = endTime
+        self.donationCriteria = donationCriteria
+        self.capacityKg = capacityKg
+        self.collectedKg = collectedKg
+        self.bannerImageData = bannerImageData
     }
 
     var progress: Double {
@@ -219,6 +293,12 @@ struct AdminEvent: Identifiable {
         let startStr = formatter.string(from: startDate).uppercased()
         let endStr = formatter.string(from: endDate).uppercased()
         return "\(startStr) - \(endStr)"
+    }
+    
+    var formattedTimeInfo: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH.mm"
+        return "\(operationalMode) • \(formatter.string(from: startTime)) - \(formatter.string(from: endTime))"
     }
 }
 
