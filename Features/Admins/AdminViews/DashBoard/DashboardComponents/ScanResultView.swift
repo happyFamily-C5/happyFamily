@@ -11,6 +11,8 @@ struct ScanResultView: View {
     @ObservedObject var scanner: QRScannerViewModel
     @State var showWheel: Bool = false
     
+    var onAccepted: (Double) -> Void = { _ in }
+    
     private var rows: [String] {
         guard let result = scanner.result else { return [] }
         return result.components(separatedBy: .newlines)
@@ -67,7 +69,7 @@ struct ScanResultView: View {
             Spacer()
             
             Button{
-                
+                onAccepted(scanner.actualWeight)
             }label: {
                 Text("Terima")
                     .foregroundStyle(Color.white)
