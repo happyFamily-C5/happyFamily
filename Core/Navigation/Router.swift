@@ -8,4 +8,5 @@
 enum AdminsRouter: Hashable {
     case dashboard
     case addEvent
+    case openCamera
 }

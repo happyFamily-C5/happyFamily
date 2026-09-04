@@ -2,6 +2,8 @@ import SwiftUI
 import CoreLocation
 
 struct DashboardView: View {
+    @Environment(AppRouter.self) var router
+    
     @State private var searchText: String = ""
     
     // State utama untuk status apakah sudah ada event
@@ -144,7 +146,7 @@ struct DashboardView: View {
                     searchText: $searchText,
                     isSearchFocused: $isSearchFocused,
                     onMicTapped: { print("Mic diklik!") },
-                    onQrTapped: { isShowingQRScanner = true }
+                    onQrTapped: { router.push(to: .openCamera) }
                 )
                 .padding(.bottom, 16)
             }
@@ -305,4 +307,5 @@ struct AdminEvent: Identifiable {
 // MARK: - Preview
 #Preview {
     DashboardView()
+        .environment(AppRouter())
 }
