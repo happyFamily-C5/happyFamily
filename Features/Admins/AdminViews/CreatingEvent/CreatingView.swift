@@ -9,6 +9,7 @@ struct CreatingView: View {
     
     // Callback untuk mengirim data event baru kembali ke Dashboard
     var onEventCreated: (AdminEvent) -> Void
+    var onViewCreatedEvent: ((AdminEvent) -> Void)? = nil
     
     // State untuk alur pembuatan event (Step 1 sampai 3)
     @State private var currentStep: Int = 1
@@ -52,68 +53,62 @@ struct CreatingView: View {
     ]
     @State private var selectedCategories: Set<String> = []
     @State private var donationCapacity: Int = 10
+    @State private var pendingCreatedEvent: AdminEvent?
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            
-            // MARK: - 1. Header dengan Progress Bar Segmen Sesuai Step Aktif
-            FormHeaderView(
-                currentStep: currentStep,
-                totalSteps: totalSteps,
-                stepTitle: stepTitleText,
-                onBackTapped: {
-                    if currentStep > 1 {
-                        currentStep -= 1
-                    } else {
-                        dismiss()
-                    }
-                }
-            )
-            .padding(.top, 8)
-            
-            // MARK: - 2. Konten Berdasarkan Step Aktif
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 28) {
+        Group {
+            if let pendingCreatedEvent {
+                successView(for: pendingCreatedEvent)
+            } else {
+                VStack(alignment: .leading, spacing: 0) {
                     
-                    if currentStep == 1 {
-                        step1ContentView
-                    } else if currentStep == 2 {
-                        step2ContentView
-                    } else if currentStep == 3 {
-                        step3ContentView
-                    }
+                    // MARK: - 1. Header dengan Progress Bar Segmen Sesuai Step Aktif
+                    FormHeaderView(
+                        currentStep: currentStep,
+                        totalSteps: totalSteps,
+                        stepTitle: stepTitleText,
+                        onBackTapped: {
+                            if currentStep > 1 {
+                                currentStep -= 1
+                            } else {
+                                dismiss()
+                            }
+                        }
+                    )
+                    .padding(.top, 8)
                     
-                }
-                .padding(.vertical, 24)
-            }
-            .scrollDismissesKeyboard(.interactively)
-            
-            // MARK: - 3. Tombol Aksi Bawah (Lanjut / Selesai)
-            VStack {
-                PrimaryButton(title: currentStep == totalSteps ? "Buat Acara" : "Lanjut") {
-                    if currentStep < totalSteps {
-                        currentStep += 1
-                    } else {
-                        // Buat objek event baru dari data form
-                        let newEvent = AdminEvent(
-                            name: eventName,
-                            startDate: startDate,
-                            endDate: endDate,
-                            capacityKg: donationCapacity,
-                            collectedKg: 0,
-                            bannerImageData: selectedImageData
-                        )
-                        // Kirim data ke DashboardView
-                        onEventCreated(newEvent)
-                        
-                        print("Event berhasil dibuat!")
-                        dismiss()
+                    // MARK: - 2. Konten Berdasarkan Step Aktif
+                    ScrollView(showsIndicators: false) {
+                        VStack(alignment: .leading, spacing: 28) {
+                            
+                            if currentStep == 1 {
+                                step1ContentView
+                            } else if currentStep == 2 {
+                                step2ContentView
+                            } else if currentStep == 3 {
+                                step3ContentView
+                            }
+                            
+                        }
+                        .padding(.vertical, 24)
                     }
+                    .scrollDismissesKeyboard(.interactively)
+                    
+                    // MARK: - 3. Tombol Aksi Bawah (Lanjut / Selesai)
+                    VStack {
+                        PrimaryButton(title: currentStep == totalSteps ? "Buat Acara" : "Lanjut") {
+                            if currentStep < totalSteps {
+                                currentStep += 1
+                            } else {
+                                pendingCreatedEvent = makeEvent()
+                            }
+                        }
+                        .disabled(!isCurrentStepValid)
+                        .opacity(isCurrentStepValid ? 1.0 : 0.6)
+                    }
+                    .padding(.bottom, 16)
                 }
-                .disabled(!isCurrentStepValid)
-                .opacity(isCurrentStepValid ? 1.0 : 0.6)
             }
-            .padding(.bottom, 16)
         }
         .contentShape(Rectangle())
         .onTapGesture { focusedField = nil }
@@ -147,6 +142,50 @@ struct CreatingView: View {
                 startTime = newEnd
             }
         }
+    }
+    
+    private func makeEvent() -> AdminEvent {
+        AdminEvent(
+            name: eventName,
+            description: eventDescription,
+            startDate: startDate,
+            endDate: endDate,
+            locationName: selectedLocationName ?? "",
+            locationAddress: selectedLocationAddress ?? "",
+            coordinate: selectedCoordinate,
+            operationalMode: operationalMode,
+            activeDays: activeDays,
+            startTime: startTime,
+            endTime: endTime,
+            donationCriteria: availableCategories.filter { selectedCategories.contains($0) },
+            capacityKg: donationCapacity,
+            collectedKg: 0,
+            bannerImageData: selectedImageData
+        )
+    }
+    
+    private func successView(for event: AdminEvent) -> some View {
+        EventSuccessView(
+            eventName: event.name,
+            eventDesc: eventDescription.isEmpty ? "Tidak ada deskripsi" : eventDescription,
+            locationName: selectedLocationName ?? "Lokasi belum dipilih",
+            locationAddress: selectedLocationAddress ?? "",
+            dateRange: "\(formattedDate(startDate)) - \(formattedDate(endDate))",
+            coordinate: selectedCoordinate,
+            onViewEventTapped: {
+                onEventCreated(event)
+                onViewCreatedEvent?(event)
+                dismiss()
+            },
+            onReturnHomeTapped: {
+                onEventCreated(event)
+                dismiss()
+            },
+            onCloseTapped: {
+                pendingCreatedEvent = nil
+                currentStep = 3
+            }
+        )
     }
     
     // Judul Header Dinamis

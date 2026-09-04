@@ -3,6 +3,7 @@ import SwiftUI
 struct DonationTagChip: View {
     let title: String
     let isSelected: Bool
+    var isCompact: Bool = false
     var action: () -> Void
     
     var body: some View {
@@ -10,14 +11,14 @@ struct DonationTagChip: View {
             HStack(spacing: 6) {
                 // Berubah otomatis: icon "+" saat belum dipilih, dan "checkmark" saat dipilih
                 Image(systemName: isSelected ? "checkmark" : "plus")
-                    .font(.system(size: 12, weight: .bold))
+                    .font(.system(size: isCompact ? 12 : 12, weight: .bold))
                 
                 Text(title)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.system(size: isCompact ? 14 : 14, weight: .medium))
             }
             .foregroundColor(isSelected ? .white : .primary)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
+            .padding(.horizontal, isCompact ? 14 : 16)
+            .padding(.vertical, isCompact ? 9 : 10)
             .background(isSelected ? Color("3-DarkSoftCyan") : Color(.systemGray6))
             .cornerRadius(20)
         }
