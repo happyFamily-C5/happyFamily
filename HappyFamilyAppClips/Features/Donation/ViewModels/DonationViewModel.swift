@@ -37,7 +37,6 @@ public class DonationViewModel {
     
     let bookingID: String = UUID().uuidString
     
-    
     var clothingItems: [ClothingItem] = [
         ClothingItem(image: UIImage(named: "Image 3") ?? UIImage(), isPassed: true)
     ]
@@ -45,19 +44,19 @@ public class DonationViewModel {
     var displayBookingID: String {
         String(bookingID.prefix(8)).uppercased()
     }
-
+    
     var qrContent: String {
-        """
-        Nama: \(name)
-        No. Telp: \(phone)
-        Berat Donasi: \(donationWeight) kg
-        Booking ID: \(displayBookingID)
-        """
+            """
+            Nama: \(name)
+            No. Telp: \(phone)
+            Berat Donasi: \(donationWeight) kg
+            Booking ID: \(displayBookingID)
+            """
     }
     
     // MARK: - Validasi tiap step
     var canProceedFromPersonalInfo: Bool {
-        !name.isEmpty && !phone.isEmpty && !donationWeight.isEmpty && agreedToTerms
+        !name.isEmpty && !phone.isEmpty && agreedToTerms
     }
     
     var canProceedFromCapture: Bool {
@@ -69,7 +68,7 @@ public class DonationViewModel {
     }
     
     var selectedShippingMethod: ShippingMethod? = .none
-
+    
     var canProceedFromShipping: Bool {
         selectedShippingMethod != nil
     }
@@ -78,7 +77,6 @@ public class DonationViewModel {
 func generateQRCode(from string: String) -> UIImage {
     let context = CIContext()
     let filter = CIFilter.qrCodeGenerator()
-    filter.correctionLevel = "H"
     filter.message = Data(string.utf8)
     
     if let outputImage = filter.outputImage {

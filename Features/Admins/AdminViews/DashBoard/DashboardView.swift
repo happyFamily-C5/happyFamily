@@ -156,7 +156,7 @@ struct DashboardView: View {
                     searchText: $searchText,
                     isSearchFocused: $isSearchFocused,
                     onMicTapped: { print("Mic diklik!") },
-                    onQrTapped: { isShowingQRScanner = true }
+                    onQrTapped: { router.push(to: .openCamera) }
                 )
                 .padding(.bottom, 16)
             }
@@ -327,4 +327,5 @@ struct AdminEvent: Identifiable {
 // MARK: - Preview
 #Preview {
     DashboardView()
+        .environment(AppRouter())
 }

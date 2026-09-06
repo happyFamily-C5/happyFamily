@@ -31,6 +31,8 @@ extension View {
                 DashboardView()
             case .addEvent:
                 EmptyView()
+            case .openCamera:
+                QRScannerView()
             }
         }
     }
