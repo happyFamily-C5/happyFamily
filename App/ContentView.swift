@@ -7,13 +7,8 @@ struct ContentView: View {
     @Environment(AppRouter.self) var router
     
     var body: some View {
-        @Bindable var router = router
-    
-        NavigationStack(path: $router.path){
-            DashboardView()
-                .adminsRouter(router)
-        }
-        .environment(router)
+        AppCoordinatorView()
+            .environment(router)
     }
 }
 

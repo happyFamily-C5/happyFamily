@@ -2,9 +2,10 @@ import SwiftUI
 import CoreLocation
 
 struct DashboardView: View {
-    @Environment(AppRouter.self) var router
+    private let onLogout: () -> Void
     
     @State private var searchText: String = ""
+    @State private var adminProfile: AdminProfile
     
     // State utama untuk status apakah sudah ada event
     @State private var hasAnyEvent: Bool = false
@@ -14,12 +15,21 @@ struct DashboardView: View {
     @State private var isShowingCreateModal: Bool = false
     @State private var isShowingRecapDonation: Bool = false
     @State private var isShowingQRScanner: Bool = false
+    @State private var isShowingProfile: Bool = false
     @State private var selectedEvent: AdminEvent?
     
     // Model data event sementara untuk simulasi
     @State private var userEvents: [AdminEvent] = []
 
     @FocusState private var isSearchFocused: Bool
+    
+    init(
+        initialProfile: AdminProfile = .defaultProfile,
+        onLogout: @escaping () -> Void = {}
+    ) {
+        _adminProfile = State(initialValue: initialProfile)
+        self.onLogout = onLogout
+    }
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -44,7 +54,7 @@ struct DashboardView: View {
                         VStack(alignment: .leading, spacing: 20) {
                             
                             HeaderNavigationView(
-                                onLogoTapped: { print("Logo / Profile diklik!") },
+                                onLogoTapped: { isShowingProfile = true },
                                 onAddTapped: { isShowingCreateModal = true }
                             )
                             
@@ -180,6 +190,16 @@ struct DashboardView: View {
         }
         .fullScreenCover(isPresented: $isShowingRecapDonation) {
             RecapDonation()
+        }
+        .fullScreenCover(isPresented: $isShowingProfile) {
+            ProfileView(
+                events: userEvents,
+                profile: $adminProfile,
+                onLogout: {
+                    isShowingProfile = false
+                    onLogout()
+                }
+            )
         }
         .fullScreenCover(item: $selectedEvent) { event in
             EventDetailView(
