@@ -3,8 +3,7 @@ import CoreLocation
 import MapKit
 
 struct EventSuccessView: View {
-    var eventName: String = "Ecotoday"
-    var eventDesc: String = "drop your unused shirt"
+    var eventName: String = "Ecoday\n drop your unused shirt"
     var locationName: String = "EcoTouch Office"
     var locationAddress: String = "Duren Selatan, Jakarta Barat"
     var dateRange: String = "Rab, 9 Sept - 16 Sept 2026"
@@ -16,82 +15,36 @@ struct EventSuccessView: View {
     
     var body: some View {
         ScrollView(showsIndicators: false) {
-            VStack(spacing: 24) {
-                
-                // Spacer ini berfungsi mendorong konten agar turun ke tengah
-                Spacer().frame(height: 100)
-                
-                // 1. Header Sukses (Ikon Centang & Judul)
-                VStack(spacing: 16) {
-                    ZStack {
-                        Image(systemName: "sparkle")
-                            .font(.system(size: 16))
-                            .foregroundColor(.green)
-                            .offset(x: -45, y: -25)
+            VStack(spacing: 42) {
+                VStack(spacing: 32) {
+                    VStack(spacing: 8) {
+                        Image("Acc")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 152)
                         
-                        Image(systemName: "sparkle")
-                            .font(.system(size: 14))
-                            .foregroundColor(.green)
-                            .offset(x: 45, y: -15)
-                        
-                        Image(systemName: "circle.fill")
-                            .font(.system(size: 8))
-                            .foregroundColor(.green)
-                            .offset(x: -35, y: 30)
-                        
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 24)
-                                .fill(Color.green)
-                                .frame(width: 80, height: 80)
-                                .rotationEffect(.degrees(15))
-                            
-                            RoundedRectangle(cornerRadius: 24)
-                                .fill(Color.green.opacity(0.8))
-                                .frame(width: 80, height: 80)
-                                .rotationEffect(.degrees(45))
-                            
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 32, weight: .bold))
-                                .foregroundColor(.white)
-                        }
+                        Text("Acara berhasil Dibuat !")
+                            .font(.title).bold()
+                            .foregroundColor(.primary)
                     }
-                    .frame(height: 90)
                     
-                    Text("Acara berhasil Dibuat !")
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(.primary)
-                }
-                
-                // 2. Kartu Ringkasan & Peta
-                VStack(spacing: 20) {
-                    VStack(spacing: 6) {
-                        Text(eventName)
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(.primary)
-                            .multilineTextAlignment(.center)
-                        
-                        Text(eventDesc)
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                        
-                        Spacer().frame(height: 8)
-                        
-                        Text(locationName)
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(.primary)
-                        
-                        Text(locationAddress)
-                            .font(.system(size: 13, weight: .regular))
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                        
-                        Spacer().frame(height: 8)
-                        
-                        Text(dateRange)
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.primary)
-                    }
+                    // 2. Kartu Ringkasan & Peta
+                        VStack(spacing: 16) {
+                            Text(eventName)
+                                .font(.title2).bold()
+                                .frame(maxWidth: .infinity)
+                                .multilineTextAlignment(.center)
+                            
+                            VStack {
+                                Text(locationName)
+                                    .font(.body).bold()
+                                Text(locationAddress)
+                                    .font(.subheadline)
+                            }
+                            
+                            Text(dateRange)
+                                .font(.subheadline).bold()
+                        }
                     
                     // Peta Statis MapKit
                     Map(initialPosition: .region(MKCoordinateRegion(
@@ -102,13 +55,11 @@ struct EventSuccessView: View {
                             Marker("", coordinate: coord)
                         }
                     }
-                    .frame(height: 140)
+                    .frame(height: 164)
                     .cornerRadius(16)
                 }
                 .padding(20)
-                .background(Color(.systemBackground))
                 .cornerRadius(24)
-                .shadow(color: Color.black.opacity(0.04), radius: 10, x: 0, y: 4)
                 .padding(.horizontal, 16)
                 
                 // 3. Tombol Aksi Bawah
@@ -131,7 +82,16 @@ struct EventSuccessView: View {
                 .padding(.bottom, 32)
             }
         }
-        .navigationBarHidden(true)
+        .navigationBarBackButtonHidden(true)
+        .toolbar{
+            ToolbarItem(placement: .topBarTrailing) {
+                Button{
+                    
+                }label: {
+                    Image(systemName: "xmark")
+                }
+            }
+        }
     }
 }
 

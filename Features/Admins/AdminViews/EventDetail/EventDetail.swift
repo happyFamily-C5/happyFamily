@@ -3,6 +3,7 @@ import CoreLocation
 
 struct EventDetailView: View {
     @State private var event: AdminEvent
+    
     var onBackTapped: () -> Void
     var onShareTapped: () -> Void
     var onEditTapped: () -> Void
@@ -131,6 +132,7 @@ struct EventDetailView: View {
                 }
             )
         }
+
     }
     
     private var descriptionText: String {

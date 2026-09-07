@@ -44,10 +44,8 @@ struct EditEventGeneralInfoView: View {
                         .padding(.horizontal, 20)
                     
                     DateTimeRangeCardView(
-                        startDateString: formattedDate(startDate),
-                        endDateString: formattedDate(endDate),
-                        onStartTap: { activeDateSheet = .start },
-                        onEndTap: { activeDateSheet = .end }
+                        startDate: $startDate,
+                        endDate: $endDate
                     )
                     .padding(.horizontal, 20)
                     
