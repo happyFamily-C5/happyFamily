@@ -94,7 +94,7 @@ Semua commit **wajib** mengikuti [Conventional Commits](https://www.conventional
 | `chore` | Tugas rutin | `chore(ci): bump action versions` |
 | `docs` | Dokumentasi | `docs: add contributing guide` |
 | `refactor` | Refactor tanpa ubah perilaku | `refactor(auth): extract session manager` |
-| `build` | Build system / dependencies | `build(project): register App Clip target` |
+| `build` | Build system / dependencies | `build(project): update application target` |
 | `ci` | Workflow CI | `ci: auto-retarget development PRs to staging` |
 | `test` | Test | `test(auth): add unit tests` |
 
@@ -237,7 +237,7 @@ Artinya:
 
 3. **`.xcodeproj` gitignored.** Selalu jalankan `xcodegen generate` setelah `git pull` yang menyentuh `project.yml`.
 
-4. **App Clip target.** Repo berisi dua target: `happyFamily` (app utama) dan `HappyFamilyAppClips` (App Clip). Perubahan pada App Clip mengikuti alur yang sama (`fix/appclip`, dll.).
+4. **Application targets.** Repo berisi target aplikasi utama dan target `happyFamilyPersonal` untuk local device development. Perubahan pada target mengikuti alur branch yang sama.
 
 ---
 

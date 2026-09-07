@@ -8,10 +8,6 @@ APP_NAME = happyFamily
 APP_DISPLAY_NAME = happyFamily
 BUNDLE_ID_PREFIX = com.academy.hendraaaa
 PRODUCT_BUNDLE_IDENTIFIER = $(BUNDLE_ID_PREFIX).happyFamily
-// App Clip bundle IDs always follow the parent app ID (verified against the
-// per-config values hard-coded in App/Entitlements/*.entitlements and the
-// HappyFamilyAppClips target): .debug / .staging / plain in Release.
-APP_CLIP_BUNDLE_IDENTIFIER = $(PRODUCT_BUNDLE_IDENTIFIER).Clip
 MARKETING_VERSION = 1.0.0
 CURRENT_PROJECT_VERSION = 1
 

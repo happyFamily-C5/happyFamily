@@ -6,9 +6,9 @@ The repository uses XcodeGen. The committed `project.yml` is the source of truth
 
 ## What this setup builds
 
-Use the `happyFamily Personal` scheme with the `Local` configuration. This builds the `happyFamilyPersonal` target, which contains the main application source and `Core`, but does not depend on the official App Clip target or the official team's App Clip association entitlements.
+Use the `happyFamily Personal` scheme with the `Local` configuration. This builds the `happyFamilyPersonal` target, which contains the main application source and `Core`, without team-owned distribution entitlements.
 
-This path is for local development on a contributor-owned device. Use the official `happyFamily` scheme with `Debug`, `Staging`, or `Release` for App Clip, TestFlight, and production signing. Those configurations use the project's official bundle identifiers and signing setup.
+This path is for local development on a contributor-owned device. Use the official `happyFamily` scheme with `Debug`, `Staging`, or `Release` for TestFlight and production signing. Those configurations use the project's official bundle identifier and signing setup.
 
 ## Prerequisites
 
@@ -77,7 +77,7 @@ In Xcode:
 4. In the target's **Signing & Capabilities**, select the developer's own Team if Xcode asks for it.
 5. Press **Run**.
 
-The generated Personal scheme uses `Local` for Run, Test, and Analyze. The local target has no App Clip dependency and no official App Clip entitlement, which is required for developers whose Apple Account is not part of the official signing team.
+The generated Personal scheme uses `Local` for Run, Test, and Analyze. The local target has no team-owned distribution dependency or entitlement, which is required for developers whose Apple Account is not part of the official signing team.
 
 The first installation on a device may require the developer to trust the developer app under the iPhone's device management settings. Follow the on-device prompt shown by iOS.
 
@@ -123,7 +123,7 @@ The local bundle identifier is already used or is not valid for the selected tea
 
 ### The app builds but a capability is unavailable
 
-The Personal target deliberately omits official App Clip association entitlements. App Clip, Associated Domains, push notification, and other team-owned capabilities must be tested with the official team configuration or through the team's TestFlight build. A successful Personal build does not prove that those production capabilities work.
+The Personal target deliberately omits team-owned distribution entitlements. Associated Domains, push notification, and other team-owned capabilities must be tested with the official team configuration or through the team's TestFlight build. A successful Personal build does not prove that those production capabilities work.
 
 ### `Core` types cannot be found
 
@@ -139,5 +139,5 @@ The override file is intentionally ignored. Recreate it from the example and run
 - Do not commit `Config/LocalOverrides.xcconfig`.
 - Do not share Apple passwords, verification codes, signing certificates, or provisioning profiles through Git or chat.
 - Do not change the official bundle identifiers to make a Personal build work.
-- Use the Personal scheme for local device development and the official scheme for App Clip, staging distribution, and release validation.
+- Use the Personal scheme for local device development and the official scheme for staging distribution and release validation.
 - Before opening a pull request, verify that `git status` does not show the local override file and that `xcodegen generate` does not introduce unexpected project changes.

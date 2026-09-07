@@ -71,7 +71,7 @@ The project provides dedicated build configurations managed through `.xcconfig` 
 
 | Environment | Configuration | Bundle Identifier | Description |
 |---|---|---|---|
-| **Personal Team** | `Local` | Set per developer | Local iPhone development without the official App Clip/signing team |
+| **Personal Team** | `Local` | Set per developer | Local iPhone development without the official signing team |
 | **Debug** | `Debug` | `com.academy.hendraaaa.happyFamily.debug` | Local development with debug symbols |
 | **Staging** | `Staging` | `com.academy.hendraaaa.happyFamily.staging` | Internal QA and TestFlight staging builds |
 | **Release** | `Release` | `com.academy.hendraaaa.happyFamily` | Production App Store & TestFlight builds |
@@ -94,9 +94,9 @@ Team ID is not known yet, select the Personal Team once under the
 `happyFamilyPersonal` target's Signing & Capabilities settings, then copy the
 resulting `DEVELOPMENT_TEAM` value into the local override before regenerating.
 
-The Personal Team target intentionally excludes the App Clip and its association
-entitlements. Use the official Debug/Staging/Release targets for App Clip,
-TestFlight, and release validation. Never commit `LocalOverrides.xcconfig`, a
+The Personal Team target intentionally excludes team-owned distribution
+entitlements. Use the official Debug/Staging/Release configurations for
+TestFlight and release validation. Never commit `LocalOverrides.xcconfig`, a
 certificate, provisioning profile, or Apple Account credential.
 
 ---
