@@ -89,6 +89,7 @@ targets:
       - Features
       - DesignSystem
       - Resources
+      - Core
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
@@ -223,21 +224,7 @@ schemes:
         happyFamilyPersonal: all
     run:
       config: Local
+    test:
+      config: Local
     analyze:
       config: Local
-
-  HappyFamilyPreviewHost:
-    build:
-      targets:
-        HappyFamilyPreviewHost: all
-    run:
-      config: Debug
-
-  HappyFamilyAppClips:
-    build:
-      targets:
-        HappyFamilyAppClips: all
-    run:
-      config: Debug
-      environmentVariables:
-        _XCAppClipURL: https://example.com/happy-family
