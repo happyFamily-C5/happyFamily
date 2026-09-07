@@ -17,9 +17,6 @@ struct RegisterOrganizationInfoView: View {
     
     var body: some View {
         ZStack {
-            LoginAnimatedGreenGradientBackground()
-            
-            ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
                     Button(action: onBackTapped) {
                         Image(systemName: "chevron.left")
@@ -57,7 +54,6 @@ struct RegisterOrganizationInfoView: View {
                             label: "Alamat Kantor",
                             placeholder: "Masukkan alamat kantor",
                             text: $officeAddress,
-                            minHeight: 112,
                             isMultiline: true
                         )
                         
@@ -85,8 +81,7 @@ struct RegisterOrganizationInfoView: View {
                 }
                 .padding(.horizontal, 24)
                 .padding(.bottom, 32)
-            }
-            .scrollDismissesKeyboard(.interactively)
+            
         }
     }
 }
@@ -133,7 +128,7 @@ private struct OrganizationInputField: View {
                         .frame(height: minHeight)
                 }
             }
-            .background(Color(.systemBackground).opacity(0.9))
+            .background(Color(#colorLiteral(red: 0.9214347005, green: 0.9214347005, blue: 0.9214347005, alpha: 1)))
             .cornerRadius(27)
         }
     }

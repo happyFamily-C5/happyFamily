@@ -2,12 +2,12 @@ import SwiftUI
 import CoreLocation
 
 struct DashboardView: View {
-
+    
     private let onLogout: () -> Void
-
+    
     @Environment(AppRouter.self) var router
     @Environment(AdminEventStore.self) private var eventStore
-
+    
     
     @State private var searchText: String = ""
     @State private var adminProfile: AdminProfile
@@ -34,20 +34,34 @@ struct DashboardView: View {
         _adminProfile = State(initialValue: initialProfile)
         self.onLogout = onLogout
     }
-
+    
     private var totalCollectedWeight: Double {
         eventStore.events.reduce(0) { total, event in
             total + event.collectedKg
         }
     }
-
+    
     var body: some View {
         ZStack(alignment: .bottom) {
             Group {
                 if !hasAnyEvent {
                     // MARK: - 1. Empty State Murni
                     VStack {
-                        Spacer()
+                        HStack{
+                            Image("ecoTouchLogo")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 28)
+                                .padding(12)
+                                .background(
+                                    Color(#colorLiteral(red: 1, green: 0.9679821134, blue: 0.8170431256, alpha: 1)),in: Circle()
+                                )
+                            Spacer()
+                        }
+                        .padding(.horizontal, 20)
+                        .onTapGesture {
+                            isShowingProfile = true
+                        }
                         
                         EmptyStateViewDashboard {
                             isShowingCreateModal = true
@@ -169,7 +183,7 @@ struct DashboardView: View {
                     searchText: $searchText,
                     isSearchFocused: $isSearchFocused,
                     onMicTapped: { print("Mic diklik!") },
-                    onQrTapped: { router.push(to: .openCamera) }
+                    onQrTapped: { router.push(to: .openScanner) }
                 )
                 .padding(.bottom, 16)
             }
@@ -343,7 +357,9 @@ struct AdminEvent: Identifiable {
 
 // MARK: - Preview
 #Preview {
-    DashboardView()
-        .environment(AppRouter())
-        .environment(AdminEventStore())
+    NavigationStack {
+        DashboardView()
+            .environment(AppRouter())
+            .environment(AdminEventStore())
+    }
 }

@@ -17,9 +17,6 @@ struct RegisterAccountView: View {
     
     var body: some View {
         ZStack {
-            LoginAnimatedGreenGradientBackground()
-            
-            ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
                     Spacer().frame(height: 72)
                     
@@ -91,8 +88,7 @@ struct RegisterAccountView: View {
                 .padding(.horizontal, 24)
                 .padding(.bottom, 32)
                 .frame(maxWidth: .infinity)
-            }
-            .scrollDismissesKeyboard(.interactively)
+            
         }
     }
     

@@ -8,5 +8,12 @@
 enum AdminsRouter: Hashable {
     case dashboard
     case addEvent
+    case openScanner
+}
+
+enum DonersRouter: Hashable {
+    case donationFlow
+    case scan
     case openCamera
+    case result
 }

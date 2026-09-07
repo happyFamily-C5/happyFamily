@@ -19,7 +19,9 @@ struct QRScannerView: View {
             showResult = true
         }
         .sheet(isPresented: $showResult, content: {
-            ScanResultView(scanner: scanner)
+            NavigationStack {
+                ScanResultView(scanner: scanner)
+            }
         })
         .task {
             await scanner.start()

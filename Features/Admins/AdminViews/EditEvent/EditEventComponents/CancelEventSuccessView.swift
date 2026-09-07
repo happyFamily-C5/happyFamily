@@ -8,14 +8,14 @@ struct CancelEventSuccessView: View {
             Spacer()
             
             VStack(spacing: 18) {
-                CancelEventStatusIcon(size: 64)
+                CancelEventStatusIcon()
                 
                 VStack(spacing: 8) {
-                    Text("Acara Dihapus")
+                    Text("Acara Dibatalkan")
                         .font(.system(size: 22, weight: .bold))
                         .foregroundColor(.primary)
                     
-                    Text("Acara telah dihapus, notifikasi telah dikirimkan kepada para donatur")
+                    Text("Acara telah dibatalkan, notifikasi telah dikirimkan kepada para donatur ")
                         .font(.system(size: 13))
                         .foregroundColor(.primary)
                         .multilineTextAlignment(.center)

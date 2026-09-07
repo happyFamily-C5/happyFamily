@@ -10,11 +10,26 @@ import SwiftUI
 
 @Observable
 final class AppRouter {
-    var path: [AdminsRouter] = []
+    var adminPath: [AdminsRouter] = []
+    var donersPath: [DonersRouter] = []
     var currentStep: Int = 1
 
     func push(to destination:AdminsRouter) {
-        path.append(destination)
+        adminPath.append(destination)
+    }
+    
+    func push(to destination:DonersRouter) {
+        donersPath.append(destination)
+    }
+    
+    func popToRoot(){
+        if !adminPath.isEmpty{
+            adminPath.removeAll()
+        }
+        
+        if !donersPath.isEmpty{
+            donersPath.removeAll()
+        }
     }
     
     func nextStep() {
@@ -31,8 +46,23 @@ extension View {
                 DashboardView()
             case .addEvent:
                 EmptyView()
-            case .openCamera:
+            case .openScanner:
                 QRScannerView()
+            }
+        }
+    }
+    
+    func donersRouter(_ router: AppRouter) -> some View {
+        self.navigationDestination(for: DonersRouter.self) { destination in
+            switch destination {
+            case  .donationFlow:
+                DonationFlowView()
+            case .scan:
+                ClothsView { router.nextStep() }
+            case .openCamera:
+                ScanView()
+            case .result:
+                ResultView()
             }
         }
     }
