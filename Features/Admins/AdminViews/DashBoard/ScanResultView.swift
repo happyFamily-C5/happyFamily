@@ -8,10 +8,10 @@
 import SwiftUI
 
 struct ScanResultView: View {
+    @Environment(AdminEventStore.self) private var eventStore
+
     @ObservedObject var scanner: QRScannerViewModel
     @State var showWheel: Bool = false
-    
-    var onAccepted: (Double) -> Void = { _ in }
     
     private var rows: [String] {
         guard let result = scanner.result else { return [] }
@@ -21,7 +21,7 @@ struct ScanResultView: View {
     var body: some View {
         VStack {
             List{
-                Section(header: Text("Detail Donasi")){
+                Section{
                     ForEach(rows, id: \.self) { row in
                         Text(row)
                     }
@@ -29,7 +29,7 @@ struct ScanResultView: View {
                 Section {
                     VStack(spacing: 0) {
                         Button {
-                            withAnimation {
+                            withAnimation(.snappy) {
                                 showWheel.toggle()
                             }
                         } label: {
@@ -46,9 +46,11 @@ struct ScanResultView: View {
                                     .foregroundStyle(.secondary)
                             }
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(PlainButtonStyle())
                         
                         if showWheel {
+                            Divider()
+                                .padding()
                             Picker("Berat Aktual", selection: $scanner.actualWeight) {
                                 ForEach(scanner.actualWeightOpt, id: \.self) { weight in
                                     Text("\(weight, specifier: "%.1f") kg")
@@ -56,7 +58,7 @@ struct ScanResultView: View {
                                 }
                             }
                             .pickerStyle(.wheel)
-                            .clipped()
+                            .transition(.opacity.combined(with: .move(edge: .top)))
                         }
                     }
                 }
@@ -69,7 +71,9 @@ struct ScanResultView: View {
             Spacer()
             
             Button{
-                onAccepted(scanner.actualWeight)
+                eventStore.acceptDonation(
+                        weight: scanner.actualWeight
+                    )
             }label: {
                 Text("Terima")
                     .foregroundStyle(Color.white)
@@ -92,16 +96,22 @@ struct ScanResultView: View {
                     .frame(maxWidth: .infinity)
                     .padding(16)
                     .background(
-                        Color.red,
+                        Color(red: 0.78, green: 0.12, blue: 0.12),
                         in: RoundedRectangle(cornerRadius: 60)
                     )
             }.buttonStyle(.plain)
                 .padding(.horizontal, 20)
             
         }
+        
+        .navigationTitle(Text("Detail Donasi"))
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
 #Preview {
-    ScanResultView(scanner: QRScannerViewModel())
+    NavigationStack {
+        ScanResultView(scanner: QRScannerViewModel())
+            .environment(AdminEventStore())
+    }
 }

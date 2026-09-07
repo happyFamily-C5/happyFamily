@@ -2,14 +2,19 @@ import SwiftUI
 import CoreLocation
 
 struct DashboardView: View {
+
     private let onLogout: () -> Void
+
+    @Environment(AppRouter.self) var router
+    @Environment(AdminEventStore.self) private var eventStore
+
     
     @State private var searchText: String = ""
     @State private var adminProfile: AdminProfile
     
     // State utama untuk status apakah sudah ada event
     @State private var hasAnyEvent: Bool = false
-    @State private var isRecapDataEmpty: Bool = true
+    //    @State private var isRecapDataEmpty: Bool = true
     
     // State untuk membuka modal CreatingView multi-step
     @State private var isShowingCreateModal: Bool = false
@@ -18,9 +23,8 @@ struct DashboardView: View {
     @State private var isShowingProfile: Bool = false
     @State private var selectedEvent: AdminEvent?
     
-    // Model data event sementara untuk simulasi
     @State private var userEvents: [AdminEvent] = []
-
+    
     @FocusState private var isSearchFocused: Bool
     
     init(
@@ -29,6 +33,12 @@ struct DashboardView: View {
     ) {
         _adminProfile = State(initialValue: initialProfile)
         self.onLogout = onLogout
+    }
+
+    private var totalCollectedWeight: Double {
+        eventStore.events.reduce(0) { total, event in
+            total + event.collectedKg
+        }
     }
 
     var body: some View {
@@ -61,7 +71,7 @@ struct DashboardView: View {
                             VStack(alignment: .leading, spacing: 24) {
                                 
                                 // A. BAGIAN EVENT BERLANGSUNG (Ongoing)
-                                let ongoingEvents = userEvents.filter { $0.isOngoing }
+                                let ongoingEvents = eventStore.events.filter { $0.isOngoing }
                                 if !ongoingEvents.isEmpty {
                                     VStack(alignment: .leading, spacing: 16) {
                                         DashboardTitleView(hasOngoingEvent: true)
@@ -74,6 +84,7 @@ struct DashboardView: View {
                                                         title: event.name,
                                                         date: event.formattedDateRange
                                                     ) {
+                                                        eventStore.selectedEventID = event.id
                                                         selectedEvent = event
                                                     }
                                                 }
@@ -88,7 +99,9 @@ struct DashboardView: View {
                                 }
                                 
                                 // B. BAGIAN ACARA MENDATANG (Upcoming)
-                                let upcomingEvents = userEvents.filter { $0.isUpcoming }
+                                let upcomingEvents = eventStore.events.filter {
+                                    $0.isUpcoming
+                                }
                                 if !upcomingEvents.isEmpty {
                                     VStack(alignment: .leading, spacing: 12) {
                                         SectionHeader(title: "Acara mendatang") {
@@ -122,8 +135,8 @@ struct DashboardView: View {
                                     }
                                     
                                     RecapCard(
-                                        isDataEmpty: isRecapDataEmpty,
-                                        totalWeight: isRecapDataEmpty ? "0 kg" : "1.045 kg",
+                                        isDataEmpty: totalCollectedWeight == 0,
+                                        totalWeight:"(\(totalCollectedWeight, default: "%.3f") kg",
                                         periodTitle: "Bulan ini"
                                     ) {
                                         isShowingRecapDonation = true
@@ -149,7 +162,7 @@ struct DashboardView: View {
                     .contentShape(Rectangle())
                     .onTapGesture { isSearchFocused = false }
             }
-
+            
             // Floating Search Bar hanya muncul saat dashboard aktif
             if hasAnyEvent {
                 FloatingSearchBar(
@@ -176,9 +189,8 @@ struct DashboardView: View {
             NavigationView {
                 CreatingView(
                     onEventCreated: { newEvent in
-                        userEvents.append(newEvent)
+                        eventStore.events.append(newEvent)
                         hasAnyEvent = true
-                        isRecapDataEmpty = true
                     },
                     onViewCreatedEvent: { newEvent in
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
@@ -208,15 +220,20 @@ struct DashboardView: View {
                 onShareTapped: { print("Share event: \(event.name)") },
                 onEditTapped: { print("Edit event: \(event.name)") },
                 onEventUpdated: { updatedEvent in
-                    if let index = userEvents.firstIndex(where: { $0.id == updatedEvent.id }) {
-                        userEvents[index] = updatedEvent
+                    if let index = eventStore.events.firstIndex(
+                        where: { $0.id == updatedEvent.id }
+                    ) {
+                        eventStore.events[index] = updatedEvent
                     }
+                    
                     selectedEvent = updatedEvent
                 },
                 onEventDeleted: { deletedEvent in
-                    userEvents.removeAll { $0.id == deletedEvent.id }
-                    hasAnyEvent = !userEvents.isEmpty
-                    isRecapDataEmpty = userEvents.isEmpty
+                    eventStore.events.removeAll {
+                        $0.id == deletedEvent.id
+                    }
+                    
+                    hasAnyEvent = !eventStore.events.isEmpty
                     selectedEvent = nil
                 }
             )
@@ -244,11 +261,11 @@ struct AdminEvent: Identifiable {
     let donationCriteria: [String]
     let capacityKg: Int
     var collectedKg: Double
-
+    
     /// The cover the organiser picked in CreatingView, kept as Data so the
     /// event stays a plain value type — SwiftUI's Image is not persistable.
     var bannerImageData: Data?
-
+    
     /// The organiser's cover, falling back to the placeholder when they
     /// skipped the picker (the cover is optional in step 1).
     var bannerImage: Image {
@@ -293,7 +310,7 @@ struct AdminEvent: Identifiable {
         self.collectedKg = collectedKg
         self.bannerImageData = bannerImageData
     }
-
+    
     var progress: Double {
         guard capacityKg > 0 else { return 0 }
         return min(collectedKg / Double(capacityKg), 1)
@@ -328,4 +345,5 @@ struct AdminEvent: Identifiable {
 #Preview {
     DashboardView()
         .environment(AppRouter())
+        .environment(AdminEventStore())
 }

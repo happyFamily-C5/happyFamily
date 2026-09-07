@@ -14,25 +14,6 @@ struct QRScannerView: View {
                 .font(.system(size: 260, weight: .thin))
                 .foregroundStyle(.black)
                 .frame(width: 339, height: 339)
-            
-            //            if let result = scanner.result {
-            //                VStack(spacing: 12) {
-            //                    Text("QR Berhasil Dibaca")
-            //                        .font(.headline)
-            //                    Text(result)
-            //                        .font(.body)
-            //                        .multilineTextAlignment(.center)
-            //                        .textSelection(.enabled)
-            //
-            //                    Button("Tutup") {
-            //                        dismiss()
-            //                    }
-            //                    .buttonStyle(.borderedProminent)
-            //                }
-            //                .padding(20)
-            //                .frame(maxWidth: 320)
-            //                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20))
-            //            }
         }
         .onChange(of: scanner.result) { _ in
             showResult = true

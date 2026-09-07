@@ -33,12 +33,6 @@ struct CreatingView: View {
     @State private var startTime: Date = Calendar.current.date(from: DateComponents(hour: 8, minute: 0)) ?? Date()
     @State private var endTime: Date = Calendar.current.date(from: DateComponents(hour: 16, minute: 0)) ?? Date()
     
-    // State untuk Popup Date Picker Native iOS
-    @State private var activeDateSheet: DateFieldTarget? = nil
-    enum DateFieldTarget {
-        case start, end
-    }
-    
     private enum FocusedField {
         case eventName
         case eventDescription
@@ -113,25 +107,6 @@ struct CreatingView: View {
         .contentShape(Rectangle())
         .onTapGesture { focusedField = nil }
         .navigationBarHidden(true)
-        // MARK: - Sheet Date Picker dengan Logika Batasan Tanggal
-        .sheet(item: $activeDateSheet) { target in
-//            NavigationStack {
-                VStack {
-                    DatePicker(
-                        target == .start ? "Pilih Tanggal Mulai" : "Pilih Tanggal Selesai",
-                        selection: dateBinding(for: target),
-                        in: dateRange(for: target),
-                        displayedComponents: [.date]
-                    )
-                    .datePickerStyle(.graphical)
-                    .padding()
-                    Spacer()
-                }
-                .navigationTitle(target == .start ? "Tanggal Mulai" : "Tanggal Selesai")
-                .navigationBarTitleDisplayMode(.inline)
-//            }
-            .presentationDetents([.medium])
-        }
         .onChange(of: startTime) { _, newStart in
             if endTime < newStart {
                 endTime = newStart
@@ -167,7 +142,6 @@ struct CreatingView: View {
     private func successView(for event: AdminEvent) -> some View {
         EventSuccessView(
             eventName: event.name,
-            eventDesc: eventDescription.isEmpty ? "Tidak ada deskripsi" : eventDescription,
             locationName: selectedLocationName ?? "Lokasi belum dipilih",
             locationAddress: selectedLocationAddress ?? "",
             dateRange: "\(formattedDate(startDate)) - \(formattedDate(endDate))",
@@ -317,14 +291,8 @@ struct CreatingView: View {
     private var step2ContentView: some View {
         VStack(alignment: .leading, spacing: 20) {
             DateTimeRangeCardView(
-                startDateString: formattedDate(startDate),
-                endDateString: formattedDate(endDate),
-                onStartTap: {
-                    activeDateSheet = .start
-                },
-                onEndTap: {
-                    activeDateSheet = .end
-                }
+                startDate: $startDate,
+                endDate: $endDate
             )
             .padding(.horizontal, 16)
             
@@ -384,38 +352,6 @@ struct CreatingView: View {
     private func formattedDate(_ date: Date) -> String {
         date.formatted(.dateTime.day().month(.abbreviated).year())
     }
-    
-    private func dateBinding(for target: DateFieldTarget) -> Binding<Date> {
-        switch target {
-        case .start:
-            return Binding(
-                get: { startDate },
-                set: { newValue in
-                    startDate = min(newValue, endDate)
-                }
-            )
-        case .end:
-            return Binding(
-                get: { endDate },
-                set: { newValue in
-                    endDate = max(newValue, startDate)
-                }
-            )
-        }
-    }
-    
-    private func dateRange(for target: DateFieldTarget) -> ClosedRange<Date> {
-        switch target {
-        case .start:
-            return Date.distantPast...endDate
-        case .end:
-            return startDate...Date.distantFuture
-        }
-    }
-}
-
-extension CreatingView.DateFieldTarget: Identifiable {
-    var id: Self { self }
 }
 
 #Preview {
