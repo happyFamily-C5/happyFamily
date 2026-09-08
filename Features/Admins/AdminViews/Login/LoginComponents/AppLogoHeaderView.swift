@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct AppLogoHeaderView: View {
-    var imageName: String = "AppLogoIcon" //nama asset
+    var imageName: String = "logotitikkumpul" //nama asset
     var imageSize: CGFloat = 80       // Ukuran logo
     
     var body: some View {

@@ -9,9 +9,6 @@ struct LoginSplashView: View {
     
     var body: some View {
         ZStack {
-            LoginAnimatedGreenGradientBackground()
-            .opacity(backgroundOpacity)
-            
             AppLogoHeaderView(imageSize: 112)
                 .scaleEffect(logoScale)
                 .opacity(logoOpacity)

@@ -4,6 +4,7 @@ import MapKit
 import CoreLocation
 
 struct EditEventView: View {
+    @Environment(AppRouter.self) private var router
     @Environment(\.dismiss) private var dismiss
     
     let originalEvent: AdminEvent
@@ -160,7 +161,11 @@ struct EditEventView: View {
                         selectedCoordinate: selectedCoordinate,
                         onTap: {
                             shouldCommitLocationOnDismiss = true
-                            activeEditor = .location
+                            router.openMapPicker(
+                                location: selectedLocationName,
+                                address: selectedLocationAddress,
+                                coordinate: selectedCoordinate
+                            )
                         }
                     )
                     
@@ -207,6 +212,12 @@ struct EditEventView: View {
         .onChange(of: donationCapacity, commitCapacityChange)
         .onChange(of: startTime, clampEndTime)
         .onChange(of: endTime, clampStartTime)
+        .onChange(of: router.mapPickerSession.revision) { _, _ in
+            selectedLocationName = router.mapPickerSession.selectedLocation
+            selectedLocationAddress = router.mapPickerSession.selectedAddress
+            selectedCoordinate = router.mapPickerSession.selectedCoordinate
+            commitLocationIfNeeded()
+        }
     }
     
     @ViewBuilder
@@ -230,11 +241,7 @@ struct EditEventView: View {
                 onSaveTapped: commitChanges
             )
         case .location:
-            MainMapPickerView(
-                selectedLocation: $selectedLocationName,
-                selectedAddress: $selectedLocationAddress,
-                selectedCoordinate: $selectedCoordinate
-            )
+            EmptyView()
         case .description:
             EditEventDescriptionView(
                 eventDescription: $eventDescription,
