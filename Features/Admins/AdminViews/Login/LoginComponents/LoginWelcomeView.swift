@@ -15,9 +15,6 @@ struct LoginWelcomeView: View {
     
     var body: some View {
         ZStack {
-            LoginAnimatedGreenGradientBackground()
-            
-            ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
                     Spacer().frame(height: 76)
                     
@@ -81,8 +78,7 @@ struct LoginWelcomeView: View {
                 .padding(.horizontal, 24)
                 .padding(.bottom, 32)
                 .frame(maxWidth: .infinity)
-            }
-            .scrollDismissesKeyboard(.interactively)
+            
         }
     }
 }
@@ -106,7 +102,7 @@ private struct LoginInputField: View {
                 .font(.system(size: 15, weight: .medium))
                 .padding(.horizontal, 16)
                 .frame(height: 54)
-                .background(Color(.systemBackground).opacity(0.9))
+                .background(Color(#colorLiteral(red: 0.9214347005, green: 0.9214347005, blue: 0.9214347005, alpha: 1)))
                 .cornerRadius(27)
         }
     }
@@ -129,7 +125,7 @@ private struct LoginSecureInputField: View {
                 .font(.system(size: 15, weight: .medium))
                 .padding(.horizontal, 16)
                 .frame(height: 54)
-                .background(Color(.systemBackground).opacity(0.9))
+                .background(Color(#colorLiteral(red: 0.9214347005, green: 0.9214347005, blue: 0.9214347005, alpha: 1)))
                 .cornerRadius(27)
         }
     }

@@ -358,4 +358,5 @@ struct CreatingView: View {
     NavigationStack {
         CreatingView { _ in }
     }
+    .environment(AppRouter())
 }

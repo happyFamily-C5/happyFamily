@@ -2,6 +2,7 @@ import SwiftUI
 import CoreLocation
 
 struct EventDetailView: View {
+    @Environment(AppRouter.self) private var router
     @State private var event: AdminEvent
     
     var onBackTapped: () -> Void
@@ -29,6 +30,8 @@ struct EventDetailView: View {
     @State private var isShowingEditEvent: Bool = false
     
     var body: some View {
+        @Bindable var router = router
+
         ZStack(alignment: .bottom) {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 16) {
@@ -120,17 +123,20 @@ struct EventDetailView: View {
         .edgesIgnoringSafeArea(.bottom)
         .navigationBarHidden(true)
         .fullScreenCover(isPresented: $isShowingEditEvent) {
-            EditEventView(
-                event: event,
-                onSave: { updatedEvent in
-                    event = updatedEvent
-                    onEventUpdated(updatedEvent)
-                },
-                onDelete: {
-                    isShowingEditEvent = false
-                    onEventDeleted(event)
-                }
-            )
+            NavigationStack(path: $router.mapPath) {
+                EditEventView(
+                    event: event,
+                    onSave: { updatedEvent in
+                        event = updatedEvent
+                        onEventUpdated(updatedEvent)
+                    },
+                    onDelete: {
+                        isShowingEditEvent = false
+                        onEventDeleted(event)
+                    }
+                )
+                .mapPickerRouter(router)
+            }
         }
 
     }
@@ -158,6 +164,7 @@ struct EventDetailView: View {
             onShareTapped: { print("Share") },
             onEditTapped: { print("Edit Acara") }
         )
+        .environment(AppRouter())
     }
 }
 

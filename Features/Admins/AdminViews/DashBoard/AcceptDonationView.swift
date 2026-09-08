@@ -8,11 +8,46 @@
 import SwiftUI
 
 struct AcceptDonationView: View {
+    @Environment(\ .dismiss) private var dismiss
+    @Environment(AppRouter.self) var router
+    var onReturnHome: () -> Void
+    
     var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
+        VStack{
+            Spacer()
+            VStack(spacing: 8){
+                Image("Acc")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 152)
+                
+                Text("Berhasil !")
+                    .font(.title).bold()
+            }
+            Text("Donasi telah diterima")
+            
+            Spacer()
+            
+            Button{
+                dismiss()
+                router.popToRoot()
+            }label: {
+                Text("Kembali ke beranda")
+                    .fontWeight(.bold)
+                    .foregroundStyle(Color.white)
+                    .padding(16)
+                    .frame(maxWidth: .infinity)
+                    .background(
+                        AppColor.primaryCyan,
+                        in: RoundedRectangle(cornerRadius: 60)
+                    )
+            }
+        }
+        .padding(.horizontal, 20)
     }
 }
 
 #Preview {
-    AcceptDonationView()
+    AcceptDonationView(onReturnHome: {})
+        .environment(AppRouter())
 }
