@@ -6,5 +6,5 @@
 HAPPYFAMILY_LOCAL_DEVELOPMENT_TEAM = YOUR_TEAM_ID
 
 // Use a unique reverse-DNS identifier owned by you. Do not reuse the official
-// com.academy.hendraaaa identifiers from Debug, Staging, Release, or App Clip.
+// com.academy.hendraaaa identifiers from Debug, Staging, or Release.
 HAPPYFAMILY_LOCAL_BUNDLE_IDENTIFIER = com.yourname.happyfamily.local

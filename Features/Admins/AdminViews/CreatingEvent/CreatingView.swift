@@ -1,7 +1,7 @@
-import CoreLocation
-import MapKit
-import PhotosUI
 import SwiftUI
+import PhotosUI
+import MapKit
+import CoreLocation
 
 struct CreatingView: View {
     @Environment(\.dismiss) var dismiss
@@ -9,6 +9,7 @@ struct CreatingView: View {
     
     // Callback untuk mengirim data event baru kembali ke Dashboard
     var onEventCreated: (AdminEvent) -> Void
+    var onViewCreatedEvent: ((AdminEvent) -> Void)? = nil
     
     // State untuk alur pembuatan event (Step 1 sampai 3)
     @State private var currentStep: Int = 1
@@ -17,26 +18,20 @@ struct CreatingView: View {
     // State untuk Form Step 1 (Informasi Dasar)
     @State private var eventName: String = ""
     @State private var eventDescription: String = ""
-    @State private var selectedItem: PhotosPickerItem?
-    @State private var selectedBannerImage: Image?
-    @State private var selectedImageData: Data?
+    @State private var selectedItem: PhotosPickerItem? = nil
+    @State private var selectedBannerImage: Image? = nil
+    @State private var selectedImageData: Data? = nil
     
     // State untuk Form Step 2 (Jadwal dan Lokasi)
-    @State private var startDate = Date()
+    @State private var startDate: Date = Date()
     @State private var endDate: Date = Calendar.current.date(byAdding: .day, value: 6, to: Date()) ?? Date()
-    @State private var selectedLocationName: String?
-    @State private var selectedLocationAddress: String?
-    @State private var selectedCoordinate: CLLocationCoordinate2D?
+    @State private var selectedLocationName: String? = nil
+    @State private var selectedLocationAddress: String? = nil
+    @State private var selectedCoordinate: CLLocationCoordinate2D? = nil
     @State private var operationalMode: String = "Akhir Pekan"
     @State private var activeDays: [Bool] = [true, false, false, false, false, false, true]
     @State private var startTime: Date = Calendar.current.date(from: DateComponents(hour: 8, minute: 0)) ?? Date()
     @State private var endTime: Date = Calendar.current.date(from: DateComponents(hour: 16, minute: 0)) ?? Date()
-    
-    // State untuk Popup Date Picker Native iOS
-    @State private var activeDateSheet: DateFieldTarget?
-    enum DateFieldTarget {
-        case start, end
-    }
     
     private enum FocusedField {
         case eventName
@@ -52,105 +47,66 @@ struct CreatingView: View {
     ]
     @State private var selectedCategories: Set<String> = []
     @State private var donationCapacity: Int = 10
+    @State private var pendingCreatedEvent: AdminEvent?
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            
-            // MARK: - 1. Header dengan Progress Bar Segmen Sesuai Step Aktif
-            FormHeaderView(
-                currentStep: currentStep,
-                totalSteps: totalSteps,
-                stepTitle: stepTitleText,
-                onBackTapped: {
-                    if currentStep > 1 {
-                        currentStep -= 1
-                    } else {
-                        dismiss()
-                    }
-                }
-            )
-            .padding(.top, 8)
-            
-            // MARK: - 2. Konten Berdasarkan Step Aktif
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 28) {
+        Group {
+            if let pendingCreatedEvent {
+                successView(for: pendingCreatedEvent)
+            } else {
+                VStack(alignment: .leading, spacing: 0) {
                     
-                    if currentStep == 1 {
-                        step1ContentView
-                    } else if currentStep == 2 {
-                        step2ContentView
-                    } else if currentStep == 3 {
-                        step3ContentView
-                    }
-                    
-                }
-                .padding(.vertical, 24)
-            }
-            .scrollDismissesKeyboard(.interactively)
-            
-            // MARK: - 3. Tombol Aksi Bawah (Lanjut / Selesai)
-            VStack {
-                PrimaryButton(title: currentStep == totalSteps ? "Buat Acara" : "Lanjut") {
-                    if currentStep < totalSteps {
-                        currentStep += 1
-                    } else {
-                        // Buat objek event baru dari data form
-                        let newEvent = AdminEvent(
-                            name: eventName,
-                            description: eventDescription.nilIfBlank,
-                            startDate: eventDate(startDate, endOfDay: false),
-                            endDate: eventDate(endDate, endOfDay: true),
-                            capacityKg: donationCapacity,
-                            collectedKg: 0,
-                            bannerImageData: selectedImageData,
-                            timezoneName: selectedTimezoneName,
-                            operationalDays: activeDays.enumerated().compactMap { index, isActive in
-                                isActive ? index + 1 : nil
-                            },
-                            opensAtLocal: localTime(startTime),
-                            closesAtLocal: localTime(endTime),
-                            locationName: selectedLocationName,
-                            locationAddress: selectedLocationAddress,
-                            latitude: selectedCoordinate?.latitude,
-                            longitude: selectedCoordinate?.longitude,
-                            criteria: selectedCategories.compactMap {
-                                CriteriaByLabel(rawValue: $0)?.code
+                    // MARK: - 1. Header dengan Progress Bar Segmen Sesuai Step Aktif
+                    FormHeaderView(
+                        currentStep: currentStep,
+                        totalSteps: totalSteps,
+                        stepTitle: stepTitleText,
+                        onBackTapped: {
+                            if currentStep > 1 {
+                                currentStep -= 1
+                            } else {
+                                dismiss()
                             }
-                        )
-                        // Kirim data ke DashboardView
-                        onEventCreated(newEvent)
-                        
-                        print("Event berhasil dibuat!")
-                        dismiss()
+                        }
+                    )
+                    .padding(.top, 8)
+                    
+                    // MARK: - 2. Konten Berdasarkan Step Aktif
+                    ScrollView(showsIndicators: false) {
+                        VStack(alignment: .leading, spacing: 28) {
+                            
+                            if currentStep == 1 {
+                                step1ContentView
+                            } else if currentStep == 2 {
+                                step2ContentView
+                            } else if currentStep == 3 {
+                                step3ContentView
+                            }
+                            
+                        }
+                        .padding(.vertical, 24)
                     }
+                    .scrollDismissesKeyboard(.interactively)
+                    
+                    // MARK: - 3. Tombol Aksi Bawah (Lanjut / Selesai)
+                    VStack {
+                        PrimaryButton(title: currentStep == totalSteps ? "Buat Acara" : "Lanjut") {
+                            if currentStep < totalSteps {
+                                currentStep += 1
+                            } else {
+                                pendingCreatedEvent = makeEvent()
+                            }
+                        }
+                        .disabled(!isCurrentStepValid)
+                        .opacity(isCurrentStepValid ? 1.0 : 0.6)
+                    }
+                    .padding(.bottom, 16)
                 }
-                .disabled(!isCurrentStepValid)
-                .opacity(isCurrentStepValid ? 1.0 : 0.6)
             }
-            .padding(.bottom, 16)
         }
         .contentShape(Rectangle())
         .onTapGesture { focusedField = nil }
         .navigationBarHidden(true)
-        // MARK: - Sheet Date Picker dengan Logika Batasan Tanggal
-        .sheet(item: $activeDateSheet) { target in
-            NavigationStack {
-                VStack {
-                    DatePicker(
-                        target == .start ? "Pilih Tanggal Mulai" : "Pilih Tanggal Selesai",
-                        selection: dateBinding(for: target),
-                        in: dateRange(for: target),
-                        displayedComponents: [.date]
-                    )
-                    .datePickerStyle(.graphical)
-                    .padding()
-                    Spacer()
-                }
-                .navigationTitle(target == .start ? "Tanggal Mulai" : "Tanggal Selesai")
-                .navigationBarTitleDisplayMode(.inline)
-            }
-            .presentationDetents([.medium])
-        }
         .onChange(of: startTime) { _, newStart in
             if endTime < newStart {
                 endTime = newStart
@@ -161,6 +117,49 @@ struct CreatingView: View {
                 startTime = newEnd
             }
         }
+    }
+    
+    private func makeEvent() -> AdminEvent {
+        AdminEvent(
+            name: eventName,
+            description: eventDescription,
+            startDate: startDate,
+            endDate: endDate,
+            locationName: selectedLocationName ?? "",
+            locationAddress: selectedLocationAddress ?? "",
+            coordinate: selectedCoordinate,
+            operationalMode: operationalMode,
+            activeDays: activeDays,
+            startTime: startTime,
+            endTime: endTime,
+            donationCriteria: availableCategories.filter { selectedCategories.contains($0) },
+            capacityKg: donationCapacity,
+            collectedKg: 0,
+            bannerImageData: selectedImageData
+        )
+    }
+    
+    private func successView(for event: AdminEvent) -> some View {
+        EventSuccessView(
+            eventName: event.name,
+            locationName: selectedLocationName ?? "Lokasi belum dipilih",
+            locationAddress: selectedLocationAddress ?? "",
+            dateRange: "\(formattedDate(startDate)) - \(formattedDate(endDate))",
+            coordinate: selectedCoordinate,
+            onViewEventTapped: {
+                onEventCreated(event)
+                onViewCreatedEvent?(event)
+                dismiss()
+            },
+            onReturnHomeTapped: {
+                onEventCreated(event)
+                dismiss()
+            },
+            onCloseTapped: {
+                pendingCreatedEvent = nil
+                currentStep = 3
+            }
+        )
     }
     
     // Judul Header Dinamis
@@ -226,7 +225,7 @@ struct CreatingView: View {
                     if let data = try? await newItem?.loadTransferable(type: Data.self),
                        let uiImage = UIImage(data: data) {
                         await MainActor.run {
-                            selectedImageData = uiImage.kumpulBannerJPEGData()
+                            selectedImageData = data
                             selectedBannerImage = Image(uiImage: uiImage)
                         }
                     }
@@ -292,14 +291,8 @@ struct CreatingView: View {
     private var step2ContentView: some View {
         VStack(alignment: .leading, spacing: 20) {
             DateTimeRangeCardView(
-                startDateString: formattedDate(startDate),
-                endDateString: formattedDate(endDate),
-                onStartTap: {
-                    activeDateSheet = .start
-                },
-                onEndTap: {
-                    activeDateSheet = .end
-                }
+                startDate: $startDate,
+                endDate: $endDate
             )
             .padding(.horizontal, 16)
             
@@ -350,6 +343,7 @@ struct CreatingView: View {
             }
             .padding(.horizontal, 20)
             
+            
             DonationCapacityCardView(selectedCapacity: $donationCapacity)
                 .padding(.horizontal, 20)
         }
@@ -358,128 +352,11 @@ struct CreatingView: View {
     private func formattedDate(_ date: Date) -> String {
         date.formatted(.dateTime.day().month(.abbreviated).year())
     }
-
-    private func dateBinding(for target: DateFieldTarget) -> Binding<Date> {
-        switch target {
-        case .start:
-            return Binding(
-                get: { startDate },
-                set: { newValue in
-                    startDate = min(newValue, endDate)
-                }
-            )
-        case .end:
-            return Binding(
-                get: { endDate },
-                set: { newValue in
-                    endDate = max(newValue, startDate)
-                }
-            )
-        }
-    }
-    
-    private func dateRange(for target: DateFieldTarget) -> ClosedRange<Date> {
-        switch target {
-        case .start:
-            return Date.distantPast...endDate
-        case .end:
-            return startDate...Date.distantFuture
-        }
-    }
-}
-
-private extension CreatingView {
-    var selectedTimezoneName: String {
-        guard let longitude = selectedCoordinate?.longitude else {
-            return "Asia/Jakarta"
-        }
-        if longitude < 120 {
-            return "Asia/Jakarta"
-        }
-        if longitude < 135 {
-            return "Asia/Makassar"
-        }
-        return "Asia/Jayapura"
-    }
-
-    func eventDate(_ date: Date, endOfDay: Bool) -> Date {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(identifier: selectedTimezoneName) ?? .current
-        let startOfDay = calendar.startOfDay(for: date)
-        guard endOfDay else { return startOfDay }
-        return calendar.date(byAdding: DateComponents(day: 1, second: -1), to: startOfDay) ?? date
-    }
-
-    func localTime(_ date: Date) -> String {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(identifier: selectedTimezoneName) ?? .current
-        let components = calendar.dateComponents([.hour, .minute], from: date)
-        return String(format: "%02d:%02d:00", components.hour ?? 0, components.minute ?? 0)
-    }
-
-    enum CriteriaByLabel: String {
-        case cotton = "Katun"
-        case linen = "Linen"
-        case rayon = "Rayon"
-        case wool = "Wol"
-        case tencel = "Tencel"
-        case silk = "Sutra"
-        case nonStretch = "Tidak Elastis"
-        case denim = "Denim"
-        case noLace = "Tidak berenda"
-        case polyester = "Poliester"
-
-        var code: EventCriterionCode {
-            switch self {
-            case .cotton: .cotton
-            case .linen: .linen
-            case .rayon: .rayon
-            case .wool: .wool
-            case .tencel: .tencel
-            case .silk: .silk
-            case .nonStretch: .nonStretch
-            case .denim: .denim
-            case .noLace: .noLace
-            case .polyester: .polyester
-            }
-        }
-    }
-}
-
-private extension String {
-    var nilIfBlank: String? {
-        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
-    }
-}
-
-extension CreatingView.DateFieldTarget: Identifiable {
-    var id: Self { self }
-}
-
-private extension UIImage {
-    func kumpulBannerJPEGData() -> Data? {
-        let maximumDimension: CGFloat = 4096
-        let longestSide = max(size.width, size.height)
-        guard longestSide > maximumDimension else {
-            return jpegData(compressionQuality: 0.85)
-        }
-        let scale = maximumDimension / longestSide
-        let targetSize = CGSize(
-            width: max(1, floor(size.width * scale)),
-            height: max(1, floor(size.height * scale))
-        )
-        let format = UIGraphicsImageRendererFormat.default()
-        format.scale = 1
-        let resized = UIGraphicsImageRenderer(size: targetSize, format: format).image { _ in
-            draw(in: CGRect(origin: .zero, size: targetSize))
-        }
-        return resized.jpegData(compressionQuality: 0.85)
-    }
 }
 
 #Preview {
     NavigationStack {
         CreatingView { _ in }
     }
+    .environment(AppRouter())
 }

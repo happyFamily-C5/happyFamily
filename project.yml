@@ -2,9 +2,6 @@ name: happyFamily
 
 options:
   bundleIdPrefix: com.academy.hendraaaa
-  # Schemes are rewritten on every generate; re-apply the queue-debugging
-  # workaround for device debugging on recent iOS runtimes.
-  postGenCommand: sh Scripts/patch-schemes.sh
   deploymentTarget:
     iOS: "26.0"
 
@@ -19,11 +16,6 @@ configFiles:
   Local: Config/Local.xcconfig
   Staging: Config/Staging.xcconfig
   Release: Config/Release.xcconfig
-
-packages:
-  Supabase:
-    url: https://github.com/supabase/supabase-swift
-    exactVersion: 2.55.1
 
 settings:
   base:
@@ -52,44 +44,20 @@ targets:
       - DesignSystem
       - Resources
       - Core
-    info:
-      # Custom keys are NOT emitted via INFOPLIST_KEY_* (Apple allowlist only);
-      # they must live in a real Info.plist merged with the generated one.
-      path: App/Info.plist
-      properties:
-        KumpulBackendEnvironment: $(KUMPUL_BACKEND_ENVIRONMENT)
-        KumpulBackendPublishableKey: $(KUMPUL_BACKEND_PUBLISHABLE_KEY)
-        KumpulBackendURL: $(KUMPUL_BACKEND_URL)
-    # NOTE: no `entitlements:` block here on purpose. xcodegen applies
-    # entitlements.path AFTER settings.configs, so it clobbers the per-config
-    # CODE_SIGN_ENTITLEMENTS below. Xcode automatic signing does not expand
-    # custom vars like $(APP_CLIP_BUNDLE_IDENTIFIER) when matching the
-    # com.apple.developer.associated-appclip-app-identifiers entitlement, which
-    # produced: "Provisioning profile ... doesn't match the entitlements file's
-    # value for the com.apple.developer.associated-appclip-app-identifiers
-    # entitlement". Each config points at a fully-resolved file instead.
     settings:
       base:
         # NOTE: do NOT use xcodegen's `entitlements:` block on this target.
         # It writes CODE_SIGN_ENTITLEMENTS into every build configuration,
         # silently overriding the per-config files below, and then builds
-        # sign with App/happyFamily.entitlements whose $(APP_CLIP_BUNDLE_IDENTIFIER)
-        # expands to nothing -> "provisioning profile doesn't match ...
-        # associated-appclip-app-identifiers" at automatic-signing time.
         # App/happyFamily.entitlements is only a fallback for configs without
-        # a dedicated file; it relies on APP_CLIP_BUNDLE_IDENTIFIER from Base.xcconfig.
+        # a dedicated file.
         CODE_SIGN_ENTITLEMENTS: App/happyFamily.entitlements
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
-        INFOPLIST_KEY_KumpulBackendEnvironment: $(KUMPUL_BACKEND_ENVIRONMENT)
-        INFOPLIST_KEY_KumpulBackendPublishableKey: $(KUMPUL_BACKEND_PUBLISHABLE_KEY)
-        INFOPLIST_KEY_KumpulBackendURL: $(KUMPUL_BACKEND_URL)
         INFOPLIST_KEY_NSCameraUsageDescription: Kamera dipakai untuk memindai pakaian.
         INFOPLIST_KEY_NSPhotoLibraryUsageDescription: Galeri dipakai untuk memilih foto pakaian yang akan dipindai.
       configs:
         Debug:
-          # Fully resolved IDs — custom vars like $(APP_CLIP_BUNDLE_IDENTIFIER) are NOT
-          # expanded during automatic signing / App ID registration.
           CODE_SIGN_ENTITLEMENTS: App/Entitlements/Debug.entitlements
         Staging:
           CODE_SIGN_ENTITLEMENTS: App/Entitlements/Staging.entitlements
@@ -98,35 +66,25 @@ targets:
           CODE_SIGN_STYLE: Manual
           CODE_SIGN_ENTITLEMENTS: App/Entitlements/Release.entitlements
           PROVISIONING_PROFILE_SPECIFIER: happyFamily App Store Associated Domains 2026-09-01
-    dependencies:
-      - target: HappyFamilyAppClips
-      - package: Supabase
-        product: Supabase
     scheme:
       testTargets:
         - happyFamilyTests
         - happyFamilyUITests
 
   # Personal Team target for contributors who are not members of the owner's
-  # Apple Developer team. It intentionally excludes the App Clip dependency and
-  # association entitlements, which require matching paid-team App IDs.
+  # Apple Developer team. It intentionally excludes team-owned entitlements.
   happyFamilyPersonal:
     type: application
     platform: iOS
     sources:
       - App
-    info:
-      path: App/Info.plist
-      properties:
-        KumpulBackendEnvironment: $(KUMPUL_BACKEND_ENVIRONMENT)
-        KumpulBackendPublishableKey: $(KUMPUL_BACKEND_PUBLISHABLE_KEY)
-        KumpulBackendURL: $(KUMPUL_BACKEND_URL)
+      - Features
+      - DesignSystem
+      - Resources
+      - Core
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_KumpulBackendEnvironment: $(KUMPUL_BACKEND_ENVIRONMENT)
-        INFOPLIST_KEY_KumpulBackendPublishableKey: $(KUMPUL_BACKEND_PUBLISHABLE_KEY)
-        INFOPLIST_KEY_KumpulBackendURL: $(KUMPUL_BACKEND_URL)
         INFOPLIST_KEY_NSCameraUsageDescription: Kamera dipakai untuk memindai pakaian.
         INFOPLIST_KEY_NSPhotoLibraryUsageDescription: Galeri dipakai untuk memilih foto pakaian yang akan dipindai.
       configs:
@@ -134,100 +92,6 @@ targets:
           CODE_SIGN_ENTITLEMENTS: ""
           DEVELOPMENT_TEAM: $(HAPPYFAMILY_LOCAL_DEVELOPMENT_TEAM)
           PRODUCT_BUNDLE_IDENTIFIER: $(HAPPYFAMILY_LOCAL_BUNDLE_IDENTIFIER)
-    dependencies:
-      - package: Supabase
-        product: Supabase
-
-  HappyFamilyAppClips:
-    type: application.on-demand-install-capable
-    platform: iOS
-    configFiles:
-      Debug: Config/Debug.xcconfig
-      Staging: Config/Staging.xcconfig
-      Release: Config/Release.xcconfig
-    sources:
-      # DesingSystem/Colors/AppColor.swift is a byte-identical copy of the
-      # DesignSystem file referenced below. Two sources with the same filename
-      # in one module is a hard compiler error, so only the shared one is built.
-      #
-      # The old FashionModel/Scan excludes are gone: ClothesBox (which they
-      # avoided colliding with) was replaced by Features/FashionModel/Scan,
-      # so the clip now builds that scan UI as its own.
-      - path: HappyFamilyAppClips
-        excludes:
-          - DesingSystem
-      - DesignSystem/Colors/AppColor.swift
-      - Core/Backend/Public
-      - Core/Scanning
-    info:
-      path: HappyFamilyAppClips/Info.plist
-      properties:
-        ITSAppUsesNonExemptEncryption: false
-        NSCameraUsageDescription: Kamera dipakai untuk memindai pakaian.
-        # Without this key iOS silently hides the share sheet's "Save Image"
-        # action — it does not error, the option simply never appears.
-        NSPhotoLibraryAddUsageDescription: Label donasi disimpan ke galeri.
-        NSAppClip:
-          NSAppClipRequestEphemeralUserNotification: false
-          NSAppClipRequestLocationConfirmation: false
-        KumpulBackendEnvironment: $(KUMPUL_BACKEND_ENVIRONMENT)
-        KumpulBackendPublishableKey: $(KUMPUL_BACKEND_PUBLISHABLE_KEY)
-        KumpulBackendURL: $(KUMPUL_BACKEND_URL)
-    settings:
-      base:
-        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
-        GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_CFBundleDisplayName: happyFamily
-        SWIFT_ACTIVE_COMPILATION_CONDITIONS: $(inherited) APPCLIP
-      configs:
-        # Fully resolved parent/clip bundle IDs in per-config entitlements.
-        # Xcode automatic signing does not expand custom build settings such as
-        # $(PARENT_APPLICATION_IDENTIFIER) when registering App Clip identifiers
-        # (error: attribute 'name' is invalid: 'XC $(PARENT_APPLICATION_IDENTIFIER)').
-        Debug:
-          CODE_SIGN_ENTITLEMENTS: HappyFamilyAppClips/App/Entitlements/Debug.entitlements
-          PRODUCT_BUNDLE_IDENTIFIER: com.academy.hendraaaa.happyFamily.debug.Clip
-        Staging:
-          CODE_SIGN_ENTITLEMENTS: HappyFamilyAppClips/App/Entitlements/Staging.entitlements
-          PRODUCT_BUNDLE_IDENTIFIER: com.academy.hendraaaa.happyFamily.staging.Clip
-        Release:
-          CODE_SIGN_IDENTITY: Apple Distribution
-          CODE_SIGN_STYLE: Manual
-          CODE_SIGN_ENTITLEMENTS: HappyFamilyAppClips/App/Entitlements/Release.entitlements
-          PRODUCT_BUNDLE_IDENTIFIER: com.academy.hendraaaa.happyFamily.Clip
-          PROVISIONING_PROFILE_SPECIFIER: happyFamily Clip App Store Associated Domains 2026-09-01
-
-  # App Clip executables cannot use Xcode's JIT preview executor directly.
-  # This normal app target hosts the same UI sources for canvas previews only.
-  HappyFamilyPreviewHost:
-    type: application
-    platform: iOS
-    configFiles:
-      Debug: Config/Debug.xcconfig
-      Staging: Config/Staging.xcconfig
-      Release: Config/Release.xcconfig
-    sources:
-      - PreviewHost
-      - path: HappyFamilyAppClips
-        excludes:
-          - DesingSystem
-          - App/Entitlements
-          - App/HappyFamilyAppClipsApp.swift
-          - Info.plist
-      - DesignSystem/Colors/AppColor.swift
-    info:
-      path: PreviewHost/Info.plist
-      properties:
-        KumpulBackendEnvironment: $(KUMPUL_BACKEND_ENVIRONMENT)
-        KumpulBackendPublishableKey: $(KUMPUL_BACKEND_PUBLISHABLE_KEY)
-        KumpulBackendURL: $(KUMPUL_BACKEND_URL)
-    settings:
-      base:
-        ASSETCATALOG_COMPILER_APPICON_NAME: ""
-        INFOPLIST_KEY_NSCameraUsageDescription: Kamera dipakai untuk memindai pakaian.
-        PRODUCT_BUNDLE_IDENTIFIER: com.academy.hendraaaa.happyFamily.PreviewHost
-        SKIP_INSTALL: YES
-        SWIFT_ACTIVE_COMPILATION_CONDITIONS: $(inherited) APPCLIP PREVIEW_HOST
 
   happyFamilyTests:
     type: bundle.unit-test
@@ -269,34 +133,7 @@ schemes:
         happyFamilyPersonal: all
     run:
       config: Local
+    test:
+      config: Local
     analyze:
       config: Local
-
-  # Hosted backend for real-device testing: Debug/Local points at the local
-  # stack on 127.0.0.1, which a physical iPhone cannot reach.
-  happyFamily Staging:
-    build:
-      targets:
-        happyFamily: all
-    run:
-      config: Staging
-    analyze:
-      config: Staging
-    archive:
-      config: Staging
-
-  HappyFamilyPreviewHost:
-    build:
-      targets:
-        HappyFamilyPreviewHost: all
-    run:
-      config: Debug
-
-  HappyFamilyAppClips:
-    build:
-      targets:
-        HappyFamilyAppClips: all
-    run:
-      config: Debug
-      environmentVariables:
-        _XCAppClipURL: https://local.kumpul.invalid/invoke?token=local-invocation-token-0000000000000000
