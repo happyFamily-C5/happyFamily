@@ -5,11 +5,15 @@ criteria tetap mengacu ke `BACKEND_PRD.md`. Jangan menaruh access token, Apple c
 service-role key, database password, atau material enkripsi di repository, log CI, issue, maupun
 percakapan.
 
+Status saat ini: source dan hosted staging sudah sinkron untuk migration serta Edge Function.
+Runbook ini membedakan validasi local Docker yang dijalankan CI dari development Mac yang memakai
+hosted staging.
+
 ## Toolchain yang Dipin
 
 - Supabase CLI `2.116.0`
 - Deno `2.9.6`
-- Docker-compatible runtime (Docker Desktop, OrbStack, atau Colima)
+- Docker-compatible runtime (Docker Desktop, OrbStack, atau Colima) hanya untuk local CI/test stack
 - PostgreSQL local stack mengikuti `supabase/config.toml` dan major version `17`
 
 CI memverifikasi versi berdasarkan field versi, bukan platform CPU runner. Jalankan
@@ -35,6 +39,10 @@ Supabase local stack menyuntikkan URL, publishable/anon key, dan service-role ke
 runtime. Jangan menyalin service-role key ke aplikasi. Untuk Xcode, salin
 `Config/Secrets.xcconfig.example` menjadi `Config/Secrets.xcconfig`, lalu isi hanya URL backend dan
 publishable key.
+
+Untuk development Mac yang memang diarahkan ke hosted staging, jangan jalankan `supabase start`,
+`supabase db reset`, atau stack Docker lokal. Gunakan target `kumpul-staging` yang terautentikasi,
+jalankan migration/function audit secara read-only, dan gunakan konfigurasi Xcode `Staging`.
 
 ### Gate lokal wajib
 
@@ -89,16 +97,22 @@ menggunakan file secret staging untuk production.
 ### Staging
 
 1. Pastikan seluruh gate lokal dan build iOS lulus.
-2. Link checkout ke project staging: `supabase link --project-ref <staging-project-ref>`.
+2. Untuk target yang sedang dipakai, project staging adalah `kumpul-staging` dengan ref
+   `tdpvtdblphojutjifdlc`. Link checkout ke project staging:
+   `supabase link --project-ref <staging-project-ref>`.
 3. Periksa history dengan `supabase migration list --linked`.
 4. Preview migration dengan `supabase db push --linked --dry-run`.
 5. Set Edge secrets dari file yang berada di luar repository menggunakan
    `supabase secrets set --project-ref <staging-project-ref> --env-file <secure-env-file>`.
 6. Terapkan migration dengan `supabase db push --linked`.
-7. Deploy seluruh function dengan `supabase functions deploy --project-ref <staging-project-ref>`.
+7. Deploy seluruh function dengan `supabase functions deploy --project-ref <staging-project-ref> --use-api`.
 8. Provision Vault untuk Cron banner, periksa `cron.job`, lalu jalankan smoke/E2E memakai akun
    sintetis staging.
 9. Jalankan TestFlight main app dan App Clip terhadap konfigurasi `Staging`.
+
+Staging completion tidak berarti production readiness. Simpan bukti migration history, function
+versions/checksum, Vault names, Cron health, Auth settings, Storage policy, dan smoke/E2E result
+tanpa menyimpan secret value.
 
 ### Production
 
@@ -123,6 +137,7 @@ baik selama kontrak databasenya masih kompatibel.
 | `PII_HMAC_KEY_BASE64` | Phone lookup dan fingerprint rate limit | Mengubah lookup hash; jangan rotasi rutin tanpa migration/re-hash plan |
 | `DONOR_ACCESS_SIGNING_KEY_BASE64` | Token satu-booking 10 menit | Semua donor token aktif langsung invalid |
 | `BANNER_CLEANUP_SECRET` | Cron ke cleanup Edge Function | Update Edge secret dan Vault secara atomik |
+| `PROFILE_MEDIA_CLEANUP_SECRET` | Cron ke cleanup orphan avatar/logo | Update Edge secret dan Vault secara atomik |
 | `PUBLIC_BOOKING_ENABLED` | Kill switch create booking | `false` menutup write publik, resolve event tetap hidup |
 
 ### Rotasi AES-GCM aman
@@ -146,6 +161,8 @@ Melalui Vault UI/SQL yang terautorisasi, buat secret berikut di setiap hosted pr
 - `kumpul_project_url`: origin project Supabase environment tersebut.
 - `kumpul_banner_cleanup_secret`: value yang sama dengan Edge secret
   `BANNER_CLEANUP_SECRET` pada environment itu.
+- `kumpul_profile_media_cleanup_secret`: value yang sama dengan Edge secret
+  `PROFILE_MEDIA_CLEANUP_SECRET` pada environment itu.
 
 Jangan menulis value ke migration. Migration hanya membaca `vault.decrypted_secrets` saat job
 berjalan. Job yang tersedia:
@@ -153,10 +170,12 @@ berjalan. Job yang tersedia:
 - `kumpul-lifecycle-expiry`: setiap menit.
 - `kumpul-retention`: setiap hari.
 - `kumpul-banner-orphan-cleanup`: setiap hari; menjadi no-op sebelum Vault lengkap.
+- `kumpul-profile-media-orphan-cleanup`: setiap hari pukul 20:17 UTC; menghapus
+  avatar/logo orphan yang sudah melewati grace period tujuh hari.
 
 `private.run_lifecycle_job()` dan `private.run_retention_job()` idempotent dan hanya executable oleh
-`service_role`. Cleanup banner memakai custom constant-time shared-secret check dan mencatat run ke
-`job_runs`.
+`service_role`. Cleanup banner memakai protected Edge Function endpoint dengan custom constant-time
+shared-secret check dan mencatat run ke `job_runs`; endpoint ini bukan anonymous public API.
 
 ## Monitoring, Backlog, dan Alert
 
@@ -180,9 +199,18 @@ Alert minimum:
 - p95 resolve event/QR di atas 800 ms atau create/decision/dashboard di atas 1.500 ms secara
   berkelanjutan: alert.
 - database/storage quota mendekati batas plan: alert provider.
+- leaked password protection Auth hanya tersedia pada Supabase Pro. Staging MVP saat ini
+  sengaja tetap Free sehingga advisor akan melaporkannya disabled; ini bukan blocker MVP,
+  tetapi harus dievaluasi ulang sebelum production/hardening berbayar.
+- `idempotency_keys`, `job_runs`, dan `rate_limit_buckets` adalah tabel service-side dengan RLS
+  tanpa policy user-facing; akses publik harus tetap ditolak dan exception ini perlu dipantau saat
+  migration berubah.
 
 `api.job_health_v1` menyediakan latest run per job untuk diagnosis. Jalankan job secara manual hanya
 setelah penyebab dipahami; fungsi dirancang aman untuk catch-up/replay.
+
+Account linking provider belum tersedia pada `AuthSession`/source saat ini. Jangan mencatat BE-AUTH-05
+sebagai gate lulus sampai operasi linking yang aman benar-benar diimplementasikan dan diuji.
 
 ## Incident dan Kill Switch
 

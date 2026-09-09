@@ -3,7 +3,9 @@ import { ApiError, method, readJson, serve, success } from "../_shared/http.ts";
 import { organizerSession, rpc } from "../_shared/supabase.ts";
 
 function uuid(value: unknown): string {
-  if (typeof value !== "string" || !/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(value)) {
+  if (
+    typeof value !== "string" || !/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(value)
+  ) {
     throw new ApiError("INVALID_REQUEST", 400);
   }
   return value;
@@ -14,23 +16,42 @@ function optionalUuid(value: unknown): string | null {
   return uuid(value);
 }
 
-function optionalInt(body: Record<string, unknown>, key: string): number | null {
+function optionalInt(
+  body: Record<string, unknown>,
+  key: string,
+): number | null {
   const value = body[key];
-  return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : null;
+  return typeof value === "number" && Number.isInteger(value) && value > 0
+    ? value
+    : null;
 }
 
-function optionalCursor(body: Record<string, unknown>, key: string): string | null {
+function optionalCursor(
+  body: Record<string, unknown>,
+  key: string,
+): string | null {
   const value = body[key];
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
-function optionalDate(body: Record<string, unknown>, key: string): string | null {
+function optionalDate(
+  body: Record<string, unknown>,
+  key: string,
+): string | null {
   const value = body[key];
   if (value === null || value === undefined || value === "") return null;
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     throw new ApiError("INVALID_REQUEST", 400);
   }
   return value;
+}
+
+function idempotencyKey(req: Request): string {
+  const key = req.headers.get("idempotency-key")?.trim() ?? "";
+  if (!/^[A-Za-z0-9._:-]{8,200}$/.test(key)) {
+    throw new ApiError("IDEMPOTENCY_KEY_REQUIRED", 400);
+  }
+  return key;
 }
 
 type QRResult = Record<string, unknown> & {
@@ -61,9 +82,11 @@ serve("operations", async (req, requestId) => {
     );
   }
   if (action === "publish_event") {
+    const key = idempotencyKey(req);
     return success(
       await rpc(client, "publish_event_v2", {
         p_event_id: uuid(body.event_id),
+        p_idempotency_key: key,
         p_request_id: requestId,
       }),
       requestId,
@@ -104,9 +127,11 @@ serve("operations", async (req, requestId) => {
     );
   }
   if (action === "cancel_or_delete_event") {
+    const key = idempotencyKey(req);
     return success(
       await rpc(client, "cancel_or_delete_event_v2", {
         p_event_id: uuid(body.event_id),
+        p_idempotency_key: key,
         p_request_id: requestId,
       }),
       requestId,
@@ -114,7 +139,9 @@ serve("operations", async (req, requestId) => {
   }
   if (action === "resolve_qr") {
     const token = typeof body.qr_token === "string" ? body.qr_token.trim() : "";
-    if (token.length < 32 || token.length > 200) throw new ApiError("QR_INVALID", 404);
+    if (token.length < 32 || token.length > 200) {
+      throw new ApiError("QR_INVALID", 404);
+    }
     const result = await rpc<QRResult>(client, "resolve_account_qr_v2", {
       p_qr_token_hash: await sha256Hex(token),
     });
@@ -129,8 +156,16 @@ serve("operations", async (req, requestId) => {
     return success(
       {
         ...safe,
-        donor_name: await decrypt(donor_name_ciphertext, donor_name_nonce, crypto_key_version),
-        donor_phone: await decrypt(donor_phone_ciphertext, donor_phone_nonce, crypto_key_version),
+        donor_name: await decrypt(
+          donor_name_ciphertext,
+          donor_name_nonce,
+          crypto_key_version,
+        ),
+        donor_phone: await decrypt(
+          donor_phone_ciphertext,
+          donor_phone_nonce,
+          crypto_key_version,
+        ),
       },
       requestId,
     );
@@ -140,13 +175,14 @@ serve("operations", async (req, requestId) => {
     if (decision !== "accepted" && decision !== "rejected") {
       throw new ApiError("INVALID_REQUEST", 400);
     }
-    const key = req.headers.get("idempotency-key")?.trim() ?? "";
-    if (!/^[A-Za-z0-9._:-]{8,200}$/.test(key)) throw new ApiError("IDEMPOTENCY_KEY_REQUIRED", 400);
+    const key = idempotencyKey(req);
     return success(
       await rpc(client, "decide_reception_v2", {
         p_booking_id: uuid(body.booking_id),
         p_decision: decision,
-        p_actual_weight_grams: decision === "accepted" ? body.actual_weight_grams : null,
+        p_actual_weight_grams: decision === "accepted"
+          ? body.actual_weight_grams
+          : null,
         p_idempotency_key: key,
         p_request_id: requestId,
       }),
@@ -155,11 +191,15 @@ serve("operations", async (req, requestId) => {
   }
   if (action === "advance_tracking") {
     const status = body.status;
-    if (status !== "processed" && status !== "recycled") throw new ApiError("INVALID_REQUEST", 400);
+    if (status !== "processed" && status !== "recycled") {
+      throw new ApiError("INVALID_REQUEST", 400);
+    }
+    const key = idempotencyKey(req);
     return success(
       await rpc(client, "advance_booking_status_v1", {
         p_booking_id: uuid(body.booking_id),
         p_status: status,
+        p_idempotency_key: key,
         p_request_id: requestId,
       }),
       requestId,

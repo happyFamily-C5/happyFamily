@@ -16,7 +16,11 @@ const jsonHeaders = {
   "cache-control": "no-store",
 };
 
-export function success(data: unknown, requestId: string, status = 200): Response {
+export function success(
+  data: unknown,
+  requestId: string,
+  status = 200,
+): Response {
   return new Response(
     JSON.stringify({
       data,
@@ -40,7 +44,10 @@ export function failure(error: ApiError, requestId: string): Response {
       request_id: requestId,
       server_time: new Date().toISOString(),
     }),
-    { status: error.status, headers: { ...jsonHeaders, "x-request-id": requestId } },
+    {
+      status: error.status,
+      headers: { ...jsonHeaders, "x-request-id": requestId },
+    },
   );
 }
 
@@ -48,7 +55,10 @@ export function method(req: Request, expected: string): void {
   if (req.method !== expected) throw new ApiError("METHOD_NOT_ALLOWED", 405);
 }
 
-export async function readJson(req: Request, maxBytes = 32_768): Promise<Record<string, unknown>> {
+export async function readJson(
+  req: Request,
+  maxBytes = 32_768,
+): Promise<Record<string, unknown>> {
   const contentType = req.headers.get("content-type") ?? "";
   if (!contentType.toLowerCase().startsWith("application/json")) {
     throw new ApiError("CONTENT_TYPE_REQUIRED", 415);
@@ -73,7 +83,7 @@ export async function readJson(req: Request, maxBytes = 32_768): Promise<Record<
   }
 }
 
-function mapUnknownError(error: unknown): ApiError {
+export function mapUnknownError(error: unknown): ApiError {
   if (error instanceof ApiError) return error;
   const message = error instanceof Error
     ? error.message
@@ -83,9 +93,14 @@ function mapUnknownError(error: unknown): ApiError {
     : "";
   const known: Record<string, [number, boolean]> = {
     AUTH_REQUIRED: [401, false],
+    AUTH_INVALID: [401, false],
+    ONBOARDING_REQUIRED: [403, false],
+    ROLE_FORBIDDEN: [403, false],
     WORKSPACE_UNAVAILABLE: [403, false],
     EVENT_NOT_FOUND: [404, false],
     BOOKING_NOT_FOUND: [404, false],
+    PROFILE_NOT_FOUND: [404, false],
+    WORKSPACE_NOT_FOUND: [404, false],
     BOOKING_UNAVAILABLE: [404, false],
     INVOCATION_INVALID: [404, false],
     QR_INVALID: [404, false],
@@ -96,12 +111,28 @@ function mapUnknownError(error: unknown): ApiError {
     EVENT_FULL: [409, false],
     CAPACITY_EXCEEDED: [409, false],
     ACTIVE_EVENT_LIMIT: [409, false],
+    BOOKING_ALREADY_EXISTS: [409, false],
+    BOOKING_NOT_CANCELLABLE: [409, false],
+    EVENT_NOT_CANCELLABLE: [409, false],
     IDEMPOTENCY_CONFLICT: [409, false],
+    IDEMPOTENCY_INCOMPLETE: [409, true],
     BOOKING_NOT_PROCESSABLE: [409, false],
+    INVALID_BOOKING_TRANSITION: [409, false],
+    ROLE_IMMUTABLE: [409, false],
     EVENT_PUBLISH_FIELDS_REQUIRED: [422, false],
+    WORKSPACE_PROFILE_INCOMPLETE: [422, false],
+    PROFILE_INCOMPLETE: [422, false],
+    DONATION_LIMIT_EXCEEDED: [422, false],
+    INVALID_DONATION_LIMIT: [422, false],
+    INVALID_ACTUAL_WEIGHT: [422, false],
+    INVALID_REJECTION: [422, false],
+    INVALID_DATE_RANGE: [422, false],
+    CURSOR_INVALID: [422, false],
     CONSENT_VERSION_INVALID: [422, false],
     INVALID_ITEMS: [422, false],
     ITEM_NOT_PASSED: [422, false],
+    IDEMPOTENCY_KEY_REQUIRED: [400, false],
+    INVALID_SCOPE: [400, false],
   };
   for (const [code, [status, retryable]] of Object.entries(known)) {
     if (message.includes(code)) return new ApiError(code, status, retryable);

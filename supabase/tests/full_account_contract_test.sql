@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(58);
+select plan(66);
 
 -- The hosted Management API returns only the final result set. Capture every
 -- TAP assertion so this suite remains diagnosable without a local Docker-based
@@ -31,6 +31,15 @@ returns jsonb language sql immutable as $$
     'terms_version', 'test-v1', 'privacy_version', 'test-v1', 'request_id', p_request_id
   )
 $$;
+
+-- Test-only fixture lookup bypasses user-facing RLS so ownership assertions
+-- exercise the RPC rather than accidentally passing a NULL argument.
+create or replace function pg_temp.booking_id(p_public_booking_id text)
+returns uuid
+language sql
+security definer
+as $$ select id from public.bookings where public_booking_id = p_public_booking_id $$;
+grant execute on function pg_temp.booking_id(text) to authenticated, service_role;
 
 create or replace function pg_temp.make_v2_event(
   p_id uuid, p_owner uuid, p_status public.event_status, p_start timestamptz,
@@ -143,7 +152,7 @@ select is_empty(
 );
 insert into pg_temp.tap_results(result)
 select throws_ok(
-  $$select api.booking_detail_v2((select id from public.bookings where public_booking_id = 'KPL-V2AAA-00001'))$$,
+  $$select api.booking_detail_v2(pg_temp.booking_id('KPL-V2AAA-00001'))$$,
   'P0002', 'BOOKING_NOT_FOUND', 'donor cannot read another donor booking detail'
 );
 reset role;
@@ -236,14 +245,14 @@ insert into pg_temp.tap_results(result)
 select is(
   api.advance_booking_status_v1(
     (select id from public.bookings where public_booking_id = 'KPL-V2EEE-00005'), 'processed',
-    '10000000-0000-4000-8000-000000000008'
+    'v2-tracking-processed', '10000000-0000-4000-8000-000000000008'
   ) ->> 'status', 'processed', 'admin advances accepted booking to processed'
 );
 insert into pg_temp.tap_results(result)
 select is(
   api.advance_booking_status_v1(
     (select id from public.bookings where public_booking_id = 'KPL-V2EEE-00005'), 'recycled',
-    '10000000-0000-4000-8000-000000000009'
+    'v2-tracking-recycled', '10000000-0000-4000-8000-000000000009'
   ) ->> 'status', 'recycled', 'admin advances processed booking to recycled'
 );
 reset role;
@@ -271,7 +280,7 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub', 'a1111111-1111-4111-8111-111111111111', true);
 insert into pg_temp.tap_results(result)
 select is(
-  api.cancel_or_delete_event_v2('e5555555-5555-4555-8555-555555555555', '10000000-0000-4000-8000-000000000010') ->> 'action',
+  api.cancel_or_delete_event_v2('e5555555-5555-4555-8555-555555555555', 'v2-draft-delete', '10000000-0000-4000-8000-000000000010') ->> 'action',
   'draft_deleted', 'draft event is hard deleted'
 );
 insert into pg_temp.tap_results(result)
@@ -294,7 +303,7 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub', 'a1111111-1111-4111-8111-111111111111', true);
 insert into pg_temp.tap_results(result)
 select is(
-  api.cancel_or_delete_event_v2('e6666666-6666-4666-8666-666666666666', '10000000-0000-4000-8000-000000000012') ->> 'status',
+  api.cancel_or_delete_event_v2('e6666666-6666-4666-8666-666666666666', 'v2-event-cancel', '10000000-0000-4000-8000-000000000012') ->> 'status',
   'cancelled', 'published event is soft cancelled'
 );
 reset role;
@@ -315,7 +324,7 @@ select set_config('request.jwt.claim.sub', 'd1111111-1111-4111-8111-111111111111
 insert into pg_temp.tap_results(result)
 select is(
   api.event_detail_v2('e1111111-1111-4111-8111-111111111111') -> 'availability' ->> 'bookable',
-  'true', 'event detail reports a bookable event'
+  'false', 'event detail is not bookable after this donor already has a booking'
 );
 insert into pg_temp.tap_results(result)
 select is(
@@ -327,6 +336,91 @@ select is(
   api.event_detail_v2('e1111111-1111-4111-8111-111111111111')
     -> 'availability' ->> 'available_weight_grams',
   '500', 'event detail carries the remaining capacity after reservation'
+);
+reset role;
+
+-- Task 9: immutable receiver snapshot and Admin mutation idempotency.
+set local role service_role;
+select pg_temp.make_v2_event(
+  'e9999999-9999-4999-8999-999999999999', 'a1111111-1111-4111-8111-111111111111',
+  'draft', now() + interval '1 hour', now() + interval '2 hours'
+);
+update public.workspaces set
+  name = 'Workspace Changed Later',
+  office_phone_e164 = '+6281999999999',
+  office_address = 'Jl. Workspace Baru'
+where owner_user_id = 'a1111111-1111-4111-8111-111111111111';
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'a1111111-1111-4111-8111-111111111111', true);
+insert into pg_temp.tap_results(result)
+select is(
+  api.upsert_event_draft_v2(
+    'e9999999-9999-4999-8999-999999999999',
+    '10000000-0000-4000-8000-000000000013',
+    '{}'::jsonb
+  ) ->> 'receiver_name',
+  'Receiver Test', 'draft keeps its receiver snapshot after workspace edits'
+);
+insert into pg_temp.tap_results(result)
+select is(
+  api.cancel_or_delete_event_v2(
+    'e6666666-6666-4666-8666-666666666666',
+    'v2-event-cancel', '10000000-0000-4000-8000-000000000014'
+  ) ->> 'status',
+  'cancelled', 'same event cancellation key replays its original result'
+);
+insert into pg_temp.tap_results(result)
+select throws_ok(
+  $$select api.cancel_or_delete_event_v2(
+    'e4444444-4444-4444-8444-444444444444',
+    'v2-event-cancel', '10000000-0000-4000-8000-000000000015'
+  )$$,
+  '23505', 'IDEMPOTENCY_CONFLICT', 'event cancellation rejects a reused key with another event'
+);
+reset role;
+
+-- Task 10: tracking replay and payload conflict.
+set local role service_role;
+select pg_temp.make_v2_event(
+  'e8888888-8888-4888-8888-888888888888', 'a1111111-1111-4111-8111-111111111111',
+  'ongoing', now() - interval '1 hour', now() + interval '2 hours'
+);
+select api.create_account_booking_v2(
+  'd1111111-1111-4111-8111-111111111111', 'e8888888-8888-4888-8888-888888888888',
+  'v2-tracking-replay-booking', 'request-hash-tracking-replay',
+  pg_temp.account_booking('KPL-V2GGG-00007', repeat('7', 64), 300, '10000000-0000-4000-8000-000000000016')
+);
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'a1111111-1111-4111-8111-111111111111', true);
+select api.decide_reception_v2(
+  (select id from public.bookings where public_booking_id = 'KPL-V2GGG-00007'), 'accepted', 300,
+  'v2-tracking-replay-reception', '10000000-0000-4000-8000-000000000017'
+);
+insert into pg_temp.tap_results(result)
+select is(
+  api.advance_booking_status_v1(
+    (select id from public.bookings where public_booking_id = 'KPL-V2GGG-00007'), 'processed',
+    'v2-tracking-replay', '10000000-0000-4000-8000-000000000018'
+  ) ->> 'status',
+  'processed', 'tracking mutation accepts its initial idempotent request'
+);
+insert into pg_temp.tap_results(result)
+select is(
+  api.advance_booking_status_v1(
+    (select id from public.bookings where public_booking_id = 'KPL-V2GGG-00007'), 'processed',
+    'v2-tracking-replay', '10000000-0000-4000-8000-000000000019'
+  ) ->> 'status',
+  'processed', 'tracking mutation replays the initial result'
+);
+insert into pg_temp.tap_results(result)
+select throws_ok(
+  $$select api.advance_booking_status_v1(
+    (select id from public.bookings where public_booking_id = 'KPL-V2GGG-00007'), 'recycled',
+    'v2-tracking-replay', '10000000-0000-4000-8000-000000000020'
+  )$$,
+  '23505', 'IDEMPOTENCY_CONFLICT', 'tracking rejects a changed payload for the same key'
 );
 reset role;
 select pg_temp.make_v2_event(
@@ -373,7 +467,7 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub', 'd1111111-1111-4111-8111-111111111111', true);
 insert into pg_temp.tap_results(result)
 select is(
-  jsonb_array_length(api.my_bookings_v1()), 3,
+  jsonb_array_length(api.my_bookings_v1()), 4,
   'my bookings lists every non-cancelled booking'
 );
 insert into pg_temp.tap_results(result)
@@ -395,13 +489,13 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub', 'd1111111-1111-4111-8111-111111111111', true);
 insert into pg_temp.tap_results(result)
 select is(
-  api.booking_detail_v2((select id from public.bookings where public_booking_id = 'KPL-V2EEE-00005'))
+  api.booking_detail_v2(pg_temp.booking_id('KPL-V2EEE-00005'))
     ->> 'qr_token_ciphertext',
   'encrypted-qr', 'booking detail returns the QR ciphertext to its owner'
 );
 insert into pg_temp.tap_results(result)
 select is(
-  api.booking_detail_v2((select id from public.bookings where public_booking_id = 'KPL-V2EEE-00005'))
+  api.booking_detail_v2(pg_temp.booking_id('KPL-V2EEE-00005'))
     ->> 'actual_weight_grams',
   '500', 'booking detail carries the accepted actual weight'
 );
@@ -410,7 +504,7 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub', 'a1111111-1111-4111-8111-111111111111', true);
 insert into pg_temp.tap_results(result)
 select is(
-  api.booking_detail_v2((select id from public.bookings where public_booking_id = 'KPL-V2EEE-00005'))
+  api.booking_detail_v2(pg_temp.booking_id('KPL-V2EEE-00005'))
     ->> 'qr_token_ciphertext',
   null, 'booking detail never leaks the QR ciphertext to the workspace'
 );
@@ -434,7 +528,7 @@ select is(
   (select d ->> 'accepted_weight_grams'
     from jsonb_array_elements(api.admin_recap_v2() -> 'daily') as d
     where d ->> 'date' = ((now() at time zone 'Asia/Jakarta')::date)::text),
-  '500', 'recap daily aggregates actual accepted weight for today'
+  '800', 'recap daily aggregates actual accepted weight for today'
 );
 insert into pg_temp.tap_results(result)
 select is(
@@ -459,8 +553,13 @@ reset role;
 -- Task 6: direct table writes are rejected for authenticated roles.
 set local role authenticated;
 select set_config('request.jwt.claim.sub', 'a1111111-1111-4111-8111-111111111111', true);
-update public.bookings set status = 'rejected'
-where public_booking_id = 'KPL-V2AAA-00001';
+insert into pg_temp.tap_results(result)
+select throws_ok(
+  $$update public.bookings set status = 'rejected'
+    where public_booking_id = 'KPL-V2AAA-00001'$$,
+  '42501', 'permission denied for table bookings',
+  'direct booking status write is denied before RLS evaluation'
+);
 insert into pg_temp.tap_results(result)
 select is(
   (select status::text from public.bookings where public_booking_id = 'KPL-V2AAA-00001'),
@@ -476,14 +575,19 @@ select throws_ok(
     'e1111111-1111-4111-8111-111111111111', 'accepted', 100,
     'a1111111-1111-4111-8111-111111111111'
   )$$,
-  '42501', 'direct reception insert is rejected by RLS'
+  '42501', 'permission denied for table receptions', 'direct reception insert is denied before RLS evaluation'
 );
-update public.events set capacity_grams = 999999
-where id = 'e1111111-1111-4111-8111-111111111111';
+insert into pg_temp.tap_results(result)
+select throws_ok(
+  $$update public.events set capacity_grams = 999999
+    where id = 'e1111111-1111-4111-8111-111111111111'$$,
+  '42501', 'permission denied for table events',
+  'direct event capacity write is denied before RLS evaluation'
+);
 insert into pg_temp.tap_results(result)
 select is(
   (select capacity_grams from public.events where id = 'e1111111-1111-4111-8111-111111111111'),
-  1000, 'direct capacity write is rejected by RLS'
+  1000::bigint, 'direct capacity write is rejected by RLS'
 );
 reset role;
 
@@ -492,7 +596,7 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub', 'd1111111-1111-4111-8111-111111111111', true);
 insert into pg_temp.tap_results(result)
 select is(
-  jsonb_array_length(api.user_event_history_v1()), 3,
+  jsonb_array_length(api.user_event_history_v1()), 4,
   'legacy history call without limit keeps the plain array shape'
 );
 insert into pg_temp.tap_results(result)
@@ -516,8 +620,8 @@ select is(
    )
    select count(*)
    from page1, page2,
-     jsonb_array_elements(page1.r -> 'items' || page2.r -> 'items') as item),
-  3::bigint, 'cursor walk returns every non-cancelled booking exactly once'
+    jsonb_array_elements((page1.r -> 'items') || (page2.r -> 'items')) as item),
+  4::bigint, 'cursor walk returns every non-cancelled booking exactly once'
 );
 insert into pg_temp.tap_results(result)
 select is(
@@ -543,7 +647,7 @@ select is(
 );
 insert into pg_temp.tap_results(result)
 select is(
-  jsonb_array_length(api.user_event_history_v1(p_terminal => false)), 1,
+  jsonb_array_length(api.user_event_history_v1(p_terminal => false)), 2,
   'active history keeps only trackable bookings on live events'
 );
 reset role;

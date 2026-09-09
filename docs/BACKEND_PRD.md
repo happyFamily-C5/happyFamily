@@ -1,13 +1,19 @@
 # Product Requirements Document — Backend MVP .kumpul
 
-- **Status:** Approved baseline untuk implementasi MVP
-- **Versi:** 1.0
-- **Tanggal:** 2 September 2026
+- **Status:** Approved baseline; backend MVP terimplementasi di staging, production readiness masih pending
+- **Versi:** 1.1
+- **Tanggal:** 8 September 2026
 - **Produk:** .kumpul
 - **Platform klien:** iOS 26+ (aplikasi utama dan App Clip)
 - **Backend terpilih:** Supabase Hosted
 - **Source of truth:** PostgreSQL pada Supabase
 - **Dokumen induk:** `docs/PRD.md`
+
+> **Status implementasi saat ini (8 September 2026):** source branch memiliki 10 migration,
+> 11 Edge Function, RPC domain, RLS, Storage banner, dan scheduled jobs. Hosted staging
+> `kumpul-staging` (`tdpvtdblphojutjifdlc`) aktif dan sudah diverifikasi terhadap source.
+> Bukti production project, TestFlight/App Clip E2E, backup/restore drill, dan alert provider
+> belum menjadi bukti release yang lengkap.
 
 ## 1. Ringkasan Eksekutif
 
@@ -19,7 +25,9 @@ Arsitektur ini dipilih untuk memenuhi kebutuhan App Clip tanpa akun, multi-tenan
 
 ## 2. Problem Statement
 
-Prototype .kumpul saat ini belum memiliki backend, autentikasi, database persisten, tenant isolation, API publik App Clip, transaksi kapasitas, scheduled jobs, maupun retensi otomatis. Akibatnya:
+Pada awal perencanaan, prototype .kumpul belum memiliki backend, autentikasi, database persisten,
+tenant isolation, API publik App Clip, transaksi kapasitas, scheduled jobs, maupun retensi otomatis.
+Bagian berikut adalah konteks masalah historis yang kini ditangani oleh implementasi backend:
 
 - event dan booking belum dapat menjadi data operasional lintas-perangkat;
 - App Clip belum dapat membuka event dinamis dan membuat booking server-side;
@@ -123,7 +131,9 @@ Pengguna mode Donor yang memasukkan booking ID serta nomor telepon Indonesia. Se
 
 ### 6.4 Scheduled worker
 
-Cron yang menjalankan function terkontrol untuk event lifecycle, booking expiry, dan retention. Worker tidak membuka endpoint publik dan setiap run dapat diobservasi.
+Cron menjalankan private SQL functions untuk lifecycle, expiry, dan retention. Cleanup banner
+memanggil Edge Function terproteksi melalui HTTP dengan shared secret dan tetap mencatat setiap
+run; endpoint tersebut tidak menerima akses anonim biasa.
 
 ### 6.5 Platform operator
 
@@ -207,7 +217,7 @@ Supabase
 - **BE-AUTH-02 (P0):** Self-registration yang berhasil membuat satu profile dan satu workspace aktif untuk Pengelola tanpa approval manusia.
 - **BE-AUTH-03 (P0):** Relasi owner account ke workspace bersifat satu-ke-satu pada MVP.
 - **BE-AUTH-04 (P0):** Email/password mengikuti verifikasi email dan kebijakan password yang dikonfigurasi untuk production; verifikasi teknis bukan approval organisasi.
-- **BE-AUTH-05 (P0):** Account linking tidak boleh hanya mempercayai email yang belum terverifikasi. Penggabungan provider harus mengikuti mekanisme aman Supabase Auth.
+- **BE-AUTH-05 (P1, pending):** Jika account linking diaktifkan setelah MVP, penggabungan provider tidak boleh hanya mempercayai email yang belum terverifikasi dan harus mengikuti mekanisme aman Supabase Auth. Interface/source saat ini belum menyediakan operasi linking.
 - **BE-AUTH-06 (P0):** Semua session Pengelola diverifikasi menggunakan JWT Supabase yang valid.
 - **BE-AUTH-07 (P0):** Menonaktifkan atau menghapus akun harus mencabut akses ke workspace tanpa membuat data tenant dapat diambil akun lain.
 
@@ -458,7 +468,9 @@ Tabel tidak memiliki URL foto, binary, embedding, EXIF, atau histori retry scan.
 
 ### 10.9 `idempotency_keys`
 
-Menyimpan scope actor/endpoint, key, request hash, status, response reference, serta expiry. Unique constraint pada scope dan key memastikan request yang sama tidak menghasilkan mutation ganda.
+Menyimpan scope actor/endpoint, actor scope, key, request hash, status, response reference, serta
+expiry. Unique constraint pada `(scope, actor_scope, key)` memastikan retry actor yang sama tidak
+menghasilkan mutation ganda tanpa memblokir actor scope lain.
 
 ### 10.10 `legal_document_versions`
 
@@ -492,7 +504,7 @@ Menyimpan nama job, waktu mulai/selesai, status, jumlah row diproses, error code
 - composite index booking pada `(workspace_id, created_at)` untuk rekap/pagination;
 - index donor matching pada `(event_id, phone_lookup_hash)`;
 - index retention pada event terminal timestamp dan audit `created_at`;
-- unique composite index idempotency pada `(scope, key)`.
+- unique composite index idempotency pada `(scope, actor_scope, key)`.
 
 Index final divalidasi dengan query plan dari pola akses nyata dan tidak ditambah hanya berdasarkan dugaan.
 
@@ -819,9 +831,14 @@ Backend mengembalikan stable code serta structured values. Copy Bahasa Indonesia
 
 ### 18.1 Environment
 
-1. **Local:** Supabase CLI/local stack untuk development dan integration test.
-2. **Staging:** hosted Supabase project terpisah, data non-production, dipakai TestFlight dan App Clip staging.
-3. **Production:** hosted Supabase project terpisah dengan secret, Auth config, storage, domain, backup, dan monitoring sendiri.
+1. **Local/CI:** Supabase CLI/local stack untuk CI dan integration test yang membutuhkan database lokal.
+   Development Mac yang diarahkan ke hosted staging tidak perlu menjalankan Supabase Docker lokal.
+2. **Staging:** hosted Supabase project terpisah, data non-production, dipakai untuk verifikasi
+   konfigurasi dan target TestFlight/App Clip staging. Current target: `kumpul-staging`, ref
+   `tdpvtdblphojutjifdlc`.
+3. **Production:** hosted Supabase project terpisah dengan secret, Auth config, storage, domain,
+   backup, monitoring, dan evidence release sendiri. Production belum dianggap provisioned hanya
+   karena staging sehat.
 
 Database, storage bucket, redirect URL, Apple Auth credential, signing-related URL, dan Edge secret tidak dibagi antara staging dan production.
 
@@ -1038,6 +1055,17 @@ Backend MVP dianggap selesai ketika seluruh kondisi berikut terpenuhi:
 18. Metrics, alert, backup, restore procedure, dan runbook minimum tersedia.
 19. Local dan staging integration suite lulus; TestFlight menjalankan E2E terhadap backend staging.
 20. Production tidak memakai secret staging, free-tier yang dapat pause, atau service key di aplikasi.
+
+### 22.1 Status verifikasi saat ini
+
+Item 1–17 memiliki implementasi source dan test harness lokal yang sesuai, tetapi tidak semuanya
+dianggap release evidence sampai integration/E2E test yang relevan dijalankan. Hosted staging
+sudah diverifikasi memiliki 10 migration, 11 Edge Function aktif, 14/14 tabel publik dengan RLS,
+scheduled jobs aktif, dan health snapshot tanpa backlog atau capacity invariant violation.
+
+Item 18–20 masih merupakan release gate: alert provider, backup/restore drill, production project,
+dan TestFlight/App Clip E2E belum dibuktikan oleh dokumen ini. Account linking pada BE-AUTH-05
+tetap pending dan tidak boleh dianggap bagian dari acceptance MVP saat ini.
 
 ## 23. Risks dan Mitigasi
 

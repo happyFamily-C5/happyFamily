@@ -6,21 +6,31 @@ import {
   sha256Hex,
   verifyDonorToken,
 } from "../_shared/crypto.ts";
-import { MAX_BANNER_BYTES, validateBannerImage } from "../_shared/banner-image.ts";
+import {
+  MAX_BANNER_BYTES,
+  validateBannerImage,
+} from "../_shared/banner-image.ts";
 import { selectOrphans } from "../_shared/profile-media.ts";
 import { csvCell, csvLine } from "../_shared/csv.ts";
 import { publicBookingEnabled } from "../_shared/env.ts";
-import { ApiError, readJson } from "../_shared/http.ts";
+import { ApiError, mapUnknownError, readJson } from "../_shared/http.ts";
 import { normalizeIndonesianPhone } from "../_shared/phone.ts";
 import { validateBooking } from "../_shared/validation.ts";
 
-function assert(condition: unknown, message = "assertion failed"): asserts condition {
+function assert(
+  condition: unknown,
+  message = "assertion failed",
+): asserts condition {
   if (!condition) throw new Error(message);
 }
 
 function assertEquals(actual: unknown, expected: unknown): void {
   if (JSON.stringify(actual) !== JSON.stringify(expected)) {
-    throw new Error(`expected ${JSON.stringify(expected)}, received ${JSON.stringify(actual)}`);
+    throw new Error(
+      `expected ${JSON.stringify(expected)}, received ${
+        JSON.stringify(actual)
+      }`,
+    );
   }
 }
 
@@ -38,7 +48,9 @@ async function assertRejectsCode(
   throw new Error(`expected ${code} rejection`);
 }
 
-function booking(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+function booking(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
   return {
     invocation_token: "i".repeat(43),
     donor_name: "Donor Test",
@@ -76,8 +88,14 @@ Deno.test("normalizes Indonesian mobile numbers to E.164", () => {
 });
 
 Deno.test("rejects non-Indonesian or malformed phone numbers", async () => {
-  await assertRejectsCode(() => normalizeIndonesianPhone("+1 202 555 0112"), "PHONE_INVALID");
-  await assertRejectsCode(() => normalizeIndonesianPhone("0215551234"), "PHONE_INVALID");
+  await assertRejectsCode(
+    () => normalizeIndonesianPhone("+1 202 555 0112"),
+    "PHONE_INVALID",
+  );
+  await assertRejectsCode(
+    () => normalizeIndonesianPhone("0215551234"),
+    "PHONE_INVALID",
+  );
 });
 
 Deno.test("canonical JSON and hash are stable across object key order", async () => {
@@ -88,13 +106,20 @@ Deno.test("canonical JSON and hash are stable across object key order", async ()
 });
 
 Deno.test("AES-GCM encrypts and decrypts protected donor data", async () => {
-  Deno.env.set("PII_ENCRYPTION_KEY_BASE64", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=");
+  Deno.env.set(
+    "PII_ENCRYPTION_KEY_BASE64",
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+  );
   Deno.env.set("TOKEN_KEY_VERSION", "1");
   const protectedValue = await encrypt("Donor Test +6281234567890");
   assert(protectedValue.ciphertext !== "Donor Test +6281234567890");
   assertEquals(protectedValue.keyVersion, 1);
   assertEquals(
-    await decrypt(protectedValue.ciphertext, protectedValue.nonce, protectedValue.keyVersion),
+    await decrypt(
+      protectedValue.ciphertext,
+      protectedValue.nonce,
+      protectedValue.keyVersion,
+    ),
     "Donor Test +6281234567890",
   );
 });
@@ -119,7 +144,11 @@ Deno.test("AES-GCM keyring decrypts data written by a previous key version", asy
     "Donor before rotation",
   );
   assertEquals(
-    await decrypt(currentValue.ciphertext, currentValue.nonce, currentValue.keyVersion),
+    await decrypt(
+      currentValue.ciphertext,
+      currentValue.nonce,
+      currentValue.keyVersion,
+    ),
     "Donor after rotation",
   );
   await assertRejectsCode(
@@ -132,14 +161,22 @@ Deno.test("AES-GCM keyring decrypts data written by a previous key version", asy
 });
 
 Deno.test("donor token is scoped to one booking and rejects tampering or expiry", async () => {
-  Deno.env.set("DONOR_ACCESS_SIGNING_KEY_BASE64", "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=");
+  Deno.env.set(
+    "DONOR_ACCESS_SIGNING_KEY_BASE64",
+    "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=",
+  );
   const token = await createDonorToken("11111111-1111-4111-8111-111111111111");
   const claims = await verifyDonorToken(token);
   assertEquals(claims.sub, "11111111-1111-4111-8111-111111111111");
-  await assertRejectsCode(() => verifyDonorToken(`${token}x`), "DONOR_TOKEN_INVALID");
+  await assertRejectsCode(
+    () => verifyDonorToken(`${token}x`),
+    "DONOR_TOKEN_INVALID",
+  );
   await assertRejectsCode(
     async () =>
-      verifyDonorToken(await createDonorToken("11111111-1111-4111-8111-111111111111", -1)),
+      verifyDonorToken(
+        await createDonorToken("11111111-1111-4111-8111-111111111111", -1),
+      ),
     "DONOR_TOKEN_EXPIRED",
   );
 });
@@ -237,7 +274,10 @@ Deno.test("CSV output is RFC 4180 compatible and neutralizes formulas", () => {
     csvCell('=HYPERLINK("https://example.invalid")'),
     '"\'=HYPERLINK(""https://example.invalid"")"',
   );
-  assertEquals(csvLine(["normal", "+SUM(1,2)", null]), '"normal","\'+SUM(1,2)",');
+  assertEquals(
+    csvLine(["normal", "+SUM(1,2)", null]),
+    '"normal","\'+SUM(1,2)",',
+  );
 });
 
 Deno.test("banner validation sniffs PNG bytes and accepts the dimension boundary", () => {
@@ -265,7 +305,10 @@ Deno.test("banner validation rejects MIME spoofing", async () => {
 
 Deno.test("banner validation enforces the five MiB byte limit", async () => {
   const oversized = new Uint8Array(MAX_BANNER_BYTES + 1);
-  await assertRejectsCode(() => validateBannerImage(oversized), "BANNER_TOO_LARGE");
+  await assertRejectsCode(
+    () => validateBannerImage(oversized),
+    "BANNER_TOO_LARGE",
+  );
 });
 
 Deno.test("profile media orphan selection keeps referenced objects", () => {
@@ -284,4 +327,20 @@ Deno.test("profile media orphan selection keeps referenced objects", () => {
   ]);
   assertEquals(selectOrphans([], []), []);
   assertEquals(selectOrphans(paths, [...referenced, ...paths]), []);
+});
+
+Deno.test("maps product RPC errors to stable client responses", () => {
+  const cases: Array<[string, number]> = [
+    ["ROLE_FORBIDDEN", 403],
+    ["BOOKING_NOT_CANCELLABLE", 409],
+    ["DONATION_LIMIT_EXCEEDED", 422],
+    ["INVALID_BOOKING_TRANSITION", 409],
+    ["CURSOR_INVALID", 422],
+  ];
+  for (const [code, status] of cases) {
+    const mapped = mapUnknownError(new Error(code));
+    assertEquals(mapped.code, code);
+    assertEquals(mapped.status, status);
+    assertEquals(mapped.retryable, false);
+  }
 });
