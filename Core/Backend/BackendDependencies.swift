@@ -73,6 +73,14 @@ enum BackendDependencies {
         )
     }
 
+    static func accountClient(bundle: Bundle = .main) throws -> any AccountBackendServing {
+        let environment = try BackendEnvironment.load(bundle: bundle)
+        let client = makeClient(environment: environment)
+        return AccountBackendHTTPClient(environment: environment) {
+            try await client.auth.session.accessToken
+        }
+    }
+
     static func reportRepository(bundle: Bundle = .main) throws -> any ReportRepository {
         let environment = try BackendEnvironment.load(bundle: bundle)
         let client = makeClient(environment: environment)
@@ -110,7 +118,7 @@ private struct UnavailableEventRepository: EventRepository {
         throw error
     }
 
-    func upsertDraft(_: AdminEvent, mutationId _: UUID) async throws -> AdminEvent {
+    func upsertDraft(_: BackendAdminEvent, mutationId _: UUID) async throws -> BackendAdminEvent {
         throw error
     }
 
@@ -122,7 +130,7 @@ private struct UnavailableEventRepository: EventRepository {
         eventId _: UUID,
         status _: EventStatusCode,
         reason _: String?
-    ) async throws -> AdminEvent {
+    ) async throws -> BackendAdminEvent {
         throw error
     }
 }

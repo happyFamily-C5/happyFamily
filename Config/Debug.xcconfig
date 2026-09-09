@@ -16,11 +16,11 @@ SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG $(inherited)
 GCC_OPTIMIZATION_LEVEL = 0
 GCC_PREPROCESSOR_DEFINITIONS = DEBUG=1 $(inherited)
 
-// Debug points at the local Supabase stack. Put the local publishable key in
-// Config/Secrets.xcconfig so it never enters source control.
-KUMPUL_BACKEND_URL = $(KUMPUL_LOCAL_BACKEND_URL)
-KUMPUL_BACKEND_PUBLISHABLE_KEY = $(KUMPUL_LOCAL_PUBLISHABLE_KEY)
-KUMPUL_BACKEND_ENVIRONMENT = local
+// Debug deliberately uses the hosted staging project. Put its public URL and
+// publishable key in Config/Secrets.xcconfig; never run a local Docker stack.
+KUMPUL_BACKEND_URL = $(KUMPUL_STAGING_BACKEND_URL)
+KUMPUL_BACKEND_PUBLISHABLE_KEY = $(KUMPUL_STAGING_PUBLISHABLE_KEY)
+KUMPUL_BACKEND_ENVIRONMENT = staging
 
 // Debugging & Testing
 ENABLE_TESTABILITY = YES

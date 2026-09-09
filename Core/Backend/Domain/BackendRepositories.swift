@@ -1,7 +1,7 @@
 import Foundation
 
 struct EventPage: Sendable, Equatable {
-    let events: [AdminEvent]
+    let events: [BackendAdminEvent]
     let cursor: String?
 }
 
@@ -21,32 +21,32 @@ struct BannerUploadData: Decodable, Sendable, Equatable {
 
 protocol EventRepository: Sendable {
     func list(cursor: String?) async throws -> EventPage
-    func upsertDraft(_ event: AdminEvent, mutationId: UUID) async throws -> AdminEvent
+    func upsertDraft(_ event: BackendAdminEvent, mutationId: UUID) async throws -> BackendAdminEvent
     func publish(eventId: UUID) async throws -> PublishEventData
-    func terminate(eventId: UUID, status: EventStatusCode, reason: String?) async throws -> AdminEvent
+    func terminate(eventId: UUID, status: EventStatusCode, reason: String?) async throws -> BackendAdminEvent
 }
 
 struct PendingDraftSync: Sendable, Equatable {
-    let event: AdminEvent
+    let event: BackendAdminEvent
     let mutationId: UUID
 }
 
 protocol EventLocalStore: SessionCache, Sendable {
-    func cachedEvents(ownerUserId: UUID) async throws -> [AdminEvent]
+    func cachedEvents(ownerUserId: UUID) async throws -> [BackendAdminEvent]
     func cursor(ownerUserId: UUID) async throws -> String?
     func cacheRemoteEvents(
-        _ events: [AdminEvent],
+        _ events: [BackendAdminEvent],
         cursor: String?,
         ownerUserId: UUID
     ) async throws
     func enqueueDraft(
-        _ event: AdminEvent,
+        _ event: BackendAdminEvent,
         mutationId: UUID,
         ownerUserId: UUID
     ) async throws
     func pendingDrafts(ownerUserId: UUID) async throws -> [PendingDraftSync]
     func markDraftSynced(
-        _ event: AdminEvent,
+        _ event: BackendAdminEvent,
         mutationId: UUID,
         ownerUserId: UUID
     ) async throws

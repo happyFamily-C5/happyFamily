@@ -1,6 +1,6 @@
 import Foundation
 
-struct AdminEvent: Codable, Identifiable, Equatable, Sendable {
+struct BackendAdminEvent: Codable, Identifiable, Equatable, Sendable {
     let id: UUID
     var name: String
     var description: String?

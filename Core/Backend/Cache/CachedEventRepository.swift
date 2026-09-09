@@ -55,7 +55,7 @@ actor CachedEventRepository: EventRepository {
         }
     }
 
-    func upsertDraft(_ event: AdminEvent, mutationId: UUID) async throws -> AdminEvent {
+    func upsertDraft(_ event: BackendAdminEvent, mutationId: UUID) async throws -> BackendAdminEvent {
         guard event.status == .draft else {
             return try await remote.upsertDraft(event, mutationId: mutationId)
         }
@@ -102,7 +102,7 @@ actor CachedEventRepository: EventRepository {
         eventId: UUID,
         status: EventStatusCode,
         reason: String?
-    ) async throws -> AdminEvent {
+    ) async throws -> BackendAdminEvent {
         let event = try await remote.terminate(eventId: eventId, status: status, reason: reason)
         if let ownerUserId = try? await ownerUserId() {
             try? await store.cacheRemoteEvents(

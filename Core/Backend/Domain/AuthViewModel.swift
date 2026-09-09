@@ -12,7 +12,7 @@ final class AuthViewModel {
     var isSignUpMode: Bool = false
     private(set) var isSubmitting: Bool = false
     var errorMessage: String?
-    /// Shown after a successful sign-up that awaits e-mail confirmation.
+    /// Optional success state shown without interrupting a usable session.
     var infoMessage: String?
 
     private let authSession: (any AuthSession)?
@@ -77,11 +77,10 @@ final class AuthViewModel {
         do {
             if isSignUpMode {
                 try await authSession.signUp(email: trimmedEmail, password: password)
-                // Hosted projects require e-mail confirmation before the
-                // session becomes usable; surface that instead of entering.
-                infoMessage = "Akun berhasil dibuat. Buka tautan konfirmasi di emailmu, lalu masuk."
+                _ = try await authSession.current()
+                infoMessage = "Akun berhasil dibuat."
                 isSignUpMode = false
-                return false
+                return true
             }
             _ = try await authSession.signIn(email: trimmedEmail, password: password)
             errorMessage = nil
@@ -109,15 +108,9 @@ final class AuthViewModel {
             return "Terlalu banyak percobaan. Tunggu beberapa menit lalu coba lagi."
         }
         if lowered.contains("network") || lowered.contains("connect") {
-            if isLocalBackend {
-                return "Backend lokal (127.0.0.1) tidak dapat dijangkau dari perangkat fisik. Jalankan scheme \"happyFamily Staging\" untuk uji di iPhone."
-            }
             return "Koneksi ke server gagal. Periksa jaringan lalu coba lagi."
         }
         return message
     }
 
-    private static var isLocalBackend: Bool {
-        (try? BackendEnvironment.load())?.deployment == .local
-    }
 }

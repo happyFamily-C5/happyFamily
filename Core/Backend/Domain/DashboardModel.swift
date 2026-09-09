@@ -4,7 +4,7 @@ import Observation
 @MainActor
 @Observable
 final class DashboardModel {
-    private(set) var events: [AdminEvent] = []
+    private(set) var events: [BackendAdminEvent] = []
     private(set) var isLoading = false
     private(set) var recap: RecapData?
     private(set) var isRecapLoading = false
@@ -84,7 +84,7 @@ final class DashboardModel {
         }
     }
 
-    func createDraft(_ event: AdminEvent) async {
+    func createDraft(_ event: BackendAdminEvent) async {
         do {
             let saved = try await repository.upsertDraft(event, mutationId: UUID())
             if let index = events.firstIndex(where: { $0.id == saved.id }) {

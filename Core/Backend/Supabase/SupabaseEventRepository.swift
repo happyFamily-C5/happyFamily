@@ -26,10 +26,10 @@ actor SupabaseEventRepository: EventRepository {
             )
             .execute()
         let page = try BackendJSON.decoder().decode(EventListResponse.self, from: response.data)
-        return EventPage(events: page.items.map { AdminEvent(record: $0) }, cursor: page.cursor)
+        return EventPage(events: page.items.map { BackendAdminEvent(record: $0) }, cursor: page.cursor)
     }
 
-    func upsertDraft(_ event: AdminEvent, mutationId: UUID) async throws -> AdminEvent {
+    func upsertDraft(_ event: BackendAdminEvent, mutationId: UUID) async throws -> BackendAdminEvent {
         var preparedEvent = event
         if let bannerData = event.bannerImageData {
             let contentType = bannerData.starts(with: [0x89, 0x50, 0x4E, 0x47])
@@ -53,14 +53,14 @@ actor SupabaseEventRepository: EventRepository {
             )
             .execute()
         let record = try BackendJSON.decoder().decode(EventRecord.self, from: response.data)
-        return AdminEvent(record: record, bannerImageData: event.bannerImageData)
+        return BackendAdminEvent(record: record, bannerImageData: event.bannerImageData)
     }
 
     func terminate(
         eventId: UUID,
         status: EventStatusCode,
         reason: String?
-    ) async throws -> AdminEvent {
+    ) async throws -> BackendAdminEvent {
         guard status == .closed || status == .cancelled else {
             throw BackendError.api(
                 code: "INVALID_EVENT_TRANSITION",
@@ -82,7 +82,7 @@ actor SupabaseEventRepository: EventRepository {
             )
             .execute()
         let record = try BackendJSON.decoder().decode(EventRecord.self, from: response.data)
-        return AdminEvent(record: record)
+        return BackendAdminEvent(record: record)
     }
 }
 
@@ -116,7 +116,7 @@ private struct EventRecord: Decodable {
     let version: Int64
 }
 
-private extension AdminEvent {
+private extension BackendAdminEvent {
     init(record: EventRecord, bannerImageData: Data? = nil) {
         self.init(
             id: record.id,
@@ -203,7 +203,7 @@ private struct EventDraftPayload: Encodable {
     let receiverAddress: String?
     let criteria: [EventCriterionCode]
 
-    init(event: AdminEvent) {
+    init(event: BackendAdminEvent) {
         name = event.name
         description = event.description
         startAt = event.startDate.ISO8601Format()

@@ -12,6 +12,8 @@ enum EventStatusCode: String, Codable, CaseIterable, Sendable {
 enum BookingStatusCode: String, Codable, CaseIterable, Sendable {
     case waiting
     case accepted
+    case processed
+    case recycled
     case rejected
     case expired
     case cancelled
@@ -108,6 +110,12 @@ enum BackendError: Error, Equatable, Sendable, LocalizedError {
             "Kapasitas acara sudah penuh."
         case "EVENT_UNAVAILABLE", "BOOKING_NOT_PROCESSABLE":
             "Acara atau booking sudah tidak tersedia."
+        case "BOOKING_NOT_CANCELLABLE":
+            "Booking hanya dapat dibatalkan saat masih menunggu."
+        case "DONATION_LIMIT_EXCEEDED":
+            "Berat donasi melewati batas yang ditetapkan acara."
+        case "ROLE_FORBIDDEN", "ROLE_IMMUTABLE":
+            "Akun ini tidak memiliki akses untuk tindakan tersebut."
         case "RATE_LIMITED":
             "Terlalu banyak percobaan. Coba lagi nanti."
         case "BOOKING_CREDENTIALS_INVALID":

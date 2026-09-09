@@ -89,7 +89,8 @@ struct SelectedEventDetailView: View {
                             coordinate: CLLocationCoordinate2D(
                                 latitude: -6.1667,
                                 longitude: 106.7900
-                            )
+                            ),
+                            locationName: "EcoTouch Office"
                         )
                         .frame(height: 180)
                         .clipShape(

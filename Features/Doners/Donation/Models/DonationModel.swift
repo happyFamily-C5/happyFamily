@@ -17,6 +17,10 @@ struct ClothingItem: Identifiable {
     let id = UUID()
     var image: UIImage
     var isPassed: Bool
+    /// Version and non-sensitive scanner output are persisted with the booking
+    /// contract; photos and embeddings never leave the device.
+    var scannerModelVersion: String = "accessory-head-v1"
+    var metadata: [String: String] = [:]
 }
 
 struct OnboardingSlide: Identifiable {

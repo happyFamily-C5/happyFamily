@@ -55,8 +55,8 @@ final class DonationViewModel {
     private var bookingIdempotencyKey: String?
 
     init(
-        client: any PublicBackendServing = AppClipBackendDependencies.client(),
-        backendBaseURL: URL? = AppClipBackendDependencies.baseURL()
+        client: any PublicBackendServing = FullAppBackendDependencies.client(),
+        backendBaseURL: URL? = FullAppBackendDependencies.baseURL()
     ) {
         self.client = client
         self.backendBaseURL = backendBaseURL

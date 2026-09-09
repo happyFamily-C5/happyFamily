@@ -17,6 +17,11 @@ configFiles:
   Staging: Config/Staging.xcconfig
   Release: Config/Release.xcconfig
 
+packages:
+  Supabase:
+    url: https://github.com/supabase/supabase-swift.git
+    exactVersion: 2.55.1
+
 settings:
   base:
     ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: NO
@@ -44,6 +49,8 @@ targets:
       - DesignSystem
       - Resources
       - Core
+    dependencies:
+      - package: Supabase
     settings:
       base:
         # NOTE: do NOT use xcodegen's `entitlements:` block on this target.
@@ -82,6 +89,8 @@ targets:
       - DesignSystem
       - Resources
       - Core
+    dependencies:
+      - package: Supabase
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
