@@ -23,9 +23,14 @@ final class DonorHistoryModel {
     private var completedCursor: String?
 
     private let accountClient: (any AccountBackendServing)?
+    private let backendBaseURL: URL?
 
-    init(accountClient: (any AccountBackendServing)?) {
+    init(
+        accountClient: (any AccountBackendServing)?,
+        backendBaseURL: URL? = BackendDependencies.backendBaseURL()
+    ) {
         self.accountClient = accountClient
+        self.backendBaseURL = backendBaseURL
     }
 
     var hasMoreDonations: Bool { donationCursor != nil }
@@ -113,5 +118,16 @@ final class DonorHistoryModel {
     private static func appended(_ current: [BookingHistoryItem], _ page: [BookingHistoryItem]) -> [BookingHistoryItem] {
         let known = Set(current.map(\.bookingId))
         return current + page.filter { !known.contains($0.bookingId) }
+    }
+
+    /// Public banner URL for a history row's event snapshot. Cosmetic: nil
+    /// on any missing piece, never fails the screen.
+    func bannerURL(for item: BookingHistoryItem) -> URL? {
+        guard let backendBaseURL, let path = item.event.bannerObjectPath, !path.isEmpty else {
+            return nil
+        }
+        return backendBaseURL
+            .appending(path: "storage/v1/object/public/event-banners", directoryHint: .isDirectory)
+            .appending(path: path)
     }
 }
