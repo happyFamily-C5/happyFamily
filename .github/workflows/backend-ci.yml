@@ -76,6 +76,9 @@ jobs:
       - name: Rebuild database from migrations and seed
         run: supabase db reset
 
+      - name: Enforce legacy cutover gate
+        run: bash Scripts/check_legacy_gate.sh
+
       - name: Format, lint, type-check, and test Edge Functions
         run: |
           set -euo pipefail

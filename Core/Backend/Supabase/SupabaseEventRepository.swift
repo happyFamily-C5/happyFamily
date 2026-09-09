@@ -15,18 +15,8 @@ actor SupabaseEventRepository: EventRepository {
     }
 
     func list(cursor: String?) async throws -> EventPage {
-        let response = try await client
-            .schema("api")
-            .rpc(
-                "list_events_v2",
-                params: ListEventsParameters(
-                    cursor: cursor,
-                    limit: 100
-                )
-            )
-            .execute()
-        let page = try BackendJSON.decoder().decode(EventListResponse.self, from: response.data)
-        return EventPage(events: page.items.map { BackendAdminEvent(record: $0) }, cursor: page.cursor)
+        let page = try await edge.listEvents(cursor: cursor)
+        return EventPage(events: page.items.map { BackendAdminEvent(record: $0) }, cursor: page.nextCursor)
     }
 
     func upsertDraft(_ event: BackendAdminEvent, mutationId: UUID) async throws -> BackendAdminEvent {
@@ -53,12 +43,6 @@ actor SupabaseEventRepository: EventRepository {
         try await edge.cancelOrDeleteEvent(eventId: eventId)
     }
 }
-
-private struct EventListResponse: Decodable {
-    let items: [EventRecordDTO]
-    let cursor: String?
-}
-
 
 private extension BackendAdminEvent {
     init(record: EventRecordDTO, bannerImageData: Data? = nil) {
@@ -90,15 +74,4 @@ private extension BackendAdminEvent {
         )
     }
 }
-
-private struct ListEventsParameters: Encodable {
-    let cursor: String?
-    let limit: Int
-
-    enum CodingKeys: String, CodingKey {
-        case cursor = "p_cursor"
-        case limit = "p_limit"
-    }
-}
-
 

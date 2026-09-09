@@ -1,4 +1,4 @@
-//
+import Foundation
 //  Router.swift
 //  happyFamily
 //
@@ -8,7 +8,6 @@
 enum AdminsRouter: Hashable {
     case dashboard
     case addEvent
-    case openScanner
 }
 
 enum MapPickerRouter: Hashable {
@@ -21,4 +20,8 @@ enum DonersRouter: Hashable {
     case openCamera
     case mapPicker
     case clothDetail
+    case eventDetail(UUID)
+    case myBookings
+    case bookingDetail(UUID)
+    case history
 }

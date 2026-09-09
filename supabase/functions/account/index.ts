@@ -6,7 +6,9 @@ import {
   hmacHex,
   sha256Hex,
 } from "../_shared/crypto.ts";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { opaqueToken, publicBookingId } from "../_shared/ids.ts";
+import { environment } from "../_shared/env.ts";
 import { normalizeIndonesianPhone } from "../_shared/phone.ts";
 import { ApiError, method, readJson, serve, success } from "../_shared/http.ts";
 import { adminClient, organizerSession, rpc } from "../_shared/supabase.ts";
@@ -53,6 +55,31 @@ type BookingResult = {
   crypto_key_version: number;
   idempotent_replay: boolean;
 };
+type LegalDocument = {
+  document_type: "terms" | "privacy";
+  version_identifier: string;
+  public_url: string;
+};
+
+async function eventLegalMetadata(client: SupabaseClient) {
+  const { data, error } = await client
+    .from("legal_document_versions")
+    .select("document_type, version_identifier, public_url")
+    .eq("environment", environment())
+    .eq("is_active", true)
+    .in("document_type", ["terms", "privacy"])
+    .returns<LegalDocument[]>();
+  if (error) throw error;
+  const terms = data?.find((document) => document.document_type === "terms");
+  const privacy = data?.find((document) => document.document_type === "privacy");
+  if (!terms || !privacy) throw new ApiError("SERVER_MISCONFIGURED", 500, false);
+  return {
+    terms_version: terms.version_identifier,
+    terms_url: terms.public_url,
+    privacy_version: privacy.version_identifier,
+    privacy_url: privacy.public_url,
+  };
+}
 
 // Authenticated account API. The platform verifies the bearer JWT before this
 // handler runs; organizerSession additionally resolves the user and forwards
@@ -142,11 +169,14 @@ serve("account", async (req, requestId) => {
     }
     case "dashboard":
       return success(await rpc(client, "user_dashboard_v1", {}), requestId);
-    case "event_detail":
-      return success(
-        await rpc(client, "event_detail_v2", { p_event_id: uuid(body, "event_id") }),
-        requestId,
+    case "event_detail": {
+      const detail = await rpc<Record<string, unknown>>(
+        client,
+        "event_detail_v2",
+        { p_event_id: uuid(body, "event_id") },
       );
+      return success({ ...detail, legal: await eventLegalMetadata(client) }, requestId);
+    }
     case "my_bookings":
       return success(await rpc(client, "my_bookings_v1", {}), requestId);
     case "booking_detail": {

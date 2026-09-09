@@ -41,7 +41,7 @@ final class AuthViewModel {
 
     var passwordPrompt: String? {
         guard isSignUpMode else { return nil }
-        return isPasswordValid ? nil : "*Minimal 12 karakter, kombinasi huruf besar, kecil, dan angka"
+        return isPasswordValid ? nil : "*Minimal 12 karakter, kombinasi huruf besar, kecil, angka, dan simbol"
     }
 
     var isEmailValid: Bool {
@@ -49,11 +49,14 @@ final class AuthViewModel {
         return value.contains("@") && value.dropFirst(value.firstIndex(of: "@")?.utf16Offset(in: value) ?? 0).contains(".")
     }
 
+    /// Contract §2: password must be 12+ characters with lowercase, uppercase,
+    /// number, and symbol classes.
     var isPasswordValid: Bool {
         password.count >= 12
             && password.contains(where: \.isLowercase)
             && password.contains(where: \.isUppercase)
             && password.contains(where: \.isNumber)
+            && password.contains(where: { !$0.isLetter && !$0.isNumber })
     }
 
     func submit() async -> Bool {
@@ -91,6 +94,28 @@ final class AuthViewModel {
         }
     }
 
+    /// Sign in with Apple per contract §2: SIWA is active for Pengelola and
+    /// signs in an existing user or provisions a new one server-side.
+    /// `idToken` is the Apple identity token; `nonce` is the raw nonce whose
+    /// SHA-256 hash was sent to Apple in the authorization request.
+    func submitApple(idToken: String, nonce: String) async -> Bool {
+        guard let authSession else {
+            errorMessage = "Konfigurasi backend belum lengkap."
+            return false
+        }
+        isSubmitting = true
+        defer { isSubmitting = false }
+        errorMessage = nil
+        infoMessage = nil
+        do {
+            _ = try await authSession.signInWithApple(idToken: idToken, nonce: nonce)
+            return true
+        } catch {
+            errorMessage = Self.authErrorMessage(error)
+            return false
+        }
+    }
+
     private var trimmedEmail: String {
         email.trimmingCharacters(in: .whitespacesAndNewlines)
     }
@@ -103,6 +128,12 @@ final class AuthViewModel {
         }
         if lowered.contains("already") && lowered.contains("registered") {
             return "Email sudah terdaftar. Silakan masuk."
+        }
+        if lowered.contains("email_not_confirmed") || lowered.contains("email not confirmed") {
+            return "Konfirmasi email terlebih dahulu sebelum masuk."
+        }
+        if lowered.contains("weak_password") || lowered.contains("weak password") {
+            return "Kata sandi minimal 12 karakter dengan huruf besar, kecil, angka, dan simbol."
         }
         if lowered.contains("rate limit") || lowered.contains("over_email_send_rate_limit") {
             return "Terlalu banyak percobaan. Tunggu beberapa menit lalu coba lagi."

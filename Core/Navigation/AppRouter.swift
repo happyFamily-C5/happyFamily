@@ -39,6 +39,9 @@ final class AppRouter {
     let mapPickerSession = MapPickerSession()
     var selectedClothingItem: ClothingItem?
     var currentStep: Int = 1
+    /// Shared donation flow state. App-scope so the event detail CTA and
+    /// the flow's step views observe the same instance.
+    let donation = DonationViewModel()
 
     func push(to destination:AdminsRouter) {
         adminPath.append(destination)
@@ -88,7 +91,7 @@ final class AppRouter {
         if !adminPath.isEmpty{
             adminPath.removeAll()
         }
-        
+
         if !donersPath.isEmpty{
             donersPath.removeAll()
         }
@@ -96,6 +99,8 @@ final class AppRouter {
         if !mapPath.isEmpty {
             mapPath.removeAll()
         }
+
+        currentStep = 1
     }
 
     func nextStep() {
@@ -123,8 +128,6 @@ extension View {
                 DashboardView()
             case .addEvent:
                 EmptyView()
-            case .openScanner:
-                QRScannerView()
             }
         }
     }
@@ -132,7 +135,7 @@ extension View {
     func donersRouter(_ router: AppRouter) -> some View {
         self.navigationDestination(for: DonersRouter.self) { destination in
             switch destination {
-            case  .donationFlow:
+            case .donationFlow:
                 DonationFlowView()
             case .scan:
                 ClothsView { router.nextStep() }
@@ -149,6 +152,20 @@ extension View {
                 } else {
                     EmptyView()
                 }
+            case .eventDetail(let eventId):
+                SelectedEventDetailView(
+                    model: DonorEventDetailModel(
+                        eventId: eventId,
+                        accountClient: BackendDependencies.accountClientOrDefault(),
+                        backendBaseURL: BackendDependencies.backendBaseURL()
+                    )
+                )
+            case .myBookings:
+                MyBookingsView()
+            case .bookingDetail(let bookingId):
+                DonorBookingDetailView(bookingId: bookingId)
+            case .history:
+                DonorHistoryView()
             }
         }
     }

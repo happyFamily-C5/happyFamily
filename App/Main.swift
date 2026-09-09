@@ -8,6 +8,7 @@ struct Main: App {
         WindowGroup {
             ContentView()
                 .environment(router)
+                .environment(router.donation)
         }
     }
 }

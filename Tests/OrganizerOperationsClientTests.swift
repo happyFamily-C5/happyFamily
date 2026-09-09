@@ -4,6 +4,91 @@ import Testing
 
 @Suite("Organizer operations edge client", .serialized)
 struct OrganizerOperationsClientTests {
+    @Test("resolveQR posts the opaque token to operations")
+    func resolveQRPostsOperationsBody() async throws {
+        let recorder = RequestRecorder()
+        URLProtocolStub.requestHandler = { request in
+            recorder.record(request)
+            let data = try JSONSerialization.data(withJSONObject: [
+                "data": resolvedQRJSON(),
+                "error": NSNull(),
+                "request_id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+                "server_time": "2026-09-10T01:00:00Z",
+            ])
+            return try (response(for: request, status: 200), data)
+        }
+        let token = String(repeating: "q", count: 64)
+
+        let booking = try await makeClient().resolveQR(token: token)
+
+        let request = try #require(recorder.snapshot().first)
+        #expect(request.url?.path == "/functions/v1/operations")
+        let json = try #require(request.jsonBody)
+        #expect(json["action"] as? String == "resolve_qr")
+        #expect(json["qr_token"] as? String == token)
+        #expect(booking.bookingId == UUID(uuidString: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"))
+    }
+
+    @Test("publish posts operations action with a stable idempotency key")
+    func publishPostsOperationsBody() async throws {
+        let recorder = RequestRecorder()
+        URLProtocolStub.requestHandler = { request in
+            recorder.record(request)
+            let data = try JSONSerialization.data(withJSONObject: [
+                "data": [
+                    "invocation_url": "https://app.example.invalid/event/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+                ],
+                "error": NSNull(),
+                "request_id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+                "server_time": "2026-09-10T01:00:00Z",
+            ])
+            return try (response(for: request, status: 200), data)
+        }
+        let eventId = UUID()
+
+        let published = try await makeClient().publish(eventId: eventId)
+
+        let request = try #require(recorder.snapshot().first)
+        #expect(request.url?.path == "/functions/v1/operations")
+        #expect(request.idempotencyKey == "publish-event-\(eventId.uuidString)")
+        let json = try #require(request.jsonBody)
+        #expect(json["action"] as? String == "publish_event")
+        #expect(UUID(uuidString: json["event_id"] as? String ?? "") == eventId)
+        #expect(
+            published.invocationURL.absoluteString ==
+                "https://app.example.invalid/event/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
+        )
+    }
+
+    @Test("listEvents posts the operations list action and decodes next cursor")
+    func listEventsPostsOperationsBody() async throws {
+        let recorder = RequestRecorder()
+        URLProtocolStub.requestHandler = { request in
+            recorder.record(request)
+            let data = try JSONSerialization.data(withJSONObject: [
+                "data": [
+                    "items": [eventRecordJSON()],
+                    "next_cursor": "opaque-next-cursor",
+                ],
+                "error": NSNull(),
+                "request_id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+                "server_time": "2026-09-10T01:00:00Z",
+            ])
+            return try (response(for: request, status: 200), data)
+        }
+
+        let page = try await makeClient().listEvents(cursor: "opaque-current-cursor")
+
+        let request = try #require(recorder.snapshot().first)
+        #expect(request.url?.path == "/functions/v1/operations")
+        let json = try #require(request.jsonBody)
+        #expect(json["action"] as? String == "list_events")
+        #expect(json["cursor"] as? String == "opaque-current-cursor")
+        #expect(json["limit"] as? Int == 100)
+        #expect(page.items.count == 1)
+        #expect(page.nextCursor == "opaque-next-cursor")
+    }
+
     @Test("upsertEventDraft posts the operations envelope body")
     func upsertEventDraftPostsOperationsBody() async throws {
         let recorder = RequestRecorder()
@@ -75,6 +160,68 @@ struct OrganizerOperationsClientTests {
         #expect(data.eventId == UUID(uuidString: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"))
         #expect(data.action == "draft_deleted")
         #expect(data.status == nil)
+    }
+
+    @Test("reception and tracking mutations use operations with idempotency")
+    func receptionAndTrackingUseOperations() async throws {
+        let recorder = RequestRecorder()
+        URLProtocolStub.requestHandler = { request in
+            recorder.record(request)
+            let data = try JSONSerialization.data(withJSONObject: [
+                "data": receptionDecisionJSON(), "error": NSNull(),
+                "request_id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+                "server_time": "2026-09-10T01:00:00Z",
+            ])
+            return try (response(for: request, status: 200), data)
+        }
+        let bookingId = UUID()
+        let input = ReceptionDecisionInput(
+            bookingId: bookingId, decision: .accepted, actualWeightGrams: 750,
+            condition: .good, rejectionReason: nil, rejectionNote: nil,
+            idempotencyKey: "reception-\(bookingId.uuidString)", requestId: UUID()
+        )
+
+        _ = try await makeClient().decideReception(input)
+        _ = try await makeClient().advanceTracking(bookingId: bookingId, status: .processed)
+
+        let requests = recorder.snapshot()
+        let reception = try #require(requests.first)
+        #expect(reception.url?.path == "/functions/v1/operations")
+        #expect(reception.idempotencyKey == input.idempotencyKey)
+        #expect(reception.jsonBody?["action"] as? String == "decide_reception")
+        #expect(reception.jsonBody?["condition"] == nil)
+        let tracking = try #require(requests.last)
+        #expect(tracking.idempotencyKey == "advance-tracking-\(bookingId.uuidString)-processed")
+        #expect(tracking.jsonBody?["action"] as? String == "advance_tracking")
+    }
+
+    @Test("recap posts the operations action and decodes the safe recent rows")
+    func recapUsesOperations() async throws {
+        let recorder = RequestRecorder()
+        URLProtocolStub.requestHandler = { request in
+            recorder.record(request)
+            let data = try JSONSerialization.data(withJSONObject: [
+                "data": [
+                    "month": ["accepted_weight_grams": 750, "accepted_count": 1, "unique_donor_count": 1],
+                    "recent_donations": [[
+                        "booking_id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+                        "public_booking_id": "KMP-TEST-001", "donor_name": "Donor Uji",
+                        "actual_weight_grams": 750, "event_name": "Acara Uji",
+                        "received_at": "2026-09-10T01:00:00Z",
+                    ]],
+                ],
+                "error": NSNull(), "request_id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+                "server_time": "2026-09-10T01:00:00Z",
+            ])
+            return try (response(for: request, status: 200), data)
+        }
+
+        let recap = try await makeClient().recap(eventId: nil)
+
+        let request = try #require(recorder.snapshot().first)
+        #expect(request.jsonBody?["action"] as? String == "recap")
+        #expect(recap.month.acceptedWeightGrams == 750)
+        #expect(recap.recentDonations.first?.donorName == "Donor Uji")
     }
 
     @Test("cancelOrDeleteEvent decodes the cancelled-event shape")
@@ -157,6 +304,81 @@ struct OrganizerOperationsClientTests {
             return code == "IDEMPOTENCY_CONFLICT" && !retryable
         }
     }
+
+    @Test("donationHistory posts the operations action and decodes the page")
+    func donationHistoryPostsOperationsBody() async throws {
+        let recorder = RequestRecorder()
+        URLProtocolStub.requestHandler = { request in
+            recorder.record(request)
+            let data = try JSONSerialization.data(withJSONObject: [
+                "data": [
+                    "items": [bookingHistoryItemJSON()],
+                    "next_cursor": "opaque-next-cursor",
+                ],
+                "error": NSNull(),
+                "request_id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+                "server_time": "2026-09-10T01:00:00Z",
+            ])
+            return try (response(for: request, status: 200), data)
+        }
+
+        let page = try await makeClient().donationHistory(eventId: nil, cursor: "opaque-current-cursor")
+
+        let request = try #require(recorder.snapshot().first)
+        #expect(request.url?.path == "/functions/v1/operations")
+        let json = try #require(request.jsonBody)
+        #expect(json["action"] as? String == "donation_history")
+        #expect(json["cursor"] as? String == "opaque-current-cursor")
+        #expect(json["limit"] as? Int == 20)
+        let item = try #require(page.items.first)
+        #expect(item.bookingId == UUID(uuidString: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"))
+        #expect(item.publicBookingId == "KMP-TEST-001")
+        #expect(item.status == .accepted)
+        #expect(item.estimatedWeightGrams == 500)
+        #expect(item.actualWeightGrams == 750)
+        #expect(item.event.name == "Acara Uji")
+        #expect(page.nextCursor == "opaque-next-cursor")
+    }
+
+    @Test("eventHistory posts the operations action and decodes the page")
+    func eventHistoryPostsOperationsBody() async throws {
+        let recorder = RequestRecorder()
+        URLProtocolStub.requestHandler = { request in
+            recorder.record(request)
+            var item = bookingHistoryItemJSON()
+            item["status"] = "processed"
+            item["actual_weight_grams"] = 900
+            if var event = item["event"] as? [String: Any] {
+                event["status"] = "upcoming"
+                event["banner_object_path"] = "workspace/banner.png"
+                item["event"] = event
+            }
+            let data = try JSONSerialization.data(withJSONObject: [
+                "data": [
+                    "items": [item],
+                    "next_cursor": NSNull(),
+                ],
+                "error": NSNull(),
+                "request_id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+                "server_time": "2026-09-10T01:00:00Z",
+            ])
+            return try (response(for: request, status: 200), data)
+        }
+
+        let page = try await makeClient().eventHistory(eventId: nil, cursor: nil)
+
+        let request = try #require(recorder.snapshot().first)
+        #expect(request.url?.path == "/functions/v1/operations")
+        let json = try #require(request.jsonBody)
+        #expect(json["action"] as? String == "event_history")
+        #expect(json["cursor"] == nil)
+        #expect(json["limit"] as? Int == 20)
+        let item = try #require(page.items.first)
+        #expect(item.status == .processed)
+        #expect(item.event.status == .upcoming)
+        #expect(item.event.bannerObjectPath == "workspace/banner.png")
+        #expect(page.nextCursor == nil)
+    }
 }
 
 // MARK: - Harness
@@ -199,8 +421,11 @@ private final class RequestRecorder: @unchecked Sendable {
         lock.withLock {
             requests.append(RecordedRequest(
                 url: request.url,
+                method: request.httpMethod,
                 idempotencyKey: request.value(forHTTPHeaderField: "Idempotency-Key"),
                 authorization: request.value(forHTTPHeaderField: "Authorization"),
+                apiKey: request.value(forHTTPHeaderField: "apikey"),
+                contentType: request.value(forHTTPHeaderField: "Content-Type"),
                 rawBody: requestBody(request)
             ))
         }
@@ -213,8 +438,11 @@ private final class RequestRecorder: @unchecked Sendable {
 
 private struct RecordedRequest: Sendable {
     let url: URL?
+    let method: String?
     let idempotencyKey: String?
     let authorization: String?
+    let apiKey: String?
+    let contentType: String?
     let rawBody: Data?
 
     var jsonBody: [String: Any]? {
@@ -259,6 +487,27 @@ private func makeClient() -> OrganizerBackendHTTPClient {
     ) {
         "access-token"
     }
+}
+
+private func bookingHistoryItemJSON() -> [String: Any] {
+    [
+        "booking_id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+        "public_booking_id": "KMP-TEST-001",
+        "status": "accepted",
+        "estimated_weight_grams": 500,
+        "actual_weight_grams": 750,
+        "created_at": "2026-09-10T01:00:00Z",
+        "status_updated_at": "2026-09-10T02:00:00Z",
+        "event": [
+            "id": "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff",
+            "name": "Acara Uji",
+            "status": "ongoing",
+            "start_at": "2026-02-14T00:00:00Z",
+            "end_at": "2026-02-21T00:00:00Z",
+            "location_name": "Jakarta",
+            "banner_object_path": NSNull(),
+        ],
+    ]
 }
 
 private func adminEventFixture(id: UUID, limitKg: Int) -> BackendAdminEvent {
@@ -306,6 +555,55 @@ private func eventRecordJSON() -> [String: Any] {
         "receiver_phone": "+6281234567890",
         "receiver_address": "Jl. Workspace",
         "criteria": ["cotton"],
+    ]
+}
+
+private func resolvedQRJSON() -> [String: Any] {
+    [
+        "booking_id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+        "public_booking_id": "KMP-TEST-001",
+        "status": "waiting",
+        "estimated_weight_grams": 500,
+        "item_count": 1,
+        "shipping_method": "direct",
+        "donor_name": "Donor Uji",
+        "donor_phone": "+6281234567890",
+        "event_snapshot": [
+            "id": "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff",
+            "name": "Acara Uji",
+            "description": "Deskripsi",
+            "status": "ongoing",
+            "availability": "available",
+            "start_at": "2026-02-14T00:00:00Z",
+            "end_at": "2026-02-21T00:00:00Z",
+            "timezone_name": "Asia/Jakarta",
+            "operational_days": [6, 7],
+            "opens_at_local": "08:00:00",
+            "closes_at_local": "17:00:00",
+            "location_name": "Jakarta",
+            "location_address": "Jl. Test",
+            "latitude": -6.2,
+            "longitude": 106.8,
+            "capacity_grams": 10_000,
+            "received_weight_grams": 0,
+            "banner_object_path": "workspace/banner.png",
+            "receiver_name": "Workspace",
+            "receiver_phone": "+6281234567890",
+            "receiver_address": "Jl. Workspace",
+            "criteria": ["cotton"],
+            "version": 1,
+        ],
+    ]
+}
+
+private func receptionDecisionJSON() -> [String: Any] {
+    [
+        "booking_id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+        "public_booking_id": "KMP-TEST-001",
+        "status": "accepted",
+        "received_weight_grams": 750,
+        "capacity_grams": 10_000,
+        "capacity_full": false,
     ]
 }
 

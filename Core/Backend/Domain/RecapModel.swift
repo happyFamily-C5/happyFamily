@@ -30,12 +30,12 @@ struct DonationChartBar: Equatable, Sendable {
 }
 
 /// Loads and aggregates recap data for the recap surfaces.
-/// Totals come from the `recap_v1` RPC; per-donation rows come from the
-/// organizer `export-report` edge function (which decrypts donor PII).
+/// Totals and recent rows come from `operations:recap`; no CSV export is
+/// fetched merely to render a screen containing donor PII.
 @MainActor
 @Observable
 final class RecapModel {
-    private(set) var recap: RecapData?
+    private(set) var recap: AdminRecapData?
     private(set) var recentDonations: [RecentDonation] = []
     private(set) var isLoading = false
     private(set) var isDataEmpty = true
@@ -59,13 +59,18 @@ final class RecapModel {
             let recap = try await reportRepository.recap(eventId: nil)
             self.recap = recap
 
-            let rows = try await recentBookingRows()
-            self.recentDonations = rows
+            self.recentDonations = recap.recentDonations.map {
+                RecentDonation(
+                    id: $0.bookingId.uuidString,
+                    donorName: $0.donorName ?? "Donatur",
+                    createdAt: $0.receivedAt,
+                    weightGrams: $0.actualWeightGrams
+                )
+            }
 
             errorMessage = nil
-            isDataEmpty = recap.acceptedBookingCount == 0
-                && recap.completedEventCount == 0
-                && recap.totalAcceptedWeightGrams == 0
+            isDataEmpty = recap.month.acceptedCount == 0
+                && recap.month.acceptedWeightGrams == 0
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -73,26 +78,26 @@ final class RecapModel {
 
     /// Total collected weight formatted for the recap card ("1,2 kg").
     var totalWeightText: String {
-        let kilograms = Double(recap?.totalAcceptedWeightGrams ?? 0) / 1000
+        let kilograms = Double(recap?.month.acceptedWeightGrams ?? 0) / 1000
         return String(format: "%.1f kg", kilograms)
     }
 
     var collectedKgText: String {
-        String(format: "%.0f", Double(recap?.totalAcceptedWeightGrams ?? 0) / 1000)
+        String(format: "%.0f", Double(recap?.month.acceptedWeightGrams ?? 0) / 1000)
     }
 
     var donorCountText: String {
-        String(recap?.uniqueDonorCount ?? 0)
+        String(recap?.month.uniqueDonorCount ?? 0)
     }
 
     var completedEventCountText: String {
-        String(recap?.completedEventCount ?? 0)
+        "0"
     }
 
     var averagePerDonationText: String {
-        let donorCount = Int(recap?.uniqueDonorCount ?? 0)
+        let donorCount = Int(recap?.month.uniqueDonorCount ?? 0)
         guard donorCount > 0 else { return "0" }
-        let averageGrams = Double(recap?.totalAcceptedWeightGrams ?? 0) / Double(donorCount)
+        let averageGrams = Double(recap?.month.acceptedWeightGrams ?? 0) / Double(donorCount)
         return String(format: "%.1f", averageGrams / 1000)
     }
 
@@ -147,64 +152,4 @@ final class RecapModel {
         }
     }
 
-    private func recentBookingRows() async throws -> [RecentDonation] {
-        guard let reportRepository else { return [] }
-        let createdFrom = Calendar.current.date(byAdding: .day, value: -30, to: .now)
-        let csv = try await reportRepository.exportCSV(
-            filter: ReportFilter(eventId: nil, createdFrom: createdFrom, createdTo: nil)
-        )
-        return Self.parseRecentDonations(from: csv, limit: 5)
-    }
-
-    /// Parses the BOM-prefixed CSV produced by the export-report edge function.
-    /// Header: booking_id,event_name,booking_time,status,estimated_weight_grams,
-    /// actual_weight_grams,condition,rejection_reason,shipping_method,donor_name,donor_phone
-    static func parseRecentDonations(from data: Data, limit: Int) -> [RecentDonation] {
-        guard let raw = String(data: data, encoding: .utf8) else { return [] }
-        let text = raw.hasPrefix("\u{FEFF}") ? String(raw.dropFirst()) : raw
-
-        var rows: [RecentDonation] = []
-        let dateFormatter = ISO8601DateFormatter()
-        dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-
-        for line in text.split(separator: "\r\n").dropFirst() {
-            let fields = parseCSVLine(String(line))
-            guard fields.count >= 11 else { continue }
-            let status = fields[3]
-            // Accepted receptions carry an actual weight; pending rows only
-            // estimate. Show only donations that have been received.
-            let actualWeight = Int64(fields[5]) ?? 0
-            guard status == "received", actualWeight > 0 else { continue }
-            guard let createdAt = dateFormatter.date(from: fields[2]) else { continue }
-            rows.append(
-                RecentDonation(
-                    id: fields[0],
-                    donorName: fields[9],
-                    createdAt: createdAt,
-                    weightGrams: actualWeight
-                )
-            )
-        }
-
-        return Array(rows.sorted { $0.createdAt > $1.createdAt }.prefix(limit))
-    }
-
-    private static func parseCSVLine(_ line: String) -> [String] {
-        var fields: [String] = []
-        var current = ""
-        var insideQuotes = false
-        var iterator = line.makeIterator()
-        while let character = iterator.next() {
-            if character == "\"" {
-                insideQuotes.toggle()
-            } else if character == ",", !insideQuotes {
-                fields.append(current)
-                current = ""
-            } else {
-                current.append(character)
-            }
-        }
-        fields.append(current)
-        return fields
-    }
 }

@@ -9,6 +9,7 @@ struct AdminEventMappingTests {
         id: UUID = UUID(),
         name: String = "Bersih Kali",
         capacityKg: Int = 10,
+        status: EventStatusCode = .draft,
         operationalDays: [Int] = [],
         opensAtLocal: String = "08:00:00",
         closesAtLocal: String = "17:00:00",
@@ -24,7 +25,7 @@ struct AdminEventMappingTests {
             endDate: Date(timeIntervalSince1970: 1_800_086_400),
             capacityKg: capacityKg,
             collectedKg: 0,
-            status: .draft,
+            status: status,
             timezoneName: "Asia/Jakarta",
             operationalDays: operationalDays,
             opensAtLocal: opensAtLocal,
@@ -141,5 +142,12 @@ struct AdminEventMappingTests {
         #expect(back.receiverPhone == nil)
         #expect(back.receiverAddress == nil)
         #expect(AdminEvent(backend: back).donationCriteria == ui.donationCriteria)
+    }
+
+    @Test("Event status survives the UI mapping in both directions")
+    func statusRoundTrips() {
+        let fromBackend = AdminEvent(backend: backendEvent(status: .upcoming))
+        #expect(fromBackend.status == .upcoming)
+        #expect(fromBackend.toBackendAdminEvent().status == .upcoming)
     }
 }

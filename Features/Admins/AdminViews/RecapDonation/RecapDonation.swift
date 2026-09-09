@@ -35,7 +35,7 @@ struct RecapDonation: View {
                     }
                     .padding(.horizontal, 16)
 
-                    // 3. Grid 4 Kartu Statistik (Nilai dari recap_v1)
+                    // 3. Grid 4 Kartu Statistik (Nilai dari operations:recap)
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
                         StatisticCardView(
                             title: "Donasi\nterkumpul",

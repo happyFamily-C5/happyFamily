@@ -22,10 +22,10 @@ struct RejectedDonationView: View {
                     .scaledToFit()
                     .frame(width: 88)
                 
-                Text("Berhasil !")
+                Text("Donasi Ditolak")
                     .font(.title).bold()
             }
-            Text("Donasi telah diterima")
+            Text("Donasi telah ditolak")
             
             Spacer()
             

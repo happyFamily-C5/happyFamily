@@ -79,7 +79,6 @@ struct BackendEnvelope<Value: Decodable & Sendable>: Decodable, Sendable {
 
 enum BackendError: Error, Equatable, Sendable, LocalizedError {
     case configuration(String)
-    case invalidInvocationURL
     case invalidResponse
     case transport(String)
     case decoding(String)
@@ -89,8 +88,6 @@ enum BackendError: Error, Equatable, Sendable, LocalizedError {
         switch self {
         case let .configuration(key):
             "Konfigurasi backend \(key) belum tersedia."
-        case .invalidInvocationURL:
-            "Tautan acara tidak valid."
         case .invalidResponse:
             "Respons server tidak valid."
         case .transport:
@@ -170,72 +167,6 @@ struct PublicEventDTO: Codable, Identifiable, Equatable, Sendable {
     let capturedAt: Date?
 }
 
-struct PublicLegalDTO: Codable, Equatable, Sendable {
-    let termsVersion: String
-    let termsURL: URL
-    let privacyVersion: String
-    let privacyURL: URL
-
-    enum CodingKeys: String, CodingKey {
-        case termsVersion
-        case termsURL = "termsUrl"
-        case privacyVersion
-        case privacyURL = "privacyUrl"
-    }
-}
-
-struct ResolveEventData: Decodable, Equatable, Sendable {
-    let event: PublicEventDTO
-    let legal: PublicLegalDTO
-    let serverTime: Date
-    let cacheMaxAgeSeconds: Int
-}
-
-struct BookingItemRequest: Encodable, Equatable, Sendable {
-    let ordinal: Int
-    let passed: Bool
-    let scannerModelVersion: String
-    let metadata: [String: String]
-}
-
-struct CreateBookingRequest: Encodable, Equatable, Sendable {
-    let invocationToken: String
-    let donorName: String
-    let phone: String
-    let estimatedWeightGrams: Int64
-    let itemCount: Int
-    let items: [BookingItemRequest]
-    let shippingMethod: ShippingMethodCode
-    let scanModelVersion: String
-    let termsVersion: String
-    let privacyVersion: String
-}
-
-struct CreateBookingData: Decodable, Equatable, Sendable {
-    let bookingId: String
-    let status: BookingStatusCode
-    let expiresAt: Date
-    let qrToken: String
-    let qrPayload: URL
-    let labelSnapshot: PublicEventDTO
-    let idempotentReplay: Bool
-}
-
-struct DonorVerificationData: Decodable, Equatable, Sendable {
-    let accessToken: String
-    let expiresIn: Int
-}
-
-struct DonorBookingStatusData: Decodable, Equatable, Sendable {
-    let publicBookingId: String
-    let status: BookingStatusCode
-    let event: PublicEventDTO
-    let expiresAt: Date
-    let processedAt: Date?
-    let condition: String?
-    let rejectionReason: String?
-}
-
 struct ResolvedQRBooking: Decodable, Equatable, Sendable {
     let bookingId: UUID
     let publicBookingId: String
@@ -271,6 +202,58 @@ struct RecapData: Decodable, Equatable, Sendable {
     let rejectedBookingCount: Int64
     let uniqueDonorCount: Int64
     let completedEventCount: Int64
+}
+
+struct AdminRecapData: Decodable, Equatable, Sendable {
+    struct Month: Decodable, Equatable, Sendable {
+        let acceptedWeightGrams: Int64
+        let acceptedCount: Int64
+        let uniqueDonorCount: Int64
+    }
+
+    struct RecentDonation: Decodable, Equatable, Sendable {
+        let bookingId: UUID
+        let publicBookingId: String
+        let donorName: String?
+        let actualWeightGrams: Int64
+        let eventName: String
+        let receivedAt: Date
+    }
+
+    let month: Month
+    let recentDonations: [RecentDonation]
+}
+
+/// Snapshot of the event embedded in admin booking-history rows. The history
+/// RPC returns a partial event (no availability/version) and its
+/// `banner_object_path` can be null, so this is intentionally not
+/// `PublicEventDTO`.
+struct BookingEventSnapshot: Decodable, Equatable, Sendable {
+    let id: UUID
+    let name: String?
+    let status: EventStatusCode?
+    let startAt: Date?
+    let endAt: Date?
+    let locationName: String?
+    let bannerObjectPath: String?
+}
+
+struct BookingHistoryItem: Decodable, Equatable, Sendable, Identifiable {
+    let bookingId: UUID
+    let publicBookingId: String
+    let status: BookingStatusCode
+    let estimatedWeightGrams: Int64
+    let actualWeightGrams: Int64?
+    let event: BookingEventSnapshot
+    let createdAt: Date
+    let statusUpdatedAt: Date?
+
+    var id: UUID { bookingId }
+}
+
+struct HistoryPage: Decodable, Equatable, Sendable {
+    let items: [BookingHistoryItem]
+    let nextCursor: String?
 }
 
 /// Row shape of `event_user_json` (admin event responses).

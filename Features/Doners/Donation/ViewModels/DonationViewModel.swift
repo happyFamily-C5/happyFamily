@@ -12,9 +12,9 @@ enum ShippingMethod: String, CaseIterable, Identifiable {
     case direct = "Antar Langsung"
     case ojekOnline = "Ojek Online"
     case expedition = "Ekspedisi"
-    
+
     var id: String { rawValue }
-    
+
     var description: String {
         switch self {
         case .direct:
@@ -27,183 +27,189 @@ enum ShippingMethod: String, CaseIterable, Identifiable {
     }
 }
 
-
+/// Drives the donor donation flow against the authenticated account API.
+/// Donor identity comes from the profile (the server encrypts it), the event
+/// and legal versions come from `account:event_detail`, and the booking
+/// submission is idempotent through a persisted attempt key.
 @MainActor
 @Observable
 final class DonationViewModel {
-    var name: String = ""
-    var phone: String = ""
-    
     var agreedToTerms: Bool = false
     var selectedShippingMethod: ShippingMethod?
-    var clothingItems: [ClothingItem] = [
-//        ClothingItem(image: UIImage(named: "Image 3") ?? UIImage(), isPassed: true)
-    ]
+    var clothingItems: [ClothingItem] = []
 
-    private(set) var resolvedEvent: PublicEventDTO?
-    private(set) var legal: PublicLegalDTO?
-    private(set) var booking: CreateBookingData?
-    private(set) var isResolving = false
+    private(set) var displayName: String = ""
+    private(set) var phoneE164: String = ""
+    private(set) var isProfileComplete = false
+
+    private(set) var detail: DonorEventDetail?
+    private(set) var isLoadingDetail = false
+    private(set) var booking: CreateBookingResult?
     private(set) var isCreatingBooking = false
     var errorMessage: String?
 
-    private let client: any PublicBackendServing
-    private let backendBaseURL: URL?
-    private var invocationToken: String?
-    private var lastInvocationURL: URL?
-    private var bookingRequest: CreateBookingRequest?
-    private var bookingIdempotencyKey: String?
+    private let accountClient: (any AccountBackendServing)?
+    private let attemptStore: BookingAttemptStore
 
-    init(
-        client: any PublicBackendServing = FullAppBackendDependencies.client(),
-        backendBaseURL: URL? = FullAppBackendDependencies.baseURL()
+    private let backendBaseURL: URL?
+    private var loadedEventId: UUID?
+
+    nonisolated init(
+        accountClient: (any AccountBackendServing)? = BackendDependencies.accountClientOrDefault(),
+        attemptStore: BookingAttemptStore = BookingAttemptStore(),
+        backendBaseURL: URL? = BackendDependencies.backendBaseURL()
     ) {
-        self.client = client
+        self.accountClient = accountClient
+        self.attemptStore = attemptStore
         self.backendBaseURL = backendBaseURL
     }
 
     var displayBookingID: String {
-        booking?.bookingId ?? ""
+        booking?.publicBookingId ?? ""
     }
 
-    var bannerURL: URL? {
-        guard let backendBaseURL, let path = resolvedEvent?.bannerObjectPath else { return nil }
+    func bannerURL() -> URL? {
+        guard let backendBaseURL,
+              let path = detail?.event.bannerObjectPath,
+              !path.isEmpty else { return nil }
         return backendBaseURL
             .appending(path: "storage/v1/object/public/event-banners", directoryHint: .isDirectory)
             .appending(path: path)
     }
 
-    var qrContent: String {
-        """
-        Booking ID: \(displayBookingID)
-        Nama: \(name)
-        No. Telp: \(phone)
-        """
+    // MARK: - Flow entry
+
+    /// Entry point from the event detail CTA. Loads the event detail (with
+    /// donor availability and legal versions) plus the profile summary the
+    /// flow displays instead of collecting PII locally.
+    func start(eventId: UUID) async {
+        guard loadedEventId != eventId || detail == nil else { return }
+        loadedEventId = eventId
+        resetDonationState()
+        await load(eventId: eventId)
     }
-    
-    // MARK: - Validasi tiap step
+
+    func retryLoadingEvent() async {
+        guard let loadedEventId else { return }
+        await load(eventId: loadedEventId)
+    }
+
+    private func load(eventId: UUID) async {
+        guard let accountClient else {
+            errorMessage = "Backend belum dikonfigurasi"
+            return
+        }
+        isLoadingDetail = true
+        defer { isLoadingDetail = false }
+        async let detailResult = accountClient.eventDetail(id: eventId)
+        async let profileResult = accountClient.myProfile()
+        do {
+            detail = try await detailResult
+            let profile = try await profileResult
+            displayName = profile.displayName
+            phoneE164 = profile.phoneE164 ?? ""
+            isProfileComplete = !profile.displayName.isEmpty && profile.phoneE164 != nil
+            errorMessage = nil
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    // MARK: - Step validation
+
     var canProceedFromPersonalInfo: Bool {
-        !name.isEmpty && !phone.isEmpty && agreedToTerms
+        isProfileComplete && selectedShippingMethod != nil && agreedToTerms
     }
-    
+
     var canProceedFromCapture: Bool {
         !clothingItems.isEmpty
     }
-    
+
     var canProceedFromReview: Bool {
         clothingItems.contains { $0.isPassed }
     }
 
-    var canProceedFromShipping: Bool {
-        selectedShippingMethod != nil && !isCreatingBooking
-    }
+    // MARK: - Booking submission
 
-    func loadDevelopmentInvocationIfPresent() async {
-        guard
-            lastInvocationURL == nil,
-            let rawURL = ProcessInfo.processInfo.environment["_XCAppClipURL"],
-            let url = URL(string: rawURL)
-        else { return }
-        await handleInvocation(url)
-    }
-
-    func handleInvocation(_ url: URL) async {
-        lastInvocationURL = url
-        isResolving = true
-        errorMessage = nil
-        defer { isResolving = false }
-        do {
-            let invocation = try InvocationParser.parse(url)
-            if invocation.token != invocationToken {
-                resetDonationState()
-            }
-            invocationToken = invocation.token
-            let response = try await client.resolveEvent(invocationToken: invocation.token)
-            resolvedEvent = response.event
-            legal = response.legal
-        } catch is CancellationError {
-            return
-        } catch {
-            resolvedEvent = nil
-            legal = nil
-            errorMessage = error.localizedDescription
-        }
-    }
-
-    func retryResolve() async {
-        guard let lastInvocationURL else { return }
-        await handleInvocation(lastInvocationURL)
-    }
-
+    /// Submits `account:create_booking` with the persisted idempotency
+    /// attempt. A retry after failure (or process death) reuses the same key
+    /// and payload; a success clears the attempt and stores the returned QR
+    /// token in the Keychain only.
     func createBooking() async -> Bool {
-        guard let invocationToken, let legal, let event = resolvedEvent else {
-            errorMessage = BackendError.invalidInvocationURL.localizedDescription
+        guard let detail, !isCreatingBooking else { return false }
+        guard detail.availability.bookable else {
+            errorMessage = "Acara tidak dapat dipesan saat ini."
             return false
         }
-        guard event.availability.acceptsBookings else {
-            errorMessage = BackendError.api(
-                code: "EVENT_UNAVAILABLE",
-                retryable: false,
-                fieldErrors: [:],
-                requestId: nil
-            ).localizedDescription
-            return false
-        }
-        guard let selectedShippingMethod else { return false }
-
+        guard let selectedShippingMethod, agreedToTerms else { return false }
         let passedItems = clothingItems.filter(\.isPassed)
         guard !passedItems.isEmpty else { return false }
 
-        if bookingRequest == nil {
-            bookingRequest = CreateBookingRequest(
-                invocationToken: invocationToken,
-                donorName: name,
-                phone: phone,
-                estimatedWeightGrams: Int64(passedItems.count * 500),
-                itemCount: passedItems.count,
-                items: passedItems.enumerated().map { index, item in
-                    BookingItemRequest(
-                        ordinal: index + 1,
-                        passed: true,
-                        scannerModelVersion: item.scannerModelVersion,
-                        metadata: item.metadata
-                    )
-                },
-                shippingMethod: selectedShippingMethod.code,
-                scanModelVersion: passedItems.map(\.scannerModelVersion).joined(separator: "+"),
-                termsVersion: legal.termsVersion,
-                privacyVersion: legal.privacyVersion
-            )
-            bookingIdempotencyKey = UUID().uuidString.lowercased()
+        let body = AccountBookingBody(
+            estimatedWeightGrams: Int64(passedItems.count * 500),
+            itemCount: passedItems.count,
+            items: passedItems.enumerated().map { index, item in
+                AccountBookingItem(
+                    ordinal: index,
+                    passed: true,
+                    scannerModelVersion: item.scannerModelVersion,
+                    metadata: item.metadata
+                )
+            },
+            shippingMethod: selectedShippingMethod.code,
+            scanModelVersion: Self.scanModelVersion(from: passedItems),
+            termsVersion: detail.legal.termsVersion,
+            privacyVersion: detail.legal.privacyVersion
+        )
+
+        let payload: Data
+        do {
+            payload = try bookingBodyPayload(body)
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
         }
-        guard let bookingRequest, let bookingIdempotencyKey else { return false }
+        let attempt = attemptStore.resolveAttempt(eventId: detail.event.id, payload: payload)
 
         isCreatingBooking = true
-        errorMessage = nil
         defer { isCreatingBooking = false }
         do {
-            booking = try await client.createBooking(
-                bookingRequest,
-                idempotencyKey: bookingIdempotencyKey
+            guard let accountClient else {
+                throw BackendError.configuration("account create booking is unavailable")
+            }
+            let result = try await accountClient.createBooking(
+                eventId: detail.event.id,
+                booking: body,
+                idempotencyKey: attempt.idempotencyKey
             )
+            booking = result
+            attemptStore.clear()
+            try? QRTokenKeychain.save(result.qrToken, bookingId: result.bookingId)
+            errorMessage = nil
             return true
         } catch is CancellationError {
             return false
         } catch {
+            // Keep the stored attempt: retrying replays the identical request.
             errorMessage = error.localizedDescription
             return false
         }
     }
 
-    private func resetDonationState() {
-        name = ""
-        phone = ""
+    private static func scanModelVersion(from items: [ClothingItem]) -> String {
+        var version = Set(items.map(\.scannerModelVersion)).sorted().joined(separator: "+")
+        if version.count > 80 {
+            version = String(version.prefix(80))
+        }
+        return version.isEmpty ? "accessory-head-v1" : version
+    }
+
+    func resetDonationState() {
         agreedToTerms = false
         selectedShippingMethod = nil
         clothingItems = []
         booking = nil
-        bookingRequest = nil
-        bookingIdempotencyKey = nil
+        errorMessage = nil
     }
 }
 
@@ -222,7 +228,7 @@ func generateQRCode(from string: String) -> UIImage {
     let filter = CIFilter.qrCodeGenerator()
     filter.correctionLevel = "H"
     filter.message = Data(string.utf8)
-    
+
     if let outputImage = filter.outputImage {
         let scaled = outputImage.transformed(by: CGAffineTransform(scaleX: 10, y: 10))
         if let cgImage = context.createCGImage(scaled, from: scaled.extent) {

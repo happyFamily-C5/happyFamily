@@ -11,22 +11,58 @@ struct AccountOnboardingData: Decodable, Sendable, Equatable {
     let workspaceId: UUID?
 }
 
-struct AccountBookingDetail: Decodable, Sendable, Equatable {
+struct AccountProfileData: Decodable, Sendable, Equatable {
     let id: UUID
-    let publicBookingId: String
-    let status: BookingStatusCode
-    let estimatedWeightGrams: Int64
-    let expiresAt: Date
-    let canCancel: Bool
+    let role: AccountRoleCode?
+    let displayName: String
+    let phoneE164: String?
+    let address: String?
+    let recommendationLocationLabel: String?
+    let avatarObjectPath: String?
+}
+
+struct AccountProfileUpdate: Encodable, Sendable, Equatable {
+    let displayName: String
+    let phoneE164: String
+    let address: String
+    let locationLabel: String
+    let latitude: Double?
+    let longitude: Double?
+    let avatarObjectPath: String
+}
+
+struct AccountWorkspaceUpdate: Encodable, Sendable, Equatable {
+    let name: String
+    let address: String
+    let phoneE164: String
+    let email: String
+    let logoObjectPath: String
+}
+
+struct AccountEmailChangeData: Decodable, Sendable, Equatable {
+    let email: String?
+    let emailChangeSentAt: Date?
+    let pendingEmail: String?
 }
 
 protocol AccountBackendServing: Sendable {
     func completeOnboarding(role: AccountRoleCode) async throws -> AccountOnboardingData
-    func dashboard() async throws -> Data
-    func bookingDetail(id: UUID) async throws -> AccountBookingDetail
-    func cancelBooking(id: UUID, idempotencyKey: String) async throws
-    func donationHistory() async throws -> Data
-    func eventHistory() async throws -> Data
+    func myProfile() async throws -> AccountProfileData
+    func updateProfile(_ update: AccountProfileUpdate) async throws -> AccountProfileData
+    func updateWorkspace(_ update: AccountWorkspaceUpdate) async throws
+    func requestEmailChange(email: String) async throws -> AccountEmailChangeData
+    func dashboard() async throws -> DonorDashboardData
+    func eventDetail(id: UUID) async throws -> DonorEventDetail
+    func myBookings() async throws -> [DonorBookingListItem]
+    func bookingDetail(id: UUID) async throws -> DonorBookingDetail
+    func donationHistory(limit: Int, cursor: String?) async throws -> HistoryPage
+    func eventHistory(terminal: Bool?, limit: Int, cursor: String?) async throws -> HistoryPage
+    func createBooking(
+        eventId: UUID,
+        booking: AccountBookingBody,
+        idempotencyKey: String
+    ) async throws -> CreateBookingResult
+    func cancelBooking(id: UUID, idempotencyKey: String) async throws -> CancelBookingResult
 }
 
 struct AccountBackendHTTPClient: AccountBackendServing, Sendable {
@@ -48,28 +84,70 @@ struct AccountBackendHTTPClient: AccountBackendServing, Sendable {
         try await send(action: "complete_onboarding", body: OnboardingRequest(role: role))
     }
 
-    func dashboard() async throws -> Data {
-        try await sendRaw(action: "dashboard", body: EmptyRequest())
+    func myProfile() async throws -> AccountProfileData {
+        try await send(action: "my_profile", body: EmptyRequest())
     }
 
-    func bookingDetail(id: UUID) async throws -> AccountBookingDetail {
+    func updateProfile(_ update: AccountProfileUpdate) async throws -> AccountProfileData {
+        try await send(action: "update_profile", body: update)
+    }
+
+    func updateWorkspace(_ update: AccountWorkspaceUpdate) async throws {
+        let _: EmptyResponse = try await send(action: "update_workspace", body: update)
+    }
+
+    func requestEmailChange(email: String) async throws -> AccountEmailChangeData {
+        try await send(action: "request_email_change", body: EmailChangeRequest(email: email))
+    }
+
+    func dashboard() async throws -> DonorDashboardData {
+        try await send(action: "dashboard", body: EmptyRequest())
+    }
+
+    func eventDetail(id: UUID) async throws -> DonorEventDetail {
+        try await send(action: "event_detail", body: EventIDRequest(eventId: id))
+    }
+
+    func myBookings() async throws -> [DonorBookingListItem] {
+        try await send(action: "my_bookings", body: EmptyRequest())
+    }
+
+    func bookingDetail(id: UUID) async throws -> DonorBookingDetail {
         try await send(action: "booking_detail", body: BookingIDRequest(bookingId: id))
     }
 
-    func cancelBooking(id: UUID, idempotencyKey: String) async throws {
-        let _: EmptyResponse = try await send(
+    func cancelBooking(id: UUID, idempotencyKey: String) async throws -> CancelBookingResult {
+        try await send(
             action: "cancel_booking",
             body: BookingIDRequest(bookingId: id),
             idempotencyKey: idempotencyKey
         )
     }
 
-    func donationHistory() async throws -> Data {
-        try await sendRaw(action: "donation_history", body: EmptyRequest())
+    func donationHistory(limit: Int, cursor: String?) async throws -> HistoryPage {
+        try await send(
+            action: "donation_history",
+            body: DonorHistoryRequest(limit: limit, cursor: cursor)
+        )
     }
 
-    func eventHistory() async throws -> Data {
-        try await sendRaw(action: "event_history", body: EmptyRequest())
+    func eventHistory(terminal: Bool?, limit: Int, cursor: String?) async throws -> HistoryPage {
+        try await send(
+            action: "event_history",
+            body: DonorEventHistoryRequest(terminal: terminal, limit: limit, cursor: cursor)
+        )
+    }
+
+    func createBooking(
+        eventId: UUID,
+        booking: AccountBookingBody,
+        idempotencyKey: String
+    ) async throws -> CreateBookingResult {
+        try await send(
+            action: "create_booking",
+            body: AccountCreateBookingRequest(eventId: eventId, booking: booking),
+            idempotencyKey: idempotencyKey
+        )
     }
 
     private func send<Value: Decodable & Sendable>(
@@ -121,3 +199,18 @@ private struct EmptyRequest: Encodable, Sendable {}
 private struct EmptyResponse: Decodable, Sendable {}
 private struct OnboardingRequest: Encodable, Sendable { let role: AccountRoleCode }
 private struct BookingIDRequest: Encodable, Sendable { let bookingId: UUID }
+private struct EmailChangeRequest: Encodable, Sendable { let email: String }
+private struct EventIDRequest: Encodable, Sendable {
+    let eventId: UUID
+}
+
+private struct DonorHistoryRequest: Encodable, Sendable {
+    let limit: Int
+    let cursor: String?
+}
+
+private struct DonorEventHistoryRequest: Encodable, Sendable {
+    let terminal: Bool?
+    let limit: Int
+    let cursor: String?
+}

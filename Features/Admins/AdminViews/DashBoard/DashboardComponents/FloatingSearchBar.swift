@@ -58,7 +58,7 @@ struct FloatingSearchBar: View {
         searchText: $text,
         isSearchFocused: $focused,
         onMicTapped: { print("Mic diklik!") },
-        onQrTapped: { print("QR diklik!") }
+        onQrTapped: { }
     )
     .padding()
 }

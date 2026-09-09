@@ -10,6 +10,7 @@ struct ProfileEditView: View {
     @Binding var phoneNumber: String
     @Binding var email: String
     @Binding var selectedImageData: Data?
+    private let onSave: ((AdminProfile) async throws -> Void)?
     
     @State private var selectedItem: PhotosPickerItem?
     @State private var draftCompanyName: String
@@ -18,6 +19,8 @@ struct ProfileEditView: View {
     @State private var draftEmail: String
     @State private var draftImageData: Data?
     @State private var isPhotoPickerPresented = false
+    @State private var isSaving = false
+    @State private var errorMessage: String?
     @FocusState private var isFieldFocused: Bool
     
     init(
@@ -25,7 +28,8 @@ struct ProfileEditView: View {
         companyAddress: Binding<String>,
         phoneNumber: Binding<String>,
         email: Binding<String>,
-        selectedImageData: Binding<Data?>
+        selectedImageData: Binding<Data?>,
+        onSave: ((AdminProfile) async throws -> Void)? = nil
     ) {
         _companyName = companyName
         _companyAddress = companyAddress
@@ -37,6 +41,7 @@ struct ProfileEditView: View {
         _draftPhoneNumber = State(initialValue: phoneNumber.wrappedValue)
         _draftEmail = State(initialValue: email.wrappedValue)
         _draftImageData = State(initialValue: selectedImageData.wrappedValue)
+        self.onSave = onSave
     }
     
     var body: some View {
@@ -44,7 +49,7 @@ struct ProfileEditView: View {
             ProfileBackBar(
                 showsSave: true,
                 onBackTapped: { dismiss() },
-                onSaveTapped: saveProfile
+                onSaveTapped: { Task { await saveProfile() } }
             )
             
             ScrollView(showsIndicators: false) {
@@ -102,6 +107,12 @@ struct ProfileEditView: View {
                         )
                         .focused($isFieldFocused)
                     }
+
+                    if let errorMessage {
+                        Text(errorMessage)
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                    }
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 18)
@@ -123,7 +134,24 @@ struct ProfileEditView: View {
         .onChange(of: selectedItem, loadSelectedImage)
     }
     
-    private func saveProfile() {
+    private func saveProfile() async {
+        guard !isSaving else { return }
+        isSaving = true
+        errorMessage = nil
+        defer { isSaving = false }
+        let updated = AdminProfile(
+            companyName: draftCompanyName,
+            companyAddress: draftCompanyAddress,
+            phoneNumber: draftPhoneNumber,
+            email: draftEmail,
+            imageData: draftImageData
+        )
+        do {
+            try await onSave?(updated)
+        } catch {
+            errorMessage = error.localizedDescription
+            return
+        }
         companyName = draftCompanyName
         companyAddress = draftCompanyAddress
         phoneNumber = draftPhoneNumber

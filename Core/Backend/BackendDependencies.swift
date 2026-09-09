@@ -74,7 +74,6 @@ enum BackendDependencies {
         let environment = try BackendEnvironment.load(bundle: bundle)
         let client = makeClient(environment: environment)
         return SupabaseReceptionRepository(
-            client: client,
             edge: makeOrganizerEdge(environment: environment, client: client)
         )
     }
@@ -87,19 +86,44 @@ enum BackendDependencies {
         }
     }
 
+    static func organizerClient(bundle: Bundle = .main) throws -> any OrganizerEdgeServing {
+        let environment = try BackendEnvironment.load(bundle: bundle)
+        let client = makeClient(environment: environment)
+        return makeOrganizerEdge(environment: environment, client: client)
+    }
+
     static func reportRepository(bundle: Bundle = .main) throws -> any ReportRepository {
         let environment = try BackendEnvironment.load(bundle: bundle)
         let client = makeClient(environment: environment)
         return SupabaseReportRepository(
-            client: client,
             edge: makeOrganizerEdge(environment: environment, client: client)
         )
     }
 
+
+    /// Non-throwing variant for view-layer default arguments: returns nil
+    /// instead of crashing when backend configuration is incomplete.
+    static func accountClientOrDefault(bundle: Bundle = .main) -> (any AccountBackendServing)? {
+        try? accountClient(bundle: bundle)
+    }
     /// Non-throwing variant for view-layer default arguments: returns nil
     /// instead of crashing when backend configuration is incomplete.
     static func reportRepositoryOrDefault(bundle: Bundle = .main) -> (any ReportRepository)? {
         try? reportRepository(bundle: bundle)
+    }
+
+    static func storageMediaClient(bundle: Bundle = .main) throws -> StorageMediaClient {
+        let environment = try BackendEnvironment.load(bundle: bundle)
+        let client = makeClient(environment: environment)
+        return StorageMediaClient(environment: environment) {
+            try await client.auth.session.accessToken
+        }
+    }
+
+    /// Non-throwing variant for cosmetic media access: logo fetches may
+    /// return nil without failing bootstrap.
+    static func storageMediaClientOrDefault(bundle: Bundle = .main) -> StorageMediaClient? {
+        try? storageMediaClient(bundle: bundle)
     }
 
     private static func makeOrganizerEdge(

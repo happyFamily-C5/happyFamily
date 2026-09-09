@@ -74,6 +74,7 @@ struct EditEventView: View {
             donationCriteria: selectedCriteria,
             capacityKg: donationCapacity,
             collectedKg: originalEvent.collectedKg,
+            status: originalEvent.status,
             bannerImageData: selectedImageData,
             bannerObjectPath: originalEvent.bannerObjectPath,
             maxDonationPerUserKg: originalEvent.maxDonationPerUserKg

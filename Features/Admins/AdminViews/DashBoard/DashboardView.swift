@@ -4,6 +4,7 @@ import CoreLocation
 struct DashboardView: View {
     
     private let onLogout: () -> Void
+    private let onSaveProfile: ((AdminProfile) async throws -> Void)?
     
     @Environment(AppRouter.self) var router
     
@@ -12,7 +13,7 @@ struct DashboardView: View {
     @State private var adminProfile: AdminProfile
     
     // State utama untuk status apakah sudah ada event
-    // Sumber data: cache backend (DashboardModel), bukan AdminEventStore.
+    // Sumber data: cache backend (DashboardModel), bukan state lokal.
     @State private var model = DashboardModel(
         repository: BackendDependencies.eventRepository(),
         backendBaseURL: BackendDependencies.backendBaseURL()
@@ -27,27 +28,23 @@ struct DashboardView: View {
     @State private var isShowingQRScanner: Bool = false
     @State private var isShowingProfile: Bool = false
     @State private var selectedEvent: AdminEvent?
-    
-    @State private var userEvents: [AdminEvent] = []
-    
+    @State private var showShareSheet: Bool = false
     @FocusState private var isSearchFocused: Bool
     
     init(
         initialProfile: AdminProfile = .defaultProfile,
-        onLogout: @escaping () -> Void = {}
+        onLogout: @escaping () -> Void = {},
+        onSaveProfile: ((AdminProfile) async throws -> Void)? = nil
     ) {
         _adminProfile = State(initialValue: initialProfile)
         self.onLogout = onLogout
+        self.onSaveProfile = onSaveProfile
     }
     
-    private var totalCollectedWeight: Double {
-        model.events.reduce(0) { total, event in
-            total + event.collectedKg
-        }
-    }
-
     private var displayEvents: [AdminEvent] {
-        model.events.map(AdminEvent.init(backend:))
+        model.events
+            .map(AdminEvent.init(backend:))
+            .filter { searchText.isEmpty || $0.name.localizedCaseInsensitiveContains(searchText) }
     }
     
     var body: some View {
@@ -111,6 +108,11 @@ struct DashboardView: View {
                                                     ) {
                                                         selectedEvent = event
                                                     }
+                                                    .onAppear {
+                                                        if event.id == ongoingEvents.last?.id, model.nextCursor != nil {
+                                                            Task { await model.loadMore() }
+                                                        }
+                                                    }
                                                 }
                                             }
                                             .padding(.horizontal, 16)
@@ -142,11 +144,33 @@ struct DashboardView: View {
                                                     ) {
                                                         selectedEvent = event
                                                     }
+                                                    .onAppear {
+                                                        if event.id == upcomingEvents.last?.id, model.nextCursor != nil {
+                                                            Task { await model.loadMore() }
+                                                        }
+                                                    }
                                                 }
                                             }
                                             .padding(.horizontal, 16)
                                         }
                                     }
+                                }
+
+                                // Load/search failures (e.g. CURSOR_INVALID from a
+                                // stale pagination cursor) surface here instead of
+                                // silently keeping a truncated list.
+                                if let errorMessage = model.errorMessage {
+                                    VStack(spacing: 8) {
+                                        Text(errorMessage)
+                                            .font(.footnote)
+                                            .foregroundColor(.secondary)
+                                            .multilineTextAlignment(.center)
+                                        Button("Muat ulang") {
+                                            Task { await model.load() }
+                                        }
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.horizontal, 16)
                                 }
                                 
                                 // C. SECTION REKAP DONASI
@@ -159,8 +183,8 @@ struct DashboardView: View {
                                     }
                                     
                                     RecapCard(
-                                        isDataEmpty: totalCollectedWeight == 0,
-                                        totalWeight:"(\(totalCollectedWeight, default: "%.3f") kg",
+                                        isDataEmpty: model.isRecapDataEmpty,
+                                        totalWeight: model.recapTotalWeightText,
                                         periodTitle: "Bulan ini"
                                     ) {
                                         isShowingRecapDonation = true
@@ -174,7 +198,10 @@ struct DashboardView: View {
                     .scrollDismissesKeyboard(.immediately)
                 }
             }
-            .task { await model.load() }
+            .task {
+                await model.load()
+                await model.loadRecap()
+            }
             
             // While editing, a transparent layer over the dashboard catches
             // taps and resigns focus. It sits above the content but below the
@@ -194,7 +221,7 @@ struct DashboardView: View {
                     searchText: $searchText,
                     isSearchFocused: $isSearchFocused,
                     onMicTapped: { print("Mic diklik!") },
-                    onQrTapped: { router.push(to: .openScanner) }
+                    onQrTapped: { isShowingQRScanner = true }
                 )
                 .padding(.bottom, 16)
             }
@@ -231,20 +258,28 @@ struct DashboardView: View {
         }
         .fullScreenCover(isPresented: $isShowingProfile) {
             ProfileView(
-                events: userEvents,
                 profile: $adminProfile,
                 onLogout: {
                     isShowingProfile = false
                     onLogout()
-                }
+                },
+                onSaveProfile: onSaveProfile
             )
         }
         .fullScreenCover(item: $selectedEvent) { event in
             EventDetailView(
                 event: event,
                 onBackTapped: { selectedEvent = nil },
-                onShareTapped: { print("Share event: \(event.name)") },
+                onShareTapped: {
+                    if model.publishedInvocationURL != nil {
+                        showShareSheet = true
+                    }
+                },
                 onEditTapped: { print("Edit event: \(event.name)") },
+                onPublishTapped: { ev in
+                    let ok = await model.publish(ev.id)
+                    return ok ? nil : model.errorMessage
+                },
                 onEventUpdated: { updatedEvent in
                     // Id sama = upsert; semua event pada pass ini berstatus draft.
                     Task { _ = await model.createDraft(updatedEvent.toBackendAdminEvent()) }
@@ -255,6 +290,11 @@ struct DashboardView: View {
                     selectedEvent = nil
                 }
             )
+        }
+        .sheet(isPresented: $showShareSheet) {
+            if let url = model.publishedInvocationURL {
+                ShareSheet(items: [url])
+            }
         }
         .sheet(isPresented: $isShowingQRScanner) {
             QRScannerView()
@@ -279,6 +319,11 @@ struct AdminEvent: Identifiable {
     let donationCriteria: [String]
     let capacityKg: Int
     var collectedKg: Double
+
+    /// Lifecycle from the server (`list_events` snapshot). Draft-only events
+    /// created offline stay `.draft`; publishing flips it locally after the
+    /// server call succeeds.
+    var status: EventStatusCode = .draft
     
     /// The cover the organiser picked in CreatingView, kept as Data so the
     /// event stays a plain value type — SwiftUI's Image is not persistable.
@@ -316,6 +361,7 @@ struct AdminEvent: Identifiable {
         donationCriteria: [String],
         capacityKg: Int,
         collectedKg: Double,
+        status: EventStatusCode = .draft,
         bannerImageData: Data?,
         bannerObjectPath: String? = nil,
         maxDonationPerUserKg: Int? = nil
@@ -335,6 +381,7 @@ struct AdminEvent: Identifiable {
         self.donationCriteria = donationCriteria
         self.capacityKg = capacityKg
         self.collectedKg = collectedKg
+        self.status = status
         self.bannerImageData = bannerImageData
         self.bannerObjectPath = bannerObjectPath
         self.maxDonationPerUserKg = maxDonationPerUserKg
@@ -346,13 +393,28 @@ struct AdminEvent: Identifiable {
     }
     
     var isOngoing: Bool {
-        let today = Date()
-        return today >= Calendar.current.startOfDay(for: startDate) && today <= Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: endDate))!
+        switch status {
+        case .ongoing:
+            return true
+        case .draft:
+            // Offline drafts keep the legacy date-based placement.
+            let today = Date()
+            return today >= Calendar.current.startOfDay(for: startDate)
+                && today <= Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: endDate))!
+        default:
+            return false
+        }
     }
-    
+
     var isUpcoming: Bool {
-        let today = Date()
-        return startDate > today
+        switch status {
+        case .upcoming:
+            return true
+        case .draft:
+            return startDate > Date()
+        default:
+            return false
+        }
     }
     
     var formattedDateRange: String {
@@ -375,6 +437,5 @@ struct AdminEvent: Identifiable {
     NavigationStack {
         DashboardView()
             .environment(AppRouter())
-            .environment(AdminEventStore())
     }
 }

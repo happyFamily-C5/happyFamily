@@ -182,6 +182,21 @@ persisten. Workspace profile harus lengkap sebelum event dapat dipublish.
 }
 ```
 
+`event_detail.data.legal` selalu berisi versi dan URL legal aktif untuk
+environment server:
+
+```json
+{
+  "terms_version": "terms-v1",
+  "terms_url": "https://example.com/terms",
+  "privacy_version": "privacy-v1",
+  "privacy_url": "https://example.com/privacy"
+}
+```
+
+UI harus memakai `terms_version` dan `privacy_version` ini saat membuat
+booking; jangan meng-hardcode versi legal di aplikasi.
+
 `bookable` sudah memperhitungkan waktu server, kapasitas, dan booking aktif
 donor tersebut. UI tetap harus menangani `CAPACITY_EXCEEDED` karena kapasitas
 adalah invariant transaksional dan dapat berubah secara bersamaan.
@@ -217,6 +232,7 @@ disimpan di secure local storage donor; jangan ditulis ke analytics atau log.
 
 | Action | Body tambahan | Hasil |
 | --- | --- | --- |
+| `list_events` | `limit?`, `cursor?` | halaman event workspace `{ items, next_cursor }` |
 | `upsert_event_draft` | `event_id?`, `mutation_id`, `payload` | event draft |
 | `publish_event` | `event_id` | event published |
 | `cancel_or_delete_event` | `event_id` | draft terhapus atau event published dibatalkan |
@@ -388,7 +404,9 @@ UI dianggap sudah pindah ke v2 hanya bila seluruh kondisi berikut terbukti di
 staging:
 
 1. Semua call user menggunakan `account`, semua call Admin menggunakan
-   `operations`/`admin-banner`.
+   `operations`/`admin-banner`, kecuali identity/profile Admin yang memang
+   didefinisikan pada `account` (`my_profile`, `update_profile`,
+   `request_email_change`, dan `update_workspace`).
 2. Booking, cancel `waiting`, QR reception, processed/recycled, history,
    recap, profile, dan per-event donation limit berjalan dengan akun nyata.
 3. UI mengirim idempotency key yang persisten untuk semua mutation wajib.

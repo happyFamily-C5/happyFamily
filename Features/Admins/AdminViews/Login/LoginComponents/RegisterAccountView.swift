@@ -2,17 +2,31 @@ import SwiftUI
 
 struct RegisterAccountView: View {
     @State private var name = ""
-    @State private var email = ""
-    @State private var password = ""
+    @State private var model: AuthViewModel
     
     var onRegisterTapped: (RegisterAccountDraft) -> Void
     var onAppleRegisterTapped: (RegisterAccountDraft) -> Void
     var onLoginTapped: () -> Void
     
+    init(
+        authSession: (any AuthSession)? = BackendDependencies.authSessionOrDefault(),
+        onRegisterTapped: @escaping (RegisterAccountDraft) -> Void,
+        onAppleRegisterTapped: @escaping (RegisterAccountDraft) -> Void,
+        onLoginTapped: @escaping () -> Void
+    ) {
+        let model = AuthViewModel(authSession: authSession)
+        model.isSignUpMode = true
+        _model = State(initialValue: model)
+        self.onRegisterTapped = onRegisterTapped
+        self.onAppleRegisterTapped = onAppleRegisterTapped
+        self.onLoginTapped = onLoginTapped
+    }
+
     private var isRegisterFormInvalid: Bool {
         name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
-        email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
-        password.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        !model.isSubmitEnabled ||
+        !model.isEmailValid ||
+        !model.isPasswordValid
     }
     
     var body: some View {
@@ -42,7 +56,7 @@ struct RegisterAccountView: View {
                         RegisterInputField(
                             label: "Email",
                             placeholder: "Masukkan email",
-                            text: $email,
+                            text: $model.email,
                             keyboardType: .emailAddress,
                             textContentType: .emailAddress
                         )
@@ -50,14 +64,21 @@ struct RegisterAccountView: View {
                         RegisterSecureInputField(
                             label: "Kata Sandi",
                             placeholder: "Masukkan kata sandi",
-                            text: $password
+                            text: $model.password
                         )
                     }
                     
                     Spacer().frame(height: 52)
                     
-                    LoginAuthPrimaryButton(title: "Daftar", isDisabled: isRegisterFormInvalid) {
-                        onRegisterTapped(accountDraft)
+                    if let error = model.errorMessage {
+                        Text(error)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.red)
+                            .padding(.bottom, 16)
+                    }
+
+                    LoginAuthPrimaryButton(title: model.isSubmitting ? "Memproses…" : "Daftar", isDisabled: isRegisterFormInvalid) {
+                        Task { await submit() }
                     }
                     
                     Spacer().frame(height: 24)
@@ -95,9 +116,14 @@ struct RegisterAccountView: View {
     private var accountDraft: RegisterAccountDraft {
         RegisterAccountDraft(
             name: name,
-            email: email,
-            password: password
+            email: model.email.trimmingCharacters(in: .whitespacesAndNewlines),
+            password: model.password
         )
+    }
+
+    private func submit() async {
+        guard await model.submit() else { return }
+        onRegisterTapped(accountDraft)
     }
 }
 

@@ -1,36 +1,20 @@
 import Foundation
-import Supabase
-
 actor SupabaseReportRepository: ReportRepository {
-    private let client: SupabaseClient
     private let edge: any OrganizerEdgeServing
 
-    init(client: SupabaseClient, edge: any OrganizerEdgeServing) {
-        self.client = client
+    init(edge: any OrganizerEdgeServing) {
         self.edge = edge
     }
 
-    func recap(eventId: UUID?) async throws -> RecapData {
-        let response = try await client
-            .schema("api")
-            .rpc("recap_v1", params: RecapParameters(eventId: eventId))
-            .execute()
-        return try BackendJSON.decoder().decode(RecapData.self, from: response.data)
+    func recap(eventId: UUID?) async throws -> AdminRecapData {
+        try await edge.recap(eventId: eventId)
     }
 
-    func exportCSV(filter: ReportFilter) async throws -> Data {
-        try await edge.exportCSV(filter: filter)
+    func donationHistory(eventId: UUID?, cursor: String?) async throws -> HistoryPage {
+        try await edge.donationHistory(eventId: eventId, cursor: cursor)
     }
 
-    func deleteDonorData(bookingId: UUID) async throws {
-        try await edge.deleteDonorData(bookingId: bookingId)
-    }
-}
-
-private struct RecapParameters: Encodable, Sendable {
-    let eventId: UUID?
-
-    enum CodingKeys: String, CodingKey {
-        case eventId = "p_event_id"
+    func eventHistory(eventId: UUID?, cursor: String?) async throws -> HistoryPage {
+        try await edge.eventHistory(eventId: eventId, cursor: cursor)
     }
 }

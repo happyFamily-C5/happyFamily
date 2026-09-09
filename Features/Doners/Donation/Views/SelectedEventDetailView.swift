@@ -8,146 +8,213 @@
 import SwiftUI
 import MapKit
 
+/// Donor event detail backed by `account:event_detail`: real event data,
+/// donor availability, and the CTA that seeds the donation flow.
 struct SelectedEventDetailView: View {
-    
+    let model: DonorEventDetailModel
+
     @Environment(AppRouter.self) var router
-    @State var showGuide = false
-    
-    var title: String
-    var name: String
-    var date: String
-    var time: String
-    
-    let material = ["Katun", "linen", "Wool", "Tencel", "Rayon"]
-    
+    @Environment(DonationViewModel.self) var donationVM
+    @State private var isStartingFlow = false
+
     var body: some View {
-        VStack() {
+        VStack {
             ScrollView(showsIndicators: false) {
-                VStack(spacing: 32) {
-                    VStack(spacing: 16){
-                        
-                        // MARK: - Banner
+                if let detail = model.detail {
+                    content(detail)
+                } else if model.isLoading {
+                    VStack {
+                        ProgressView("Memuat acara…")
+                        Spacer()
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 320)
+                } else if let errorMessage = model.errorMessage {
+                    VStack(spacing: 12) {
+                        Text(errorMessage)
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                        Button("Coba lagi") {
+                            Task { await model.load() }
+                        }
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 320)
+                }
+            }
+
+            ctaButton
+        }
+        .padding(.horizontal, 20)
+        .task {
+            if model.detail == nil, !model.isLoading {
+                await model.load()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func content(_ detail: DonorEventDetail) -> some View {
+        let event = detail.event
+        VStack(spacing: 32) {
+            VStack(spacing: 16) {
+                // MARK: - Banner
+                Group {
+                    if let bannerURL = model.bannerURL() {
+                        AsyncImage(url: bannerURL) { image in
+                            image.resizable().scaledToFill()
+                        } placeholder: {
+                            Image("Image 2").resizable().scaledToFill()
+                        }
+                    } else {
                         Image("Image 2")
                             .resizable()
                             .scaledToFit()
-                            .frame(width: 330,)
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
-                        
-                        // MARK: - Title
-                        VStack {
-                            Text(title)
-                                .font(.title).bold()
-                                .multilineTextAlignment(.center)
-                            Text(name)
-                                .font(.headline).bold()
-                        }
-                        // MARK: - Date Time
-                        VStack(spacing: 4) {
-                            Text(date)
-                                .font(.callout).bold()
-                            Text(time)
-                                .font(.callout).bold()
-                        }
                     }
-                    
-                    VStack(alignment: .leading, spacing: 16) {
-                        // MARK: - Donation Capacity
-                        MaxDonationCard(maxCapacity: 5)
-                        
-                        // MARK: - Kriteria Donasi
-                        Text("Kriteria Donasi")
-                            .font(.body).bold()
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack{
-                                ForEach(material, id: \.self) { material in
-                                    Text(material)
-                                        .padding(.vertical, 4)
-                                        .padding(.horizontal, 16)
-                                        .font(.footnote).bold()
-                                        .background(Color(#colorLiteral(red: 0.9499571919, green: 0.9500558972, blue: 0.953115046, alpha: 1)), in: RoundedRectangle(cornerRadius: 16))
-                                }
-                            }
-                        }
-                        
-                        // MARK: Lokasi
-                        VStack(spacing: 8) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Lokasi")
-                                    .font(.body).bold()
-                                
-                                Divider()
-                            }
-                                
-                                LocationDisclosureCard(
-                                    name: "EcoTouch Office",
-                                    address: "Jl. Arjuna Utara No.14D, RT.1/RW.1, Tj. Duren Sel., Kec. Grogol petamburan, Kota Jakarta Barat,, Daerah Khusus Ibukota Jakarta 11470",
-                                    distance: 1.4
+                }
+                .frame(width: 330)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+
+                // MARK: - Title
+                VStack {
+                    Text(event.name)
+                        .font(.title).bold()
+                        .multilineTextAlignment(.center)
+                    Text(event.organizationName ?? "")
+                        .font(.headline).bold()
+                }
+
+                // MARK: - Date Time
+                VStack(spacing: 4) {
+                    Text(Self.dateRangeText(event))
+                        .font(.callout).bold()
+                    if let timeInfo = model.timeInfoText {
+                        Text(timeInfo)
+                            .font(.callout).bold()
+                    }
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 16) {
+                // MARK: - Donation Capacity
+                if let maxKg = event.maxDonationPerUserGrams.map({ Double($0) / 1000 }) {
+                    MaxDonationCard(maxCapacity: maxKg)
+                }
+
+                // MARK: - Kriteria Donasi
+                Text("Kriteria Donasi")
+                    .font(.body).bold()
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack {
+                        ForEach(event.criteria, id: \.self) { criterion in
+                            Text(criterion.uiLabel)
+                                .padding(.vertical, 4)
+                                .padding(.horizontal, 16)
+                                .font(.footnote).bold()
+                                .background(
+                                    Color(#colorLiteral(red: 0.9499571919, green: 0.9500558972, blue: 0.953115046, alpha: 1)),
+                                    in: RoundedRectangle(cornerRadius: 16)
                                 )
                         }
+                    }
+                }
 
-                        MapView(
-                            coordinate: CLLocationCoordinate2D(
-                                latitude: -6.1667,
-                                longitude: 106.7900
-                            ),
-                            locationName: "EcoTouch Office"
-                        )
-                        .frame(height: 180)
-                        .clipShape(
-                            RoundedRectangle(cornerRadius: 28)
-                        )
-                        
-                        // MARK: - Deskripsi
-                        VStack(spacing: 8) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Deskripsi Acara")
-                                    .font(.body).bold()
-                                
-                                Divider()
-                            }
-                            
-                            Text("Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. \n\nUt hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.")
-                        }
+                // MARK: Lokasi
+                VStack(spacing: 8) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Lokasi")
+                            .font(.body).bold()
+                        Divider()
                     }
 
-                    Spacer()
-                    
+                    LocationDisclosureCard(
+                        name: event.locationName ?? "-",
+                        address: event.locationAddress ?? "-",
+                        distance: event.distanceKm ?? 0
+                    )
+
+                    if let latitude = event.latitude, let longitude = event.longitude {
+                        MapView(
+                            coordinate: CLLocationCoordinate2D(latitude: latitude, longitude: longitude),
+                            locationName: event.locationName ?? "Lokasi acara"
+                        )
+                        .frame(height: 180)
+                        .clipShape(RoundedRectangle(cornerRadius: 28))
+                    }
                 }
-                
+
+                // MARK: - Deskripsi
+                VStack(spacing: 8) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Deskripsi Acara")
+                            .font(.body).bold()
+                        Divider()
+                    }
+
+                    Text(event.description?.isEmpty == false ? event.description! : "Belum ada deskripsi acara.")
+                        .font(.callout)
+                }
             }
-            
-            Button{
-//                router.push(to: .donationFlow)
-                showGuide = true
-            }label: {
-                Text("Donasikan Pakaian")
+
+            Spacer()
+        }
+    }
+
+    private var bookable: Bool {
+        model.detail?.availability.bookable == true
+    }
+
+    private var ctaButton: some View {
+        VStack(spacing: 6) {
+            Button {
+                guard let detail = model.detail, bookable, !isStartingFlow else { return }
+                isStartingFlow = true
+                Task {
+                    await donationVM.start(eventId: detail.event.id)
+                    isStartingFlow = false
+                    router.push(to: .donationFlow)
+                }
+            } label: {
+                Text(isStartingFlow ? "Menyiapkan…" : "Donasikan Pakaian")
                     .foregroundStyle(Color.white)
                     .font(.body).bold()
                     .padding(16)
                     .frame(maxWidth: .infinity)
                     .background(
-                        AppColor.primaryCyan,
+                        bookable ? AppColor.primaryCyan : Color.gray.opacity(0.4),
                         in: RoundedRectangle(cornerRadius: 60)
                     )
             }
-            
-        }
-        .padding(.horizontal, 20)
-        .toolbar{
-            ToolbarItem(placement: .topBarTrailing) {
-                Image(systemName: "square.and.arrow.up")
+            .disabled(!bookable || isStartingFlow)
+
+            if model.detail?.alreadyBooked == true {
+                Text("Kamu sudah memiliki booking aktif di acara ini.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            } else if let available = model.detail?.availability.availableWeightGrams, !bookable {
+                Text("Kapasitas tersisa tidak cukup.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
-            
-            ToolbarItem(placement: .topBarLeading) {
-                Image(systemName: "chevron.left")
-            }
-            
         }
-        .sheet(isPresented: $showGuide) {
-            PrivacyPoliceInstructionPage()
-                .background(Color.white)
-                .presentationDetents([.medium])
-                .presentationDragIndicator(.visible)
+    }
+
+    private static let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "id_ID")
+        formatter.dateFormat = "d MMM yyyy"
+        return formatter
+    }()
+
+    private static func dateRangeText(_ event: DonorEventDTO) -> String {
+        switch (event.startAt, event.endAt) {
+        case let (start?, end?):
+            "\(dateFormatter.string(from: start)) - \(dateFormatter.string(from: end))"
+        case let (start?, nil):
+            dateFormatter.string(from: start)
+        case let (nil, end?):
+            dateFormatter.string(from: end)
+        default:
+            "-"
         }
     }
 }
@@ -155,11 +222,13 @@ struct SelectedEventDetailView: View {
 #Preview {
     NavigationStack {
         SelectedEventDetailView(
-            title: "Ecoday Shirt | drop your unused shirt",
-            name: "EcoTouch Indonesia",
-            date: "9 Sept - 16 Sept 2026",
-            time: "Hari Kerja · 09.00 - 16.00"
+            model: DonorEventDetailModel(
+                eventId: UUID(),
+                accountClient: nil,
+                backendBaseURL: nil
+            )
         )
         .environment(AppRouter())
+        .environment(DonationViewModel())
     }
 }

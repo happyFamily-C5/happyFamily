@@ -8,6 +8,8 @@ struct EventDetailView: View {
     var onBackTapped: () -> Void
     var onShareTapped: () -> Void
     var onEditTapped: () -> Void
+    /// Publishes the event; returns nil on success or an error message.
+    var onPublishTapped: (AdminEvent) async -> String?
     var onEventUpdated: (AdminEvent) -> Void
     var onEventDeleted: (AdminEvent) -> Void
     
@@ -16,6 +18,7 @@ struct EventDetailView: View {
         onBackTapped: @escaping () -> Void,
         onShareTapped: @escaping () -> Void,
         onEditTapped: @escaping () -> Void,
+        onPublishTapped: @escaping (AdminEvent) async -> String? = { _ in nil },
         onEventUpdated: @escaping (AdminEvent) -> Void = { _ in },
         onEventDeleted: @escaping (AdminEvent) -> Void = { _ in }
     ) {
@@ -23,11 +26,14 @@ struct EventDetailView: View {
         self.onBackTapped = onBackTapped
         self.onShareTapped = onShareTapped
         self.onEditTapped = onEditTapped
+        self.onPublishTapped = onPublishTapped
         self.onEventUpdated = onEventUpdated
         self.onEventDeleted = onEventDeleted
     }
     
     @State private var isShowingEditEvent: Bool = false
+    @State private var isPublishing: Bool = false
+    @State private var publishError: String?
     
     var body: some View {
         @Bindable var router = router
@@ -110,17 +116,42 @@ struct EventDetailView: View {
                 }
             }
             
-            // 7. Tombol "Edit Acara" di Bagian Bawah (Menggunakan PrimaryButton milikmu)
-            VStack {
+            // 7. Tombol aksi di bagian bawah. Terbitkan hanya masuk akal untuk
+            // draf; event yang sudah terbit tidak menampilkan tombolnya lagi.
+            VStack(spacing: 8) {
                 PrimaryButton(title: "Edit Acara") {
                     onEditTapped()
                     isShowingEditEvent = true
+                }
+                if event.status == .draft {
+                    PrimaryButton(title: isPublishing ? "Menerbitkan…" : "Terbitkan Acara") {
+                        Task {
+                            isPublishing = true
+                            defer { isPublishing = false }
+                            if let error = await onPublishTapped(event) {
+                                publishError = error
+                            } else {
+                                event.status = .upcoming
+                            }
+                        }
+                    }
                 }
             }
             .padding(.vertical, 8)
             .background(Color(.systemBackground).opacity(0.95))
         }
         .edgesIgnoringSafeArea(.bottom)
+        .alert(
+            "Publikasi gagal",
+            isPresented: Binding(
+                get: { publishError != nil },
+                set: { if !$0 { publishError = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(publishError ?? "")
+        }
         .navigationBarHidden(true)
         .fullScreenCover(isPresented: $isShowingEditEvent) {
             NavigationStack(path: $router.mapPath) {

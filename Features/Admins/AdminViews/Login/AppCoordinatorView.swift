@@ -1,43 +1,36 @@
 import SwiftUI
 
-// Enum untuk merepresentasikan setiap halaman dalam alur Auth & App
 enum AppScreen {
-    case splash
-    case login
-    case register
-    case roleSelection
-    case organizationInfo
-    case dashboard // atau EventDetailView / Home
+    case splash, login, register, roleSelection, donorProfileCompletion
+    case organizationInfo, adminDashboard, donorHome
 }
 
+/// The root owns navigation only. Role and completion status come from the
+/// hosted account contract; no local registration field grants access.
 struct AppCoordinatorView: View {
     @State private var currentScreen: AppScreen = .splash
-    @State private var selectedRole: String = "Pengelola"
     @State private var registeredAccount: RegisterAccountDraft?
+    @State private var donorProfile: AccountProfileData?
     @State private var adminProfile: AdminProfile = .defaultProfile
-    
+    @State private var isSplashAnimationDone = false
+    @State private var isSessionResolved = false
+    @State private var bootstrapError: String?
+
     var body: some View {
         NavigationStack {
             Group {
                 switch currentScreen {
                 case .splash:
                     LoginSplashView {
-                        currentScreen = .login
+                        isSplashAnimationDone = true
+                        advanceAfterSplash()
                     }
-                    
+                    .task { await bootstrapSession(isSplash: true) }
                 case .login:
                     LoginWelcomeView(
-                        onLoginTapped: {
-                            currentScreen = .dashboard
-                        },
-                        onAppleLoginTapped: {
-                            currentScreen = .dashboard
-                        },
-                        onRegisterTapped: {
-                            currentScreen = .register
-                        }
+                        onAuthenticated: { Task { await bootstrapSession() } },
+                        onRegisterTapped: { currentScreen = .register }
                     )
-                    
                 case .register:
                     RegisterAccountView(
                         onRegisterTapped: { draft in
@@ -48,54 +41,172 @@ struct AppCoordinatorView: View {
                             registeredAccount = draft
                             currentScreen = .roleSelection
                         },
-                        onLoginTapped: {
-                            currentScreen = .login
-                        }
+                        onLoginTapped: { currentScreen = .login }
                     )
-                    
                 case .roleSelection:
-                    // 4. Layar Role Selection (Sesuai Screenshot Kanan)
                     RoleSelectionView(
-                        onContinueTapped: { role in
-                            selectedRole = role
-                            
-                            if role == "Pengelola" {
-                                currentScreen = .organizationInfo
-                            } else {
-                                currentScreen = .dashboard
-                            }
-                        },
-                        onBackTapped: {
-                            currentScreen = .register
-                        }
+                        onContinueTapped: { role in Task { await completeOnboarding(role) } },
+                        onBackTapped: { currentScreen = .register }
                     )
-                    
+                case .donorProfileCompletion:
+                    if let donorProfile {
+                        DonorProfileCompletionView(profile: donorProfile) { update in
+                            try await completeDonorProfile(update)
+                        }
+                    }
                 case .organizationInfo:
                     RegisterOrganizationInfoView(
-                        initialEmail: registeredAccount?.email ?? "",
+                        initialEmail: registeredAccount?.email ?? adminProfile.email,
                         onCreateAccountTapped: { profile in
-                            adminProfile = profile
-                            currentScreen = .dashboard
+                            Task { await completeAdminWorkspace(profile) }
                         },
-                        onBackTapped: {
-                            currentScreen = .roleSelection
-                        }
+                        onBackTapped: { currentScreen = .roleSelection }
                     )
-                    
-                case .dashboard:
-                    // 5. Masuk ke halaman utama aplikasi / Event Detail / Dashboard
+                case .adminDashboard:
                     DashboardView(
                         initialProfile: adminProfile,
-                        onLogout: {
-                            currentScreen = .login
-                        }
+                        onLogout: { logout() },
+                        onSaveProfile: { profile in try await saveAdminProfile(profile) }
+                    )
+                case .donorHome:
+                    HomeView(
+                        userLocation: donorProfile?.recommendationLocationLabel ?? "Lokasi Anda"
                     )
                 }
+            }
+            .alert("Tidak dapat melanjutkan", isPresented: Binding(
+                get: { bootstrapError != nil },
+                set: { if !$0 { bootstrapError = nil } }
+            )) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(bootstrapError ?? "Terjadi kesalahan yang tidak diketahui.")
+            }
+        }
+    }
+
+    private func advanceAfterSplash() {
+        guard isSplashAnimationDone, isSessionResolved else { return }
+        withAnimation(.easeInOut(duration: 0.35)) {
+            if currentScreen == .splash { currentScreen = .login }
+        }
+    }
+
+    private func bootstrapSession(isSplash: Bool = false) async {
+        defer {
+            if isSplash {
+                isSessionResolved = true
+                advanceAfterSplash()
+            }
+        }
+        guard let authSession = BackendDependencies.authSessionOrDefault() else { return }
+        do {
+            _ = try await authSession.current()
+            let account = try BackendDependencies.accountClient()
+            let profile = try await account.myProfile()
+            donorProfile = profile
+            var workspaceIsPublishable: Bool?
+            if profile.role == .admin {
+                let workspace = try await BackendDependencies.organizerClient().workspaceProfile()
+                workspaceIsPublishable = workspace.publishable
+                // Logo display is cosmetic: a failed fetch leaves the image
+                // nil while the server path is still tracked.
+                var logoData: Data?
+                if let logoPath = workspace.logoObjectPath, !logoPath.isEmpty {
+                    logoData = await BackendDependencies.storageMediaClientOrDefault()?
+                        .fetchPublicObject(bucket: "workspace-logos", path: logoPath)
+                }
+                adminProfile = AdminProfile(
+                    companyName: workspace.name,
+                    companyAddress: workspace.officeAddress ?? "",
+                    phoneNumber: workspace.officePhoneE164 ?? "",
+                    email: workspace.officeEmail ?? "",
+                    imageData: logoData,
+                    logoObjectPath: workspace.logoObjectPath
+                )
+            }
+            route(AuthRouting.destination(for: profile, workspaceIsPublishable: workspaceIsPublishable))
+        } catch {
+            // No stored/valid session is normal at splash. Authenticated
+            // bootstrap errors must stay visible, never default to Admin.
+            if !isSplash { bootstrapError = error.localizedDescription }
+        }
+    }
+
+    private func completeOnboarding(_ roleTitle: String) async {
+        let role: AccountRoleCode = roleTitle == "Donatur" ? .donor : .admin
+        do {
+            let account = try BackendDependencies.accountClient()
+            _ = try await account.completeOnboarding(role: role)
+            await bootstrapSession()
+        } catch {
+            bootstrapError = error.localizedDescription
+        }
+    }
+
+    private func completeDonorProfile(_ update: AccountProfileUpdate) async throws {
+        let account = try BackendDependencies.accountClient()
+        donorProfile = try await account.updateProfile(update)
+        currentScreen = .donorHome
+    }
+
+    private func completeAdminWorkspace(_ profile: AdminProfile) async {
+        do {
+            // saveAdminProfile refreshes adminProfile with the resolved logo.
+            try await saveAdminProfile(profile)
+            currentScreen = .adminDashboard
+        } catch {
+            bootstrapError = error.localizedDescription
+        }
+    }
+
+    private func saveAdminProfile(_ profile: AdminProfile) async throws {
+        let account = try BackendDependencies.accountClient()
+        // The workspace row owns the current logo path; the server reads
+        // "" as "remove logo", so an existing logo is always re-sent by path
+        // (or replaced by a freshly uploaded path) and never blanked.
+        let workspace = try await BackendDependencies.organizerClient().workspaceProfile()
+        var logoObjectPath = workspace.logoObjectPath ?? ""
+        if let imageData = profile.imageData,
+           adminProfile.logoObjectPath == nil || adminProfile.imageData != imageData {
+            logoObjectPath = try await BackendDependencies.storageMediaClient()
+                .uploadWorkspaceLogo(data: imageData, workspaceId: workspace.id)
+        }
+        try await account.updateWorkspace(AccountWorkspaceUpdate(
+            name: profile.companyName, address: profile.companyAddress,
+            phoneE164: profile.phoneNumber, email: profile.email,
+            logoObjectPath: logoObjectPath
+        ))
+        if profile.email.caseInsensitiveCompare(adminProfile.email) != .orderedSame {
+            _ = try await account.requestEmailChange(email: profile.email)
+        }
+        adminProfile = profile
+        adminProfile.logoObjectPath = logoObjectPath
+    }
+
+    private func route(_ destination: AuthDestination) {
+        switch destination {
+        case .signIn: currentScreen = .login
+        case .roleSelection: currentScreen = .roleSelection
+        case .donorProfileCompletion: currentScreen = .donorProfileCompletion
+        case .adminWorkspaceCompletion: currentScreen = .organizationInfo
+        case .donorHome: currentScreen = .donorHome
+        case .adminDashboard: currentScreen = .adminDashboard
+        }
+    }
+
+    private func logout() {
+        Task {
+            do {
+                try await BackendDependencies.logoutService().logout()
+                currentScreen = .login
+            } catch {
+                bootstrapError = "Keluar gagal. Sesi Anda tetap aktif: \(error.localizedDescription)"
             }
         }
     }
 }
 
 #Preview {
-    AppCoordinatorView()
+    AppCoordinatorView().environment(AppRouter())
 }

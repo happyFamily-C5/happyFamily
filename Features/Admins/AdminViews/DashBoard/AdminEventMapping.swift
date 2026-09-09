@@ -54,6 +54,7 @@ extension AdminEvent {
             donationCriteria: backend.criteria.map(\.uiLabel),
             capacityKg: backend.capacityKg,
             collectedKg: backend.collectedKg,
+            status: backend.status,
             bannerImageData: backend.bannerImageData,
             bannerObjectPath: backend.bannerObjectPath,
             maxDonationPerUserKg: backend.maxDonationPerUserKg
@@ -73,7 +74,7 @@ extension AdminEvent {
             collectedKg: collectedKg,
             bannerImageData: bannerImageData,
             bannerObjectPath: bannerObjectPath,
-            status: .draft,
+            status: status,
             timezoneName: "Asia/Jakarta",
             operationalDays: activeDays.enumerated().compactMap { $0.element ? $0.offset + 1 : nil },
             opensAtLocal: Self.localTimeString(from: startTime),

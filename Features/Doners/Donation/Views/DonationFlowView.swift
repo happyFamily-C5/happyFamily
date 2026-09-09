@@ -42,9 +42,7 @@ struct DonationFlowView: View {
                     }
                     
                 case 3:
-                    ResultView {
-                        router.currentStep = 3
-                    }
+                    ResultView()
                     
                 default:
                     EmptyView()

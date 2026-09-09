@@ -4,16 +4,19 @@ import UIKit
 
 struct ProfileView: View {
     @Environment(\.dismiss) private var dismiss
-    
-    let events: [AdminEvent]
+
     @Binding var profile: AdminProfile
     var onLogout: () -> Void = {}
+    var onSaveProfile: ((AdminProfile) async throws -> Void)?
     @State private var isShowingEditProfile = false
     @State private var isShowingEventHistory = false
     @State private var isShowingDonationHistory = false
     @State private var isShowingLogoutConfirmation = false
-    
-    private let donationHistory = ProfileDonation.sampleData
+
+    @State private var historyModel = AdminHistoryModel(
+        historyRepository: BackendDependencies.reportRepositoryOrDefault(),
+        receptionRepository: try? BackendDependencies.receptionRepository()
+    )
     
     var body: some View {
         ZStack {
@@ -91,14 +94,15 @@ struct ProfileView: View {
                 companyAddress: $profile.companyAddress,
                 phoneNumber: $profile.phoneNumber,
                 email: $profile.email,
-                selectedImageData: $profile.imageData
+                selectedImageData: $profile.imageData,
+                onSave: onSaveProfile
             )
         }
         .fullScreenCover(isPresented: $isShowingEventHistory) {
-            ProfileEventHistoryView(events: events)
+            ProfileEventHistoryView(model: historyModel)
         }
         .fullScreenCover(isPresented: $isShowingDonationHistory) {
-            ProfileDonationHistoryView(donations: donationHistory)
+            ProfileDonationHistoryView(model: historyModel)
         }
     }
     
@@ -111,9 +115,6 @@ struct ProfileView: View {
 
 #Preview {
     @Previewable @State var profile = AdminProfile.defaultProfile
-    
-    ProfileView(
-        events: [],
-        profile: $profile
-    )
+
+    ProfileView(profile: $profile)
 }

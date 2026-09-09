@@ -125,16 +125,11 @@ struct ReceptionDecisionInput: Encodable, Sendable {
 protocol ReceptionRepository: Sendable {
     func resolveQR(token: String) async throws -> ResolvedQRBooking
     func decide(_ input: ReceptionDecisionInput) async throws -> ReceptionDecisionData
-}
-
-struct ReportFilter: Sendable, Equatable {
-    let eventId: UUID?
-    let createdFrom: Date?
-    let createdTo: Date?
+    func advanceTracking(bookingId: UUID, status: BookingStatusCode) async throws -> ReceptionDecisionData
 }
 
 protocol ReportRepository: Sendable {
-    func recap(eventId: UUID?) async throws -> RecapData
-    func exportCSV(filter: ReportFilter) async throws -> Data
-    func deleteDonorData(bookingId: UUID) async throws
+    func recap(eventId: UUID?) async throws -> AdminRecapData
+    func donationHistory(eventId: UUID?, cursor: String?) async throws -> HistoryPage
+    func eventHistory(eventId: UUID?, cursor: String?) async throws -> HistoryPage
 }

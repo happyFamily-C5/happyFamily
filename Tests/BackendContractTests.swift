@@ -4,22 +4,6 @@ import Testing
 
 @Suite("Backend contracts")
 struct BackendContractTests {
-    @Test("Invocation parser accepts every supported query name", arguments: [
-        "event", "invocation", "token",
-    ])
-    func invocationParserAcceptsSupportedQueryName(_ name: String) throws {
-        let token = String(repeating: "a", count: 43)
-        let url = try #require(URL(string: "https://example.invalid/invoke?\(name)=\(token)"))
-        #expect(try InvocationParser.parse(url) == EventInvocation(token: token))
-    }
-
-    @Test func invocationParserRejectsShortTokens() throws {
-        let url = try #require(URL(string: "https://example.invalid/invoke?event=short"))
-        #expect(throws: BackendError.invalidInvocationURL) {
-            try InvocationParser.parse(url)
-        }
-    }
-
     @Test func environmentLoadsStagingValues() throws {
         let environment = try BackendEnvironment.load(values: [
             "KumpulBackendURL": "https://staging.example.invalid",
@@ -49,21 +33,9 @@ struct BackendContractTests {
           "privacy_url": "https://example.invalid/privacy"
         }
         """.utf8)
-        let legal = try BackendJSON.decoder().decode(PublicLegalDTO.self, from: data)
+        let legal = try BackendJSON.decoder().decode(DonorLegalData.self, from: data)
         #expect(legal.termsURL.absoluteString == "https://example.invalid/terms")
         #expect(legal.privacyURL.absoluteString == "https://example.invalid/privacy")
-    }
-
-    @Test @MainActor func fullAppInvocationResolvesSharedURLContract() async throws {
-        let event = PublicEventDTO.fixture()
-        let model = FullAppInvocationModel(client: PublicBackendStub(event: event))
-        let token = String(repeating: "a", count: 43)
-        let url = try #require(URL(string: "https://example.invalid/invoke?event=\(token)"))
-
-        await model.handle(url)
-
-        #expect(model.event == event)
-        #expect(model.errorMessage == nil)
     }
 }
 
@@ -266,39 +238,6 @@ private actor SessionCacheSpy: SessionCache {
     }
 }
 
-private struct PublicBackendStub: PublicBackendServing {
-    let event: PublicEventDTO
-
-    func resolveEvent(invocationToken _: String) async throws -> ResolveEventData {
-        ResolveEventData(
-            event: event,
-            legal: PublicLegalDTO(
-                termsVersion: "terms-v1",
-                termsURL: URL(string: "https://example.invalid/terms")!,
-                privacyVersion: "privacy-v1",
-                privacyURL: URL(string: "https://example.invalid/privacy")!
-            ),
-            serverTime: Date(timeIntervalSince1970: 1_800_000_000),
-            cacheMaxAgeSeconds: 60
-        )
-    }
-
-    func createBooking(
-        _: CreateBookingRequest,
-        idempotencyKey _: String
-    ) async throws -> CreateBookingData {
-        throw TestFailure.unexpectedCall
-    }
-
-    func verifyDonor(bookingId _: String, phone _: String) async throws -> DonorVerificationData {
-        throw TestFailure.unexpectedCall
-    }
-
-    func donorBookingStatus(accessToken _: String) async throws -> DonorBookingStatusData {
-        throw TestFailure.unexpectedCall
-    }
-}
-
 private extension BackendAdminEvent {
     static func fixture(name: String, version: Int64 = 0) -> BackendAdminEvent {
         BackendAdminEvent(
@@ -308,38 +247,6 @@ private extension BackendAdminEvent {
             capacityKg: 100,
             collectedKg: 0,
             version: version
-        )
-    }
-}
-
-private extension PublicEventDTO {
-    static func fixture() -> PublicEventDTO {
-        PublicEventDTO(
-            id: UUID(uuidString: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee")!,
-            name: "Event Test",
-            description: "Description",
-            status: .ongoing,
-            availability: .available,
-            startAt: Date(timeIntervalSince1970: 1_800_000_000),
-            endAt: Date(timeIntervalSince1970: 1_800_003_600),
-            timezoneName: "Asia/Jakarta",
-            operationalDays: [1, 2, 3],
-            opensAtLocal: "08:00:00",
-            closesAtLocal: "17:00:00",
-            locationName: "Jakarta",
-            locationAddress: "Jl. Test",
-            latitude: -6.2,
-            longitude: 106.8,
-            capacityGrams: 100_000,
-            receivedWeightGrams: 1000,
-            bannerObjectPath: "workspace/event/banner.jpg",
-            receiverName: "Receiver",
-            receiverPhone: "+6281234567890",
-            receiverAddress: "Jl. Receiver",
-            criteria: [.cotton],
-            version: 2,
-            schemaVersion: 1,
-            capturedAt: Date(timeIntervalSince1970: 1_800_000_100)
         )
     }
 }
