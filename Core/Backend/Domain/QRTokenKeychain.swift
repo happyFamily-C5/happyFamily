@@ -38,6 +38,19 @@ enum QRTokenKeychain {
         }
     }
 
+    /// Removes every stored donor QR token. Logout must leave no token in
+    /// secure storage: the next session starts from a clean tenant scope.
+    static func deleteAll() {
+        var query = baseQuery(account: "")
+        query.removeValue(forKey: kSecAttrAccount as String)
+        let status = SecItemDelete(query as CFDictionary)
+        guard status == errSecSuccess || status == errSecItemNotFound else {
+            // Best-effort by design: a logout must not fail because a token
+            // row could not be removed.
+            return
+        }
+    }
+
     private static func baseQuery(account: String) -> [String: Any] {
         [
             kSecClass as String: kSecClassGenericPassword,

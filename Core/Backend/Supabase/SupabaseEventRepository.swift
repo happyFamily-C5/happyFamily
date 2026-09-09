@@ -22,6 +22,7 @@ actor SupabaseEventRepository: EventRepository {
     func upsertDraft(_ event: BackendAdminEvent, mutationId: UUID) async throws -> BackendAdminEvent {
         var preparedEvent = event
         if let bannerData = event.bannerImageData {
+            try EventBannerPolicy.validate(bannerData)
             let contentType = bannerData.starts(with: [0x89, 0x50, 0x4E, 0x47])
                 ? "image/png"
                 : "image/jpeg"

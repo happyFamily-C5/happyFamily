@@ -80,10 +80,14 @@ protocol SessionCache: Sendable {
 struct LogoutService: Sendable {
     let auth: any AuthSession
     let cache: any SessionCache
+    /// Best-effort purge of secure storage rows (donor QR tokens). Runs only
+    /// after a successful global sign-out so a failed logout keeps tokens.
+    var qrPurge: (@Sendable () async -> Void)?
 
     func logout() async throws {
         try await auth.signOut()
         await cache.purge()
+        await qrPurge?()
     }
 }
 

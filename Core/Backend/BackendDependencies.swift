@@ -54,7 +54,8 @@ enum BackendDependencies {
     static func logoutService(bundle: Bundle = .main) throws -> LogoutService {
         try LogoutService(
             auth: authSession(bundle: bundle),
-            cache: eventStore ?? EmptySessionCache()
+            cache: eventStore ?? EmptySessionCache(),
+            qrPurge: { QRTokenKeychain.deleteAll() }
         )
     }
 

@@ -133,6 +133,10 @@ enum BackendError: Error, Equatable, Sendable, LocalizedError {
             "Acara sudah tidak dapat dibatalkan."
         case "DRAFT_HAS_BOOKINGS":
             "Draf memiliki donasi terkait dan tidak dapat dihapus."
+        case "BANNER_REJECTED", "PROFILE_MEDIA_REJECTED":
+            "Upload gambar tidak diizinkan. Gunakan JPEG atau PNG."
+        case "BANNER_TOO_LARGE":
+            "Ukuran gambar melebihi 5 MB. Kompres atau pilih gambar lain."
         default:
             "Permintaan gagal (\(code))."
         }

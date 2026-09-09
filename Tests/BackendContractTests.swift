@@ -61,6 +61,24 @@ struct DashboardRepositoryTests {
         #expect(await auth.signedOut())
         #expect(await cache.wasPurged())
     }
+
+    @Test func logoutPurgesQRTokensOnlyAfterSignOutSucceeds() async throws {
+        let auth = AuthSessionSpy()
+        let cache = SessionCacheSpy()
+        let qr = QRPurgeSpy()
+        try await LogoutService(auth: auth, cache: cache, qrPurge: { await qr.markPurged() }).logout()
+        #expect(await qr.wasPurged())
+
+        let failingAuth = AuthSessionSpy(shouldFail: true)
+        let failingPurge = QRPurgeSpy()
+        do {
+            try await LogoutService(auth: failingAuth, cache: cache, qrPurge: { await failingPurge.markPurged() }).logout()
+            Issue.record("expected sign-out failure")
+        } catch {
+            #expect(await failingAuth.signedOut() == false)
+        }
+        #expect(await failingPurge.wasPurged() == false)
+    }
 }
 
 @Suite("Offline draft synchronization")
@@ -201,6 +219,11 @@ private actor DraftSyncRemote: EventRepository {
 
 private actor AuthSessionSpy: AuthSession {
     private var didSignOut = false
+    private let shouldFail: Bool
+
+    init(shouldFail: Bool = false) {
+        self.shouldFail = shouldFail
+    }
 
     func current() async throws -> AuthUserSession {
         throw TestFailure.unexpectedCall
@@ -219,11 +242,26 @@ private actor AuthSessionSpy: AuthSession {
     }
 
     func signOut() async throws {
+        if shouldFail {
+            throw BackendError.invalidResponse
+        }
         didSignOut = true
     }
 
     func signedOut() -> Bool {
         didSignOut
+    }
+}
+
+private actor QRPurgeSpy {
+    private var purged = false
+
+    func markPurged() {
+        purged = true
+    }
+
+    func wasPurged() -> Bool {
+        purged
     }
 }
 

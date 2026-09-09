@@ -130,6 +130,14 @@ struct CreatingView: View {
     
     private func submit() {
         guard !isSubmitting else { return }
+        // Reject oversized or wrong-format banners before the draft can be
+        // queued offline: a rejected upload must never retry automatically.
+        do {
+            try EventBannerPolicy.validate(selectedImageData)
+        } catch {
+            submitError = error.localizedDescription
+            return
+        }
         isSubmitting = true
         submitError = nil
         let event = makeEvent()
