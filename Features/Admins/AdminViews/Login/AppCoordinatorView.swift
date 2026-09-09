@@ -8,6 +8,7 @@ enum AppScreen {
 /// The root owns navigation only. Role and completion status come from the
 /// hosted account contract; no local registration field grants access.
 struct AppCoordinatorView: View {
+    @Environment(AppRouter.self) private var router
     @State private var currentScreen: AppScreen = .splash
     @State private var registeredAccount: RegisterAccountDraft?
     @State private var donorProfile: AccountProfileData?
@@ -190,9 +191,49 @@ struct AppCoordinatorView: View {
         case .roleSelection: currentScreen = .roleSelection
         case .donorProfileCompletion: currentScreen = .donorProfileCompletion
         case .adminWorkspaceCompletion: currentScreen = .organizationInfo
-        case .donorHome: currentScreen = .donorHome
-        case .adminDashboard: currentScreen = .adminDashboard
+        case .donorHome:
+            syncDonorRouterProfile()
+            currentScreen = .donorHome
+        case .adminDashboard:
+            syncAdminRouterProfile()
+            currentScreen = .adminDashboard
         }
+    }
+
+    /// The donor profile screen reads the router profile so its edits stay
+    /// backend-backed. Avatar display is cosmetic: a failed fetch leaves the
+    /// image nil while the server path is still tracked.
+    private func syncDonorRouterProfile() {
+        guard let account = donorProfile else { return }
+        router.onLogout = { logout() }
+        if router.donorProfile.id != account.id {
+            var profile = DonorProfile(
+                fullName: account.displayName,
+                address: account.address ?? "",
+                imageData: nil,
+                id: account.id,
+                phoneE164: account.phoneE164 ?? "",
+                avatarObjectPath: account.avatarObjectPath ?? ""
+            )
+            if let avatarPath = account.avatarObjectPath, !avatarPath.isEmpty {
+                Task {
+                    let avatarData = await BackendDependencies.storageMediaClientOrDefault()?
+                        .fetchPublicObject(bucket: "profile-avatars", path: avatarPath)
+                    if let avatarData {
+                        profile.imageData = avatarData
+                        router.donorProfile = profile
+                    }
+                }
+            }
+            router.donorProfile = profile
+        }
+    }
+
+    /// Keeps the admin profile route in sync with the coordinator state so
+    /// the same backend-backed edits are shown after relaunch.
+    private func syncAdminRouterProfile() {
+        router.onLogout = { logout() }
+        router.adminProfile = adminProfile
     }
 
     private func logout() {

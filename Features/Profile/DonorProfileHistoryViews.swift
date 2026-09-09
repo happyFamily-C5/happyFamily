@@ -1,36 +1,41 @@
 import SwiftUI
 
+/// Donor "Riwayat Acara": rows come from `account:event_history` (terminal
+/// lifecycle), grouped into active and past events by the snapshot dates.
 struct DonorEventHistoryView: View {
     @Environment(\.dismiss) private var dismiss
-    
-    let events: [AdminEvent]
-    
-    private var displayedEvents: [AdminEvent] {
-        events.isEmpty ? [ProfileHistoryDummyData.completedEvent] : events
+
+    let history: [BookingHistoryItem]
+    let bannerURL: (BookingHistoryItem) -> URL?
+
+    private var activeEvents: [BookingHistoryItem] {
+        history.filter { item in
+            guard let end = item.event.endAt else { return true }
+            return end >= Date()
+        }
     }
-    
-    private var activeEvents: [AdminEvent] {
-        displayedEvents.filter { $0.endDate >= Date() }
+
+    private var pastEvents: [BookingHistoryItem] {
+        history.filter { item in
+            guard let end = item.event.endAt else { return false }
+            return end < Date()
+        }
     }
-    
-    private var pastEvents: [AdminEvent] {
-        displayedEvents.filter { $0.endDate < Date() }
-    }
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             ProfileBackBar(
                 onBackTapped: { dismiss() }
             )
-            
+
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 24) {
                     Text("Riwayat Acara")
                         .font(.system(size: 26, weight: .bold))
                         .foregroundColor(.primary)
                         .padding(.horizontal, 20)
-                    
-                    if displayedEvents.isEmpty {
+
+                    if history.isEmpty {
                         ProfileEmptyHistoryView(
                             systemImage: "calendar.badge.exclamationmark",
                             title: "Belum Ada Riwayat Acara",
@@ -40,11 +45,19 @@ struct DonorEventHistoryView: View {
                         .padding(.top, 170)
                     } else {
                         if !activeEvents.isEmpty {
-                            DonorEventSection(title: "Acara Aktif", events: activeEvents)
+                            DonorEventSection(
+                                title: "Acara Aktif",
+                                history: activeEvents,
+                                bannerURL: bannerURL
+                            )
                         }
-                        
+
                         if !pastEvents.isEmpty {
-                            DonorEventSection(title: "Acara Sebelumnya", events: pastEvents)
+                            DonorEventSection(
+                                title: "Acara Sebelumnya",
+                                history: pastEvents,
+                                bannerURL: bannerURL
+                            )
                         }
                     }
                 }
@@ -58,23 +71,22 @@ struct DonorEventHistoryView: View {
 }
 
 private struct DonorEventHistoryRow: View {
-    let event: AdminEvent
+    let item: BookingHistoryItem
+    let bannerURL: URL?
 
     var body: some View {
         HStack(spacing: 12) {
-            event.bannerImage
-                .resizable()
-                .scaledToFill()
+            banner
                 .frame(width: 78, height: 54)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(event.name)
+                Text(item.event.name ?? "Acara tanpa nama")
                     .font(.system(size: 15, weight: .bold))
                     .foregroundColor(.primary)
                     .lineLimit(2)
 
-                Text(event.formattedDateRange)
+                Text(dateRangeText)
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(.primary)
             }
@@ -82,22 +94,64 @@ private struct DonorEventHistoryRow: View {
             Spacer()
         }
     }
+
+    @ViewBuilder
+    private var banner: some View {
+        if let bannerURL {
+            AsyncImage(url: bannerURL) { phase in
+                if let image = phase.image {
+                    image.resizable().scaledToFill()
+                } else {
+                    placeholder
+                }
+            }
+        } else {
+            placeholder
+        }
+    }
+
+    private var placeholder: some View {
+        Image("DummyImageBanner")
+            .resizable()
+            .scaledToFill()
+    }
+
+    private var dateRangeText: String {
+        switch (item.event.startAt, item.event.endAt) {
+        case let (start?, end?):
+            "\(Self.dayText(start)) – \(Self.dayText(end))"
+        case let (start?, nil):
+            Self.dayText(start)
+        case let (nil, end?):
+            Self.dayText(end)
+        case (nil, nil):
+            "-"
+        }
+    }
+
+    private static func dayText(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "id_ID")
+        formatter.dateFormat = "d MMM yyyy"
+        return formatter.string(from: date)
+    }
 }
 
 private struct DonorEventSection: View {
     let title: String
-    let events: [AdminEvent]
-    
+    let history: [BookingHistoryItem]
+    let bannerURL: (BookingHistoryItem) -> URL?
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(title)
                 .font(.system(size: 16, weight: .bold))
                 .foregroundColor(.primary)
                 .padding(.horizontal, 20)
-            
+
             VStack(spacing: 12) {
-                ForEach(events) { event in
-                    DonorEventHistoryRow(event: event)
+                ForEach(history) { item in
+                    DonorEventHistoryRow(item: item, bannerURL: bannerURL(item))
                 }
             }
             .padding(.horizontal, 20)
@@ -105,24 +159,26 @@ private struct DonorEventSection: View {
     }
 }
 
+/// Donor "Riwayat Donasi": rows come from `account:donation_history`
+/// (bookings that reached reception) with the server-owned weight.
 struct DonorDonationHistoryView: View {
     @Environment(\.dismiss) private var dismiss
-    
-    let donations: [DonorDonation]
-    
+
+    let donations: [BookingHistoryItem]
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             ProfileBackBar(
                 onBackTapped: { dismiss() }
             )
-            
+
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 24) {
                     Text("Riwayat Donasi")
                         .font(.system(size: 26, weight: .bold))
                         .foregroundColor(.primary)
                         .padding(.horizontal, 20)
-                    
+
                     if donations.isEmpty {
                         ProfileEmptyHistoryView(
                             systemImage: "list.clipboard",
@@ -150,34 +206,59 @@ struct DonorDonationHistoryView: View {
 }
 
 private struct DonorDonationRow: View {
-    let donation: DonorDonation
-    
+    let donation: BookingHistoryItem
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(donation.eventName)
+                    Text(donation.event.name ?? "Acara tanpa nama")
                         .font(.body).bold()
                         .foregroundColor(.primary)
                         .lineLimit(2)
-                    
-                    Text(donation.dateRangeText)
+
+                    Text(dateRangeText)
                         .font(.footnote)
                         .foregroundColor(.secondary)
                 }
-                
+
                 Spacer()
-                
-                Text(donation.weightText)
+
+                Text(weightText)
                     .font(.title2).bold()
                     .foregroundColor(AppColor.primaryCyan)
-                
             }
             Divider()
         }
     }
+
+    private var dateRangeText: String {
+        switch (donation.event.startAt, donation.event.endAt) {
+        case let (start?, end?):
+            "\(Self.dayText(start)) – \(Self.dayText(end))"
+        case let (start?, nil):
+            Self.dayText(start)
+        case let (nil, end?):
+            Self.dayText(end)
+        case (nil, nil):
+            "-"
+        }
+    }
+
+    private var weightText: String {
+        let grams = donation.actualWeightGrams ?? donation.estimatedWeightGrams
+        let kg = Double(grams) / 1_000
+        return String(format: "%.1f kg", kg)
+    }
+
+    private static func dayText(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "id_ID")
+        formatter.dateFormat = "d MMM yyyy"
+        return formatter.string(from: date)
+    }
 }
 
 #Preview {
-    DonorDonationHistoryView(donations: DonorDonation.sampleData)
+    DonorDonationHistoryView(donations: [])
 }

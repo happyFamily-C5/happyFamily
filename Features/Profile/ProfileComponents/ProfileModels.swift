@@ -28,7 +28,29 @@ struct DonorProfile {
     var fullName: String
     var address: String
     var imageData: Data?
-    
+    /// Server identity of the signed-in donor; needed for the private-bucket
+    /// avatar upload path (`<auth-user-id>/<file>`). nil only in previews.
+    var id: UUID?
+    var phoneE164: String = ""
+    /// Bucket-relative avatar path owned by the server; "" removes it.
+    var avatarObjectPath: String = ""
+
+    init(
+        fullName: String,
+        address: String,
+        imageData: Data?,
+        id: UUID? = nil,
+        phoneE164: String = "",
+        avatarObjectPath: String = ""
+    ) {
+        self.fullName = fullName
+        self.address = address
+        self.imageData = imageData
+        self.id = id
+        self.phoneE164 = phoneE164
+        self.avatarObjectPath = avatarObjectPath
+    }
+
     static let defaultProfile = DonorProfile(
         fullName: "Yuan Dimianta",
         address: "Jl. Kutilang 9-2, Palmerah, Kec. Palmerah, Kota Jakarta Barat.",

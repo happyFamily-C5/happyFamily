@@ -4,17 +4,17 @@ import UIKit
 
 struct DonorProfileView: View {
     @Environment(\.dismiss) private var dismiss
-    
-    let events: [AdminEvent]
+
     @Binding var profile: DonorProfile
     var onLogout: () -> Void = {}
     @State private var isShowingEditProfile = false
     @State private var isShowingEventHistory = false
     @State private var isShowingDonationHistory = false
     @State private var isShowingLogoutConfirmation = false
-    
-    private let donationHistory = DonorDonation.sampleData
-    
+    @State private var history = DonorHistoryModel(
+        accountClient: BackendDependencies.accountClientOrDefault()
+    )
+
     var body: some View {
         ZStack {
             VStack(alignment: .leading, spacing: 0) {
@@ -100,17 +100,33 @@ struct DonorProfileView: View {
         }
         .navigationBarHidden(true)
         .fullScreenCover(isPresented: $isShowingEditProfile) {
-            DonorProfileEditView(
-                fullName: $profile.fullName,
-                address: $profile.address,
-                selectedImageData: $profile.imageData
-            )
+            DonorProfileEditView(profile: profile) { updated in
+                let account = try BackendDependencies.accountClient()
+                _ = try await account.updateProfile(AccountProfileUpdate(
+                    displayName: updated.fullName,
+                    phoneE164: updated.phoneE164,
+                    address: updated.address,
+                    locationLabel: "",
+                    latitude: nil,
+                    longitude: nil,
+                    avatarObjectPath: updated.avatarObjectPath
+                ))
+                profile = updated
+            }
         }
         .fullScreenCover(isPresented: $isShowingEventHistory) {
-            DonorEventHistoryView(events: events)
+            DonorEventHistoryView(
+                history: history.completed,
+                bannerURL: { history.bannerURL(for: $0) }
+            )
         }
         .fullScreenCover(isPresented: $isShowingDonationHistory) {
-            DonorDonationHistoryView(donations: donationHistory)
+            DonorDonationHistoryView(donations: history.donations)
+        }
+        .task {
+            async let donations: () = history.loadDonations()
+            async let completed: () = history.loadCompleted()
+            await (donations, completed)
         }
     }
     
@@ -125,7 +141,6 @@ struct DonorProfileView: View {
     @Previewable @State var profile = DonorProfile.defaultProfile
     
     DonorProfileView(
-        events: [],
         profile: $profile
     )
 }

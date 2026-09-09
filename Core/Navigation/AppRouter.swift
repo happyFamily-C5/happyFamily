@@ -44,8 +44,9 @@ final class AppRouter {
     let donation = DonationViewModel()
     var adminProfile = AdminProfile.defaultProfile
     var donorProfile = DonorProfile.defaultProfile
-    var adminEvents: [AdminEvent] = []
-    var donorEvents: [AdminEvent] = []
+    /// Set by the root coordinator: donor-profile logout must end the whole
+    /// session, not just pop the navigation stack.
+    var onLogout: (() -> Void)?
 
     func push(to destination:AdminsRouter) {
         adminPath.append(destination)
@@ -184,8 +185,8 @@ extension View {
                 DonorHistoryView()
             case .profile:
                 DonorProfileView(
-                    events: router.donorEvents,
-                    profile: Bindable(router).donorProfile
+                    profile: Bindable(router).donorProfile,
+                    onLogout: { router.onLogout?() }
                 )
             case .trackingHistory:
                 TrackingHistoryView()
