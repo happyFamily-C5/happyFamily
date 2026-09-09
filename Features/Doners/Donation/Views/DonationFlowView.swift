@@ -11,37 +11,47 @@ struct DonationFlowView: View {
     @Environment(AppRouter.self) var router
 
     var body: some View {
-        VStack(spacing: 32) {
-            VStack(spacing: 16) {
-                HStack{
-                    Spacer()
-                    Text("Step \(router.currentStep) of 3")
-                        .font(.caption).bold()
-                }
-            StepProgress(currentStep: router.currentStep, totalStep: 3)
+        ZStack {
+            if router.currentStep == 3 {
+                LinearGradient(
+                    colors: [Color(red: 0.75, green: 0.85, blue: 0.78), Color.white],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
             }
-
-            switch router.currentStep {
-            case 1:
-                FormView {
-                    router.currentStep = 2
+            VStack(spacing: 32) {
+                VStack(spacing: 16) {
+                    HStack{
+                        Text("Step \(router.currentStep) of 3")
+                            .font(.caption).bold()
+                        Spacer()
+                    }
+                    StepProgress(currentStep: router.currentStep, totalStep: 3)
                 }
-
-            case 2:
-                ClothsView {
-                    router.currentStep = 3
+                
+                switch router.currentStep {
+                case 1:
+                    FormView {
+                        router.currentStep = 2
+                    }
+                    
+                case 2:
+                    ClothsView {
+                        router.currentStep = 3
+                    }
+                    
+                case 3:
+                    ResultView {
+                        router.currentStep = 3
+                    }
+                    
+                default:
+                    EmptyView()
                 }
-
-            case 3:
-                DropMethodView {
-                    router.currentStep = 3
-                }
-
-            default:
-                EmptyView()
             }
+            .padding(.horizontal, 20)
         }
-        .padding(.horizontal, 20)
     }
 }
 #Preview {

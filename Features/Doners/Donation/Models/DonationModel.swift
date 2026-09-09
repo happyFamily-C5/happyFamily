@@ -19,3 +19,24 @@ struct ClothingItem: Identifiable {
     var isPassed: Bool
 }
 
+struct OnboardingSlide: Identifiable {
+    let id: Int
+    let illustration: String
+    let description: String
+}
+
+struct GuideSlide: Identifiable {
+    let id: Int
+    let illustration: String
+    let title: String
+    let description: String
+    
+}
+
+struct ScanningGuideSlide: Identifiable {
+    let id: Int
+    let illustration: String
+    let title: String
+    let description: String
+    
+}
