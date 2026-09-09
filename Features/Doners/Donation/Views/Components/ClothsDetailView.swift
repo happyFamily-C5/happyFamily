@@ -15,11 +15,31 @@ struct ClothDetailView: View {
     let item: ClothingItem
     
     var body: some View {
-        VStack {
+        VStack(spacing: 32) {
             Image(uiImage: item.image)
                 .resizable()
                 .scaledToFit()
-                .frame(maxWidth: .infinity)
+                .frame(width: 330)
+            
+            VStack(spacing: 16) {
+                HStack(spacing: 8) {
+                    Text("Diterima")
+                        .foregroundStyle(Color.white)
+                        .font(.subheadline).bold()
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(Color.white)
+                }
+                .padding(.vertical, 8)
+                .padding(.horizontal, 16)
+                .background(
+                    Color(#colorLiteral(red: 0.4410519004, green: 0.8715734482, blue: 0.5325306058, alpha: 1)),
+                    in: RoundedRectangle(cornerRadius: 24)
+                )
+                
+                Text("Pakaian layak untuk di \ndonasikan ")
+                    .font(.title2).bold()
+                    .multilineTextAlignment(.center)
+            }
             
             Spacer()
             
@@ -37,16 +57,9 @@ struct ClothDetailView: View {
             .padding(.horizontal, 24)
     
         }
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button {
-                    dismiss()
-                } label: {
-                    Image(systemName: "xmark")
-                }
-            }
-        }
-        
+        .padding(.top, 32)
+        .navigationTitle("Detail Pakaian")
+        .navigationBarTitleDisplayMode(.inline)
         .alert("Hapus foto ini?", isPresented: $showDeleteAlert) {
             Button("Batal", role: .cancel) {}
 

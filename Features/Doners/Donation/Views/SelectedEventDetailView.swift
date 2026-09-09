@@ -11,6 +11,7 @@ import MapKit
 struct SelectedEventDetailView: View {
     
     @Environment(AppRouter.self) var router
+    @State var showGuide = false
     
     var title: String
     var name: String
@@ -115,7 +116,8 @@ struct SelectedEventDetailView: View {
             }
             
             Button{
-                router.push(to: .donationFlow)
+//                router.push(to: .donationFlow)
+                showGuide = true
             }label: {
                 Text("Donasikan Pakaian")
                     .foregroundStyle(Color.white)
@@ -139,6 +141,12 @@ struct SelectedEventDetailView: View {
                 Image(systemName: "chevron.left")
             }
             
+        }
+        .sheet(isPresented: $showGuide) {
+            PrivacyPoliceInstructionPage()
+                .background(Color.white)
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
         }
     }
 }

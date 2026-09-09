@@ -12,7 +12,7 @@ struct ClothsView: View {
     @Environment(AppRouter.self) var router
     @Environment(DonationViewModel.self) var donationVM
     
-    @State private var selectedItem: ClothingItem?
+    @State var showGuide = false
     
     let onNext: () -> Void
     
@@ -30,7 +30,8 @@ struct ClothsView: View {
                     .scaledToFit()
                 
                 Button {
-                    router.push(to: .openCamera)
+//                    router.push(to: .openCamera)
+                    showGuide = true
                 } label: {
                     Text("Ambil Gambar")
                         .font(.headline)
@@ -46,6 +47,12 @@ struct ClothsView: View {
                 Spacer()
             }
             .padding(20)
+            .sheet(isPresented: $showGuide, content: {
+                ScanningInstructionPage()
+                    .background(Color.white)
+                    .presentationDetents([.medium])
+                    .presentationDragIndicator(.visible)
+            })
             .navigationBarBackButtonHidden(true)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -60,15 +67,22 @@ struct ClothsView: View {
             }
         }
         else{
-            VStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 28) {
+                Text("Tambahkan Foto Pakaian yang Kamu Donasikan")
+                    .font(.title).bold()
+                
+                MaxDonationCard(maxCapacity: 5)
+                
                 ScrollView {
-                    LazyVGrid(columns: columns, spacing: 16) {
-                        ForEach(donationVM.clothingItems) { item in
-                            ClothingCard(item: item) {
-                                selectedItem = item
+                    VStack(spacing: 24) {
+                        LazyVGrid(columns: columns, spacing: 16) {
+                            ForEach(donationVM.clothingItems) { item in
+                                ClothingCard(item: item) {
+                                    router.openClothDetail(for: item)
+                                }
                             }
+                            
                         }
-                        
                         AddClothingCard {
                             router.push(to: .openCamera)
                         }
@@ -89,15 +103,6 @@ struct ClothsView: View {
                             in: RoundedRectangle(cornerRadius: 30)
                         )
                 }
-            }
-            .sheet(item: $selectedItem) { item in
-                NavigationStack {
-                    ClothDetailView(item: item)
-                        .environment(donationVM)
-                }
-                .presentationDetents([.medium, .large])
-                .presentationDragIndicator(.visible)
-                .presentationCornerRadius(32)
             }
             .navigationBarBackButtonHidden(true)
             .toolbar {

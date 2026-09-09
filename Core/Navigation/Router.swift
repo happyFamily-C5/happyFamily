@@ -19,6 +19,6 @@ enum DonersRouter: Hashable {
     case donationFlow
     case scan
     case openCamera
-    case result
     case mapPicker
+    case clothDetail
 }

@@ -17,59 +17,63 @@ struct LabelCard: View {
     
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 28) {
-                VStack(alignment: .leading, spacing: 8) {
-                    BrandMark(diameter: 40)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(".kumpul")
-                            .font(.headline)
+        ZStack {
+            ZStack {
+                Image("labelCard")
+                    .resizable()
+                    .scaledToFit()
+                
+                VStack(alignment: .leading, spacing: 48) {
+                    VStack(alignment: .leading, spacing: 4){
+                        Image("kumpulLogo")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 118)
                         Text("Give your old clothes a second life.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(Color.secondary)
+                            .font(.caption).bold()
                     }
-                }
-                
-                
-                HStack(spacing: 36) {
-                    Image(uiImage: generateQRCode(from: qrContent))
-                        .interpolation(.none)
-                        .resizable()
-                        .frame(width: 140, height: 140)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     
+                    
+                    
+                    HStack(alignment: .top, spacing: 28){
+                        Image(uiImage: generateQRCode(from: qrContent))
+                            .interpolation(.none)
+                            .resizable()
+                            .frame(width: 95, height: 95)
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Pengirim:")
+                                .font(.footnote)
+                                .foregroundColor(.secondary)
+                            Text(senderName)
+                                .font(.title3).bold()
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Pengirim:")
-                            .font(.caption)
+                        VStack(alignment: .leading) {
+                            Text("Penerima:")
+                                .font(.footnote)
+                                .foregroundColor(.secondary)
+                            Text(receiverName)
+                                .font(.title3).bold()
+                        }
+                        Text(receiverAddress)
+                            .font(.footnote)
                             .foregroundColor(.secondary)
-                        Text(senderName)
-                            .font(.headline).bold()
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
-            
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Divider()
-                Text("Penerima:")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                Text(receiverName)
-                    .font(.headline).bold()
-                Text(receiverPhone)
-                    .font(.subheadline)
-                Text(receiverAddress)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                .padding(20)
             }
+            .aspectRatio(543 / 720, contentMode: .fit)
         }
-        .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 24)
-                .fill(Color.white)
-                .shadow(color: .black.opacity(0.08), radius: 10, y: 4)
-        )
-        .padding(.horizontal, 24)
-        .padding(.top, 32)
+//        .background(Color.black).ignoresSafeArea()
+        .frame(width: 320)
     }
 }
 
