@@ -14,6 +14,25 @@ function optionalUuid(value: unknown): string | null {
   return uuid(value);
 }
 
+function optionalInt(body: Record<string, unknown>, key: string): number | null {
+  const value = body[key];
+  return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : null;
+}
+
+function optionalCursor(body: Record<string, unknown>, key: string): string | null {
+  const value = body[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function optionalDate(body: Record<string, unknown>, key: string): string | null {
+  const value = body[key];
+  if (value === null || value === undefined || value === "") return null;
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    throw new ApiError("INVALID_REQUEST", 400);
+  }
+  return value;
+}
+
 type QRResult = Record<string, unknown> & {
   donor_name_ciphertext: string;
   donor_name_nonce: string;
@@ -50,9 +69,15 @@ serve("operations", async (req, requestId) => {
       requestId,
     );
   }
+  if (action === "workspace_profile") {
+    return success(await rpc(client, "workspace_profile_v1", {}), requestId);
+  }
   if (action === "recap") {
     return success(
       await rpc(client, "admin_recap_v2", {
+        p_event_id: optionalUuid(body.event_id),
+        p_from: optionalDate(body, "from"),
+        p_to: optionalDate(body, "to"),
         p_days: typeof body.days === "number" ? body.days : 7,
       }),
       requestId,
@@ -60,13 +85,21 @@ serve("operations", async (req, requestId) => {
   }
   if (action === "donation_history") {
     return success(
-      await rpc(client, "admin_donation_history_v1", { p_event_id: body.event_id ?? null }),
+      await rpc(client, "admin_donation_history_v1", {
+        p_event_id: optionalUuid(body.event_id),
+        p_limit: optionalInt(body, "limit"),
+        p_cursor: optionalCursor(body, "cursor"),
+      }),
       requestId,
     );
   }
   if (action === "event_history") {
     return success(
-      await rpc(client, "admin_event_history_v1", { p_event_id: body.event_id ?? null }),
+      await rpc(client, "admin_event_history_v1", {
+        p_event_id: optionalUuid(body.event_id),
+        p_limit: optionalInt(body, "limit"),
+        p_cursor: optionalCursor(body, "cursor"),
+      }),
       requestId,
     );
   }

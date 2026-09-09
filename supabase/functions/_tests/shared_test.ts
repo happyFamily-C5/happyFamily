@@ -7,6 +7,7 @@ import {
   verifyDonorToken,
 } from "../_shared/crypto.ts";
 import { MAX_BANNER_BYTES, validateBannerImage } from "../_shared/banner-image.ts";
+import { selectOrphans } from "../_shared/profile-media.ts";
 import { csvCell, csvLine } from "../_shared/csv.ts";
 import { publicBookingEnabled } from "../_shared/env.ts";
 import { ApiError, readJson } from "../_shared/http.ts";
@@ -265,4 +266,22 @@ Deno.test("banner validation rejects MIME spoofing", async () => {
 Deno.test("banner validation enforces the five MiB byte limit", async () => {
   const oversized = new Uint8Array(MAX_BANNER_BYTES + 1);
   await assertRejectsCode(() => validateBannerImage(oversized), "BANNER_TOO_LARGE");
+});
+
+Deno.test("profile media orphan selection keeps referenced objects", () => {
+  const paths = [
+    "11111111-1111-4111-8111-111111111111/avatar.png",
+    "22222222-2222-4222-8222-222222222222/avatar.png",
+    "33333333-3333-4333-8333-333333333333/avatar.png",
+  ];
+  const referenced = [
+    "11111111-1111-4111-8111-111111111111/avatar.png",
+    null,
+    "33333333-3333-4333-8333-333333333333/avatar.png",
+  ];
+  assertEquals(selectOrphans(paths, referenced), [
+    "22222222-2222-4222-8222-222222222222/avatar.png",
+  ]);
+  assertEquals(selectOrphans([], []), []);
+  assertEquals(selectOrphans(paths, [...referenced, ...paths]), []);
 });

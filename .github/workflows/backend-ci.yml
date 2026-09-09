@@ -64,6 +64,7 @@ jobs:
           echo "PII_HMAC_KEY_BASE64=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
           echo "DONOR_ACCESS_SIGNING_KEY_BASE64=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
           echo "BANNER_CLEANUP_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+          echo "PROFILE_MEDIA_CLEANUP_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
           echo "TOKEN_KEY_VERSION=1" >> "$GITHUB_ENV"
           echo "APP_ENVIRONMENT=local" >> "$GITHUB_ENV"
           echo "APP_CLIP_BASE_URL=https://local.kumpul.invalid/invoke" >> "$GITHUB_ENV"

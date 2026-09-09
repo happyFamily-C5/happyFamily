@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(28);
+select plan(58);
 
 -- The hosted Management API returns only the final result set. Capture every
 -- TAP assertion so this suite remains diagnosable without a local Docker-based
@@ -305,6 +305,247 @@ insert into pg_temp.tap_results(result)
 select is((select reserved_weight_grams from public.events where id = 'e6666666-6666-4666-8666-666666666666'), 0::bigint, 'event cancel releases all waiting reservations');
 insert into pg_temp.tap_results(result)
 select is((select actor_type from public.booking_status_events where booking_id = (select id from public.bookings where public_booking_id = 'KPL-V2FFF-00006') order by id desc limit 1), 'admin', 'event cancellation records admin actor');
+reset role;
+
+-- ── Gap-closure contracts ────────────────────────────────────────
+
+-- Task 1: event_detail_v2 for the authenticated donor.
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'd1111111-1111-4111-8111-111111111111', true);
+insert into pg_temp.tap_results(result)
+select is(
+  api.event_detail_v2('e1111111-1111-4111-8111-111111111111') -> 'availability' ->> 'bookable',
+  'true', 'event detail reports a bookable event'
+);
+insert into pg_temp.tap_results(result)
+select is(
+  api.event_detail_v2('e1111111-1111-4111-8111-111111111111') ->> 'already_booked',
+  'true', 'event detail reports the donor existing booking'
+);
+insert into pg_temp.tap_results(result)
+select is(
+  api.event_detail_v2('e1111111-1111-4111-8111-111111111111')
+    -> 'availability' ->> 'available_weight_grams',
+  '500', 'event detail carries the remaining capacity after reservation'
+);
+reset role;
+select pg_temp.make_v2_event(
+  'e7777777-7777-4777-8777-777777777777', 'a1111111-1111-4111-8111-111111111111',
+  'draft', now() + interval '1 hour', now() + interval '2 hours'
+);
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'd1111111-1111-4111-8111-111111111111', true);
+insert into pg_temp.tap_results(result)
+select throws_ok(
+  $$select api.event_detail_v2('e7777777-7777-4777-8777-777777777777')$$,
+  'P0002', 'EVENT_NOT_FOUND', 'event detail hides a draft event'
+);
+reset role;
+
+-- Task 2: profile read contracts.
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'd1111111-1111-4111-8111-111111111111', true);
+insert into pg_temp.tap_results(result)
+select is(
+  api.my_profile_v1() ->> 'display_name', 'V2 Donor One', 'my profile returns the owner display name'
+);
+insert into pg_temp.tap_results(result)
+select is(
+  api.my_profile_v1() ->> 'phone_e164', '+6281222222222', 'my profile returns the owner phone'
+);
+insert into pg_temp.tap_results(result)
+select throws_ok(
+  $$select api.workspace_profile_v1()$$,
+  '42501', 'ROLE_FORBIDDEN', 'workspace profile rejects a donor role'
+);
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'a1111111-1111-4111-8111-111111111111', true);
+insert into pg_temp.tap_results(result)
+select is(
+  api.workspace_profile_v1() ->> 'publishable', 'false',
+  'workspace publishable stays false until the profile is complete'
+);
+reset role;
+
+-- Task 3: my_bookings_v1 for the donor.
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'd1111111-1111-4111-8111-111111111111', true);
+insert into pg_temp.tap_results(result)
+select is(
+  jsonb_array_length(api.my_bookings_v1()), 3,
+  'my bookings lists every non-cancelled booking'
+);
+insert into pg_temp.tap_results(result)
+select is(
+  (select count(*) from jsonb_array_elements(api.my_bookings_v1()) as b
+    where (b ->> 'can_cancel')::boolean),
+  1::bigint, 'only the waiting booking can be cancelled'
+);
+insert into pg_temp.tap_results(result)
+select is(
+  (select b ->> 'actual_weight_grams' from jsonb_array_elements(api.my_bookings_v1()) as b
+    where b ->> 'public_booking_id' = 'KPL-V2EEE-00005'),
+  '500', 'my bookings carries the accepted actual weight'
+);
+reset role;
+
+-- Task 4: booking detail QR payload (owner only) and actual weight.
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'd1111111-1111-4111-8111-111111111111', true);
+insert into pg_temp.tap_results(result)
+select is(
+  api.booking_detail_v2((select id from public.bookings where public_booking_id = 'KPL-V2EEE-00005'))
+    ->> 'qr_token_ciphertext',
+  'encrypted-qr', 'booking detail returns the QR ciphertext to its owner'
+);
+insert into pg_temp.tap_results(result)
+select is(
+  api.booking_detail_v2((select id from public.bookings where public_booking_id = 'KPL-V2EEE-00005'))
+    ->> 'actual_weight_grams',
+  '500', 'booking detail carries the accepted actual weight'
+);
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'a1111111-1111-4111-8111-111111111111', true);
+insert into pg_temp.tap_results(result)
+select is(
+  api.booking_detail_v2((select id from public.bookings where public_booking_id = 'KPL-V2EEE-00005'))
+    ->> 'qr_token_ciphertext',
+  null, 'booking detail never leaks the QR ciphertext to the workspace'
+);
+reset role;
+
+-- Task 5: admin_recap_v2 range, recent donations, and unique donors.
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'a1111111-1111-4111-8111-111111111111', true);
+insert into pg_temp.tap_results(result)
+select is(
+  api.admin_recap_v2() -> 'recent_donations' -> 0 ->> 'donor_name',
+  'V2 Donor One', 'recap recent donations resolve the active profile name'
+);
+insert into pg_temp.tap_results(result)
+select is(
+  api.admin_recap_v2() -> 'month' ->> 'unique_donor_count',
+  '1', 'recap month counts unique donors by account id'
+);
+insert into pg_temp.tap_results(result)
+select is(
+  (select d ->> 'accepted_weight_grams'
+    from jsonb_array_elements(api.admin_recap_v2() -> 'daily') as d
+    where d ->> 'date' = ((now() at time zone 'Asia/Jakarta')::date)::text),
+  '500', 'recap daily aggregates actual accepted weight for today'
+);
+insert into pg_temp.tap_results(result)
+select is(
+  jsonb_array_length(
+    api.admin_recap_v2(
+      null, (now() at time zone 'Asia/Jakarta')::date,
+      (now() at time zone 'Asia/Jakarta')::date, null
+    ) -> 'daily'
+  ),
+  1, 'explicit from/to recap returns exactly the requested calendar days'
+);
+insert into pg_temp.tap_results(result)
+select throws_ok(
+  $$select api.admin_recap_v2(
+    null, (now() at time zone 'Asia/Jakarta')::date,
+    (now() at time zone 'Asia/Jakarta')::date - 1, null
+  )$$,
+  '22023', 'INVALID_DATE_RANGE', 'recap rejects an inverted date range'
+);
+reset role;
+
+-- Task 6: direct table writes are rejected for authenticated roles.
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'a1111111-1111-4111-8111-111111111111', true);
+update public.bookings set status = 'rejected'
+where public_booking_id = 'KPL-V2AAA-00001';
+insert into pg_temp.tap_results(result)
+select is(
+  (select status::text from public.bookings where public_booking_id = 'KPL-V2AAA-00001'),
+  'waiting', 'direct booking status write is rejected by RLS'
+);
+insert into pg_temp.tap_results(result)
+select throws_ok(
+  $$insert into public.receptions(
+    booking_id, workspace_id, event_id, decision, actual_weight_grams, processed_by
+  ) values (
+    (select id from public.bookings where public_booking_id = 'KPL-V2AAA-00001'),
+    (select workspace_id from public.bookings where public_booking_id = 'KPL-V2AAA-00001'),
+    'e1111111-1111-4111-8111-111111111111', 'accepted', 100,
+    'a1111111-1111-4111-8111-111111111111'
+  )$$,
+  '42501', 'direct reception insert is rejected by RLS'
+);
+update public.events set capacity_grams = 999999
+where id = 'e1111111-1111-4111-8111-111111111111';
+insert into pg_temp.tap_results(result)
+select is(
+  (select capacity_grams from public.events where id = 'e1111111-1111-4111-8111-111111111111'),
+  1000, 'direct capacity write is rejected by RLS'
+);
+reset role;
+
+-- Task 7: cursor pagination for the donor event history.
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'd1111111-1111-4111-8111-111111111111', true);
+insert into pg_temp.tap_results(result)
+select is(
+  jsonb_array_length(api.user_event_history_v1()), 3,
+  'legacy history call without limit keeps the plain array shape'
+);
+insert into pg_temp.tap_results(result)
+select is(
+  jsonb_array_length(api.user_event_history_v1(p_limit => 2) -> 'items'), 2,
+  'history page limit applies'
+);
+insert into pg_temp.tap_results(result)
+select is(
+  (select api.user_event_history_v1(p_limit => 2) ->> 'next_cursor' is not null), true,
+  'history page announces the next cursor'
+);
+insert into pg_temp.tap_results(result)
+select is(
+  (with page1 as (
+     select api.user_event_history_v1(p_limit => 2) as r
+   ), page2 as (
+     select api.user_event_history_v1(
+       p_limit => 2, p_cursor => (select r ->> 'next_cursor' from page1)
+     ) as r
+   )
+   select count(*)
+   from page1, page2,
+     jsonb_array_elements(page1.r -> 'items' || page2.r -> 'items') as item),
+  3::bigint, 'cursor walk returns every non-cancelled booking exactly once'
+);
+insert into pg_temp.tap_results(result)
+select is(
+  (select api.user_event_history_v1(
+     p_limit => 2, p_cursor => (select api.user_event_history_v1(p_limit => 2) ->> 'next_cursor')
+   ) ->> 'next_cursor'),
+  null, 'history cursor terminates after the final page'
+);
+insert into pg_temp.tap_results(result)
+select throws_ok(
+  $$select api.user_event_history_v1(p_limit => 2, p_cursor => 'not-a-valid-cursor!')$$,
+  '22023', 'CURSOR_INVALID', 'history rejects a malformed cursor'
+);
+reset role;
+
+-- Task 8: terminal filter for Acara Sebelumnya.
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'd1111111-1111-4111-8111-111111111111', true);
+insert into pg_temp.tap_results(result)
+select is(
+  jsonb_array_length(api.user_event_history_v1(p_terminal => true)), 2,
+  'terminal history keeps only finished bookings and events'
+);
+insert into pg_temp.tap_results(result)
+select is(
+  jsonb_array_length(api.user_event_history_v1(p_terminal => false)), 1,
+  'active history keeps only trackable bookings on live events'
+);
 reset role;
 
 insert into pg_temp.tap_results(result)

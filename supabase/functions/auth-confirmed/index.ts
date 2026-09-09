@@ -24,11 +24,10 @@ const html = `<!doctype html>
 </body>
 </html>`;
 
-serve("auth-confirmed", async () =>
+serve("auth-confirmed", () =>
   new Response(html, {
     headers: {
       "content-type": "text/html; charset=utf-8",
       "cache-control": "no-store",
     },
-  }),
-);
+  }));

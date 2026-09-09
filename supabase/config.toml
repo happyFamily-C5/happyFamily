@@ -387,6 +387,7 @@ PII_ENCRYPTION_KEYS_JSON = "env(PII_ENCRYPTION_KEYS_JSON)"
 PII_HMAC_KEY_BASE64 = "env(PII_HMAC_KEY_BASE64)"
 DONOR_ACCESS_SIGNING_KEY_BASE64 = "env(DONOR_ACCESS_SIGNING_KEY_BASE64)"
 BANNER_CLEANUP_SECRET = "env(BANNER_CLEANUP_SECRET)"
+PROFILE_MEDIA_CLEANUP_SECRET = "env(PROFILE_MEDIA_CLEANUP_SECRET)"
 TOKEN_KEY_VERSION = "env(TOKEN_KEY_VERSION)"
 APP_ENVIRONMENT = "env(APP_ENVIRONMENT)"
 APP_CLIP_BASE_URL = "env(APP_CLIP_BASE_URL)"
@@ -548,3 +549,11 @@ enabled = true
 verify_jwt = true
 import_map = "./functions/deno.json"
 entrypoint = "./functions/operations/index.ts"
+
+[functions.cleanup-orphan-profile-media]
+enabled = true
+# Scheduled sweeper authenticated by a dedicated cron secret, like
+# cleanup-orphan-banners; the gateway JWT is irrelevant here.
+verify_jwt = false
+import_map = "./functions/deno.json"
+entrypoint = "./functions/cleanup-orphan-profile-media/index.ts"

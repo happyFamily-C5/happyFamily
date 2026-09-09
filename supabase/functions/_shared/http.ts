@@ -127,7 +127,7 @@ export function logOutcome(
 
 export function serve(
   functionName: string,
-  handler: (req: Request, requestId: string) => Promise<Response>,
+  handler: (req: Request, requestId: string) => Promise<Response> | Response,
 ): void {
   Deno.serve(async (req) => {
     const startedAt = Date.now();

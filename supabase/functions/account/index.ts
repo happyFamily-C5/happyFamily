@@ -12,6 +12,16 @@ import { ApiError, method, readJson, serve, success } from "../_shared/http.ts";
 import { adminClient, organizerSession, rpc } from "../_shared/supabase.ts";
 import { validateAccountBooking } from "../_shared/validation.ts";
 
+function optionalInt(body: Record<string, unknown>, key: string): number | null {
+  const value = body[key];
+  return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : null;
+}
+
+function optionalCursor(body: Record<string, unknown>, key: string): string | null {
+  const value = body[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
 function text(body: Record<string, unknown>, key: string): string {
   const value = body[key];
   return typeof value === "string" ? value.trim() : "";
@@ -60,19 +70,37 @@ serve("account", async (req, requestId) => {
       if (role !== "admin" && role !== "donor") throw new ApiError("INVALID_REQUEST", 400);
       return success(await rpc(client, "complete_onboarding_v1", { p_role: role }), requestId);
     }
-    case "update_profile":
-      return success(
-        await rpc(client, "update_user_profile_v1", {
-          p_display_name: text(body, "display_name"),
-          p_phone_e164: text(body, "phone_e164"),
-          p_address: text(body, "address"),
-          p_location_label: text(body, "location_label"),
-          p_latitude: typeof body.latitude === "number" ? body.latitude : null,
-          p_longitude: typeof body.longitude === "number" ? body.longitude : null,
-          p_avatar_object_path: text(body, "avatar_object_path"),
-        }),
-        requestId,
-      );
+    case "my_profile":
+      return success(await rpc(client, "my_profile_v1", {}), requestId);
+    case "update_profile": {
+      // Replacement cleanup: capture the previous avatar object, then remove it
+      // from private storage once the RPC commits the new profile path.
+      const { data: previous } = await service
+        .from("profiles")
+        .select("avatar_object_path")
+        .eq("id", user.id)
+        .maybeSingle<{ avatar_object_path: string | null }>();
+      const previousAvatar = previous?.avatar_object_path ?? null;
+      const profile = await rpc<Record<string, unknown>>(client, "update_user_profile_v1", {
+        p_display_name: text(body, "display_name"),
+        p_phone_e164: text(body, "phone_e164"),
+        p_address: text(body, "address"),
+        p_location_label: text(body, "location_label"),
+        p_latitude: typeof body.latitude === "number" ? body.latitude : null,
+        p_longitude: typeof body.longitude === "number" ? body.longitude : null,
+        p_avatar_object_path: text(body, "avatar_object_path"),
+      });
+      const newAvatar = typeof profile.avatar_object_path === "string"
+        ? profile.avatar_object_path
+        : null;
+      if (previousAvatar && previousAvatar !== newAvatar) {
+        const { error: removeError } = await service.storage
+          .from("profile-avatars")
+          .remove([previousAvatar]);
+        if (removeError) throw removeError;
+      }
+      return success(profile, requestId);
+    }
     case "request_email_change": {
       const { data, error } = await client.auth.updateUser({ email: email(body, "email") });
       if (error) throw error;
@@ -85,28 +113,78 @@ serve("account", async (req, requestId) => {
         requestId,
       );
     }
-    case "update_workspace":
+    case "update_workspace": {
+      // Replacement cleanup: a new logo path removes the previous object from
+      // the branding bucket after the workspace RPC commits.
+      const { data: previous } = await service
+        .from("workspaces")
+        .select("logo_object_path")
+        .eq("owner_user_id", user.id)
+        .maybeSingle<{ logo_object_path: string | null }>();
+      const previousLogo = previous?.logo_object_path ?? null;
+      const workspace = await rpc<Record<string, unknown>>(client, "update_workspace_profile_v1", {
+        p_name: text(body, "name"),
+        p_address: text(body, "address"),
+        p_phone_e164: text(body, "phone_e164"),
+        p_email: text(body, "email"),
+        p_logo_object_path: text(body, "logo_object_path"),
+      });
+      const newLogo = typeof workspace.logo_object_path === "string"
+        ? workspace.logo_object_path
+        : null;
+      if (previousLogo && previousLogo !== newLogo) {
+        const { error: removeError } = await service.storage
+          .from("workspace-logos")
+          .remove([previousLogo]);
+        if (removeError) throw removeError;
+      }
+      return success(workspace, requestId);
+    }
+    case "dashboard":
+      return success(await rpc(client, "user_dashboard_v1", {}), requestId);
+    case "event_detail":
       return success(
-        await rpc(client, "update_workspace_profile_v1", {
-          p_name: text(body, "name"),
-          p_address: text(body, "address"),
-          p_phone_e164: text(body, "phone_e164"),
-          p_email: text(body, "email"),
-          p_logo_object_path: text(body, "logo_object_path"),
+        await rpc(client, "event_detail_v2", { p_event_id: uuid(body, "event_id") }),
+        requestId,
+      );
+    case "my_bookings":
+      return success(await rpc(client, "my_bookings_v1", {}), requestId);
+    case "booking_detail": {
+      const detail = await rpc<Record<string, unknown>>(client, "booking_detail_v2", {
+        p_booking_id: uuid(body, "booking_id"),
+      });
+      // Only the owning donor receives QR ciphertext; decrypt it here so the
+      // plaintext token never leaves the server boundary in any other field.
+      if (
+        typeof detail.qr_token_ciphertext === "string" &&
+        typeof detail.qr_token_nonce === "string"
+      ) {
+        const qrToken = await decrypt(
+          detail.qr_token_ciphertext,
+          detail.qr_token_nonce,
+          Number(detail.crypto_key_version),
+        );
+        return success({ ...detail, qr_token: qrToken }, requestId);
+      }
+      return success(detail, requestId);
+    }
+    case "donation_history":
+      return success(
+        await rpc(client, "user_donation_history_v1", {
+          p_limit: optionalInt(body, "limit"),
+          p_cursor: optionalCursor(body, "cursor"),
         }),
         requestId,
       );
-    case "dashboard":
-      return success(await rpc(client, "user_dashboard_v1", {}), requestId);
-    case "booking_detail":
+    case "event_history":
       return success(
-        await rpc(client, "booking_detail_v2", { p_booking_id: uuid(body, "booking_id") }),
+        await rpc(client, "user_event_history_v1", {
+          p_terminal: typeof body.terminal === "boolean" ? body.terminal : null,
+          p_limit: optionalInt(body, "limit"),
+          p_cursor: optionalCursor(body, "cursor"),
+        }),
         requestId,
       );
-    case "donation_history":
-      return success(await rpc(client, "user_donation_history_v1", {}), requestId);
-    case "event_history":
-      return success(await rpc(client, "user_event_history_v1", {}), requestId);
     case "create_booking": {
       const key = req.headers.get("idempotency-key")?.trim() ?? "";
       if (!/^[A-Za-z0-9._:-]{8,200}$/.test(key)) {
