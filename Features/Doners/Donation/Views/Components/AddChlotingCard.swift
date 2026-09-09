@@ -11,32 +11,37 @@ struct AddClothingCard: View {
     var onTap: () -> Void
     
     var body: some View {
-        Button{
-            onTap()
-        }label: {
-            RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [6]))
-                .foregroundColor(.gray.opacity(0.5))
-                .overlay(
-                    Image(systemName: "plus")
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(.white)
-                        .frame(width: 44, height: 44)
-                        .background(Color(red: 0.35, green: 0.5, blue: 0.4))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                )
-                .frame(width: 125, height: 149)
+        HStack(spacing: 24) {
+            VStack(alignment: .leading , spacing: 4){
+                Text("Tambahkan pakaian lagi ?")
+                    .font(.body).bold()
+                Text("tambahkan lebih banyak pakaian untuk selamatkan lingkungan.")
+                    .font(.caption)
+            }
+            
+            Button{
+                
+            }label: {
+                Text("Tambah")
+                    .foregroundStyle(Color.white)
+                    .font(.footnote).bold()
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 16)
+                    .background(
+                        AppColor.primaryCyan,
+                        in: RoundedRectangle(cornerRadius: 16)
+                    )
+            }
         }
-        .padding(20)
+        .padding(16)
         .background(
+            Color.white, in:
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color.white)
         )
-
-        .overlay(
+        .overlay{
             RoundedRectangle(cornerRadius: 16)
-                .stroke(AppColor.secondaryCyan)
-        )
+                .stroke(AppColor.primaryCyan, lineWidth: 2)
+        }
     }
 }
 

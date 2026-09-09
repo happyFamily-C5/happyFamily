@@ -37,7 +37,7 @@ final class DonationViewModel {
     var agreedToTerms: Bool = false
     var selectedShippingMethod: ShippingMethod?
     var clothingItems: [ClothingItem] = [
-        ClothingItem(image: UIImage(named: "Image 3") ?? UIImage(), isPassed: true)
+//        ClothingItem(image: UIImage(named: "Image 3") ?? UIImage(), isPassed: true)
     ]
 
     private(set) var resolvedEvent: PublicEventDTO?

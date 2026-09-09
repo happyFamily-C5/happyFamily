@@ -17,6 +17,26 @@ struct ClothingItem: Identifiable {
     let id = UUID()
     var image: UIImage
     var isPassed: Bool
-    var scannerModelVersion: String = "accessory-head-v6"
-    var metadata: [String: String] = [:]
+}
+
+struct OnboardingSlide: Identifiable {
+    let id: Int
+    let illustration: String
+    let description: String
+}
+
+struct GuideSlide: Identifiable {
+    let id: Int
+    let illustration: String
+    let title: String
+    let description: String
+    
+}
+
+struct ScanningGuideSlide: Identifiable {
+    let id: Int
+    let illustration: String
+    let title: String
+    let description: String
+    
 }

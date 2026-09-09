@@ -37,6 +37,7 @@ final class AppRouter {
     var donersPath: [DonersRouter] = []
     var mapPath: [MapPickerRouter] = []
     let mapPickerSession = MapPickerSession()
+    var selectedClothingItem: ClothingItem?
     var currentStep: Int = 1
 
     func push(to destination:AdminsRouter) {
@@ -45,6 +46,11 @@ final class AppRouter {
     
     func push(to destination:DonersRouter) {
         donersPath.append(destination)
+    }
+
+    func openClothDetail(for item: ClothingItem) {
+        selectedClothingItem = item
+        donersPath.append(.clothDetail)
     }
 
     func openMapPicker(
@@ -132,12 +138,16 @@ extension View {
                 ClothsView { router.nextStep() }
             case .openCamera:
                 ScanView()
-            case .result:
-                ResultView()
             case .mapPicker:
                 MapPickerRouteView(session: router.mapPickerSession) {
                     router.mapPickerSession.confirm()
                     router.donersPath.removeLast()
+                }
+            case .clothDetail:
+                if let item = router.selectedClothingItem {
+                    ClothDetailView(item: item)
+                } else {
+                    EmptyView()
                 }
             }
         }
