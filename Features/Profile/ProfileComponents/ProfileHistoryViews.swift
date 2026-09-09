@@ -94,7 +94,7 @@ struct ProfileDonationHistoryView: View {
     }
 }
 
-private struct ProfileEventHistoryRow: View {
+struct ProfileEventHistoryRow: View {
     let event: AdminEvent
     
     var body: some View {
@@ -146,7 +146,7 @@ private struct ProfileDonationHistoryRow: View {
     }
 }
 
-private struct ProfileEmptyHistoryView: View {
+struct ProfileEmptyHistoryView: View {
     let systemImage: String
     let title: String
     let message: String

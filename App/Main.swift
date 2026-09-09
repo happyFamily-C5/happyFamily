@@ -7,6 +7,7 @@ struct Main: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+//            MainTabView(router: router)
                 .environment(router)
         }
     }

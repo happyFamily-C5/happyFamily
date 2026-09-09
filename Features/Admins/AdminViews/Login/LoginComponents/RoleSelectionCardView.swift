@@ -1,105 +1,113 @@
 import SwiftUI
 
 struct RoleSelectionView: View {
-    @State private var selectedRole: String? = "Pengelola" // Default pilihan awal
+    @State private var selectedRole: Role = .pengelola
     var onContinueTapped: (String) -> Void
     var onBackTapped: () -> Void
     
+    enum Role: String {
+        case pengelola = "Pengelola"
+        case donatur = "Donatur"
+    }
+    
     var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            
-            // 1. Tombol Kembali (<) di Atas
-            Button(action: onBackTapped) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(.primary)
-                    .frame(width: 40, height: 40)
-                    .background(Color(.systemBackground))
-                    .clipShape(Circle())
-                    .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 2)
-            }
-            .padding(.top, 8)
-            
-            // 2. Judul & Subjudul
-            VStack(alignment: .leading, spacing: 8) {
+        VStack(spacing: 24) {
+            Spacer()
+            VStack(spacing: 32) {
                 Text("Jenis pengguna yang mana anda ?")
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundColor(.primary)
-                
-                Text("Untuk memberikan pengalaman yang sesuai, kami perlu mengetahui peran Anda.")
-                    .font(.system(size: 13, weight: .regular))
-                    .foregroundColor(.secondary)
+                    .font(.largeTitle).bold()
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(AppColor.primaryCyan)
             }
             
-            // 3. Pilihan Kartu Peran (Pengelola vs Donatur)
             HStack(spacing: 16) {
-                RoleSelectionCardView(
+                RoleCard(
                     title: "Pengelola",
-                    imageName: "UserHoldingPhone", // Sesuai permintaan
-                    isSelected: selectedRole == "Pengelola"
+                    imageName: "pengelola",
+                    backgroundColor: Color(red: 0.9320, green: 0.8958, blue: 0.9627),
+                    isSelected: selectedRole == .pengelola
                 ) {
-                    selectedRole = "Pengelola"
-                    onContinueTapped("Pengelola")
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        selectedRole = .pengelola
+                    }
                 }
                 
-                RoleSelectionCardView(
+                Spacer()
+                
+                RoleCard(
                     title: "Donatur",
-                    imageName: "DonerHoldingPhone", // Sesuai nama asset
-                    isSelected: selectedRole == "Donatur"
+                    imageName: "donatur",
+                    backgroundColor: Color(red: 0.7529, green: 0.9216, blue: 0.8941),
+                    isSelected: selectedRole == .donatur
                 ) {
-                    selectedRole = "Donatur"
-                    onContinueTapped("Donatur")
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        selectedRole = .donatur
+                    }
                 }
             }
             .padding(.top, 12)
             
+            Text("Untuk memberikan pengalaman yang sesuai, kami perlu mengetahui peran Anda.")
+                .font(.callout)
+                .multilineTextAlignment(.center)
             Spacer()
-            
-            // 4. Tombol Lanjut (PrimaryButton) di Bawah
             PrimaryButton(title: "Lanjut") {
-                onContinueTapped(selectedRole ?? "Pengelola")
+                onContinueTapped(selectedRole.rawValue)
             }
-            .padding(.bottom, 24)
         }
-        .padding(.horizontal, 24)
-        .background(Color(.systemGray6).ignoresSafeArea())
+        
+        
+        .padding(.horizontal, 20)
         .navigationBarHidden(true)
     }
 }
 
-struct RoleSelectionCardView: View {
+private struct RoleCard: View {
     let title: String
     let imageName: String
+    let backgroundColor: Color
     let isSelected: Bool
-    var onTap: () -> Void
+    let onTap: () -> Void
     
     var body: some View {
         Button(action: onTap) {
             VStack(spacing: 12) {
-                Image(imageName)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(height: 96)
+                HStack(spacing: 6) {
+                    Text(title)
+                        .font(.title3).bold()
+                        .foregroundColor(isSelected ? AppColor.primaryCyan : .primary)
+                    
+                    if isSelected {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 16))
+                            .foregroundColor(AppColor.primaryCyan)
+                            .transition(.scale.combined(with: .opacity))
+                    }
+                }
                 
-                Text(title)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(.primary)
-                
-                Circle()
-                    .fill(isSelected ? Color("3-DarkSoftCyan") : Color(.systemGray4))
-                    .frame(width: 14, height: 14)
+                ZStack(alignment: .bottom) {
+                    RoundedRectangle(cornerRadius: 24)
+                        .fill(backgroundColor)
+                        .frame(width: 145, height: 234)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 24)
+                                .stroke(
+                                    isSelected ? AppColor.primaryCyan : Color.clear,
+                                    lineWidth: 3
+                                )
+                        )
+                    
+                    Image(imageName)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: title == "Pengelola" ? 157 : 145)
+                        .offset(x: title == "Pengelola" ? 20 : -20)
+                }
+                .frame(width: 145, height: 234, alignment: .bottom)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 18)
-            .background(Color(.systemBackground))
-            .cornerRadius(20)
-            .overlay(
-                RoundedRectangle(cornerRadius: 20)
-                    .stroke(isSelected ? Color("3-DarkSoftCyan") : Color.clear, lineWidth: 1.5)
-            )
-            .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 3)
         }
         .buttonStyle(PlainButtonStyle())
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
     }
 }
 

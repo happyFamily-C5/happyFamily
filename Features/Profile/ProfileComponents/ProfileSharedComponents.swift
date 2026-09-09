@@ -87,7 +87,7 @@ struct ProfileSectionTitle: View {
     
     var body: some View {
         Text(title)
-            .font(.system(size: 13, weight: .bold))
+            .font(.title2).bold()
             .foregroundColor(.primary)
     }
 }
@@ -111,10 +111,10 @@ struct ProfileTextInput: View {
                     .overlay(alignment: .topLeading) {
                         if text.isEmpty {
                             Text(placeholder)
-                                .font(.system(size: 14, weight: .medium))
+                                .font(.body).bold()
                                 .foregroundColor(Color(.placeholderText))
                                 .padding(.horizontal, 16)
-                                .padding(.vertical, 16)
+                                .padding(.vertical, 13)
                                 .allowsHitTesting(false)
                         }
                     }
@@ -129,6 +129,6 @@ struct ProfileTextInput: View {
             }
         }
         .background(Color(.systemGray6))
-        .cornerRadius(18)
+        .cornerRadius(24)
     }
 }

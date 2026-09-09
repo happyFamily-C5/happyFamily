@@ -23,7 +23,7 @@ struct ResultView: View {
     
     var body: some View {
         ZStack {
-            VStack(spacing: 32) {
+            VStack(spacing: 16) {
                 
                 // MARK: - Badge Icon
                 VStack(spacing: 8) {
@@ -52,8 +52,8 @@ struct ResultView: View {
                 Spacer()
                 
                 // MARK: - Buttons
-                VStack(spacing: 12) {
-                    if let labelFile {
+                VStack(spacing: 8) {
+                    if labelFile != nil {
                         Button {
                             isShareSheetPresented = true
                         } label: {
@@ -84,7 +84,6 @@ struct ResultView: View {
                     .buttonStyle(.plain)
                 }
                 .padding(.horizontal, 24)
-                .padding(.bottom, 12)
             }
         }
         .overlay(alignment: .top) {
@@ -171,4 +170,5 @@ struct ResultView: View {
 #Preview {
     ResultView(onNext: {})
         .environment(DonationViewModel())
+        .environment(AppRouter())
 }

@@ -53,7 +53,7 @@ struct DashboardView: View {
                             Image("ecoTouchLogo")
                                 .resizable()
                                 .scaledToFit()
-                                .frame(width: 28)
+                                .frame(width: 24)
                                 .padding(12)
                                 .background(
                                     Color(#colorLiteral(red: 1, green: 0.9679821134, blue: 0.8170431256, alpha: 1)),in: Circle()
@@ -62,7 +62,7 @@ struct DashboardView: View {
                         }
                         .padding(.horizontal, 20)
                         .onTapGesture {
-                            isShowingProfile = true
+                            router.push(to: AdminsRouter.profile)
                         }
                         
                         EmptyStateViewDashboard {

@@ -3,24 +3,26 @@ import UIKit
 
 struct ProfileHeaderCard: View {
     let imageData: Data?
-    let companyName: String
-    let companyAddress: String
+    let name: String
+    let address: String
+    var namePlaceholder: String = "Nama Pengelola"
+    var addressPlaceholder: String = "Alamat Pengelola"
     var onTap: () -> Void
     
     var body: some View {
         Button(action: onTap) {
             ZStack(alignment: .topTrailing) {
-                VStack(spacing: 12) {
-                    ProfileLogoImage(imageData: imageData, size: 80)
+                VStack(spacing: 16) {
+                    ProfileLogoImage(imageData: imageData, size: 86)
                     
-                    VStack(spacing: 5) {
-                        Text(companyName.isEmpty ? "Nama Pengelola" : companyName)
-                            .font(.system(size: 18, weight: .bold))
+                    VStack(spacing: 8) {
+                        Text(name.isEmpty ? namePlaceholder : name)
+                            .font(.title2).bold()
                             .foregroundColor(.white)
                             .multilineTextAlignment(.center)
                         
-                        Text(companyAddress.isEmpty ? "Alamat Pengelola" : companyAddress)
-                            .font(.system(size: 12, weight: .medium))
+                        Text(address.isEmpty ? addressPlaceholder : address)
+                            .font(.subheadline)
                             .foregroundColor(.white.opacity(0.9))
                             .multilineTextAlignment(.center)
                             .lineLimit(3)
@@ -39,11 +41,10 @@ struct ProfileHeaderCard: View {
                         endPoint: .bottomTrailing
                     )
                 )
-                .cornerRadius(24)
+                .cornerRadius(36)
                 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(Color("3-DarkSoftCyan"))
                     .frame(width: 32, height: 32)
                     .background(Color(.systemBackground).opacity(0.85))
                     .clipShape(Circle())
@@ -82,3 +83,4 @@ struct ProfileLogoImage: View {
         .frame(width: size, height: size)
     }
 }
+

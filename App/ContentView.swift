@@ -17,20 +17,20 @@ struct ContentView: View {
 //        .environment(eventStore)
 //        
         NavigationStack(path: $router.donersPath){
-//            HomeView(
-//                userLocation: "Jakarta Pusat",
-//                title: "Ecoday | Drop Your Unused Shirt",
-//                manager: "EcoTouch Indonesia",
-//                capacity: 250,
-//                maxCapacity: 500
-//            )
-            
-            SelectedEventDetailView(
-                title: "Ecoday Shirt | drop your unused shirt",
-                name: "EcoTouch Indonesia",
-                date: "9 Sept - 16 Sept 2026",
-                time: "Hari Kerja · 09.00 - 16.00"
+            HomeView(
+                userLocation: "Jakarta Pusat",
+                title: "Ecoday | Drop Your Unused Shirt",
+                manager: "EcoTouch Indonesia",
+                capacity: 250,
+                maxCapacity: 500
             )
+            
+//            SelectedEventDetailView(
+//                title: "Ecoday Shirt | drop your unused shirt",
+//                name: "EcoTouch Indonesia",
+//                date: "9 Sept - 16 Sept 2026",
+//                time: "Hari Kerja · 09.00 - 16.00"
+//            )
                 .donersRouter(router)
         }
         .environment(router)

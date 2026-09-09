@@ -16,12 +16,12 @@ struct DonationInstructionPage: View {
     @State private var currentPage = 0
     
     let slides: [GuideSlide] = [
-        GuideSlide(
-            id: 0,
-            illustration: "donationGuide1",
-            title: "Pilah dan pisahkan pakaian",
-            description: "pisahkan pakaian yang masih layak digunakan dari pakaian atau tekstil yang suda tidak layak digunakan."
-        ),
+//        GuideSlide(
+//            id: 0,
+//            illustration: "donationGuide1",
+//            title: "Pilah dan pisahkan pakaian",
+//            description: "pisahkan pakaian yang masih layak digunakan dari pakaian atau tekstil yang suda tidak layak digunakan."
+//        ),
         GuideSlide(
             id: 1,
             illustration: "donationGuide2",

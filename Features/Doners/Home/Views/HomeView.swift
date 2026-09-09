@@ -39,28 +39,44 @@ struct HomeView: View {
             VStack(spacing: 32) {
                 VStack(alignment: .leading, spacing: 16) {
                     // MARK: - Header
-                    Button {
-                        router.openDonersMapPicker(
-                            location: userLocation,
-                            address: selectedAddress,
-                            coordinate: selectedCoordinate
-                        )
-                    } label: {
-                        HStack(spacing: 12) {
-                            HStack(spacing: 8) {
-                                Image(systemName: "location.north.circle.fill")
-                                    .font(.system(size: 20))
-                                Text(userLocation)
-                                    .bold()
+                    HStack {
+                        Button {
+                            router.openDonersMapPicker(
+                                location: userLocation,
+                                address: selectedAddress,
+                                coordinate: selectedCoordinate
+                            )
+                        } label: {
+                            HStack(spacing: 12) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "location.north.circle.fill")
+                                        .font(.system(size: 20))
+                                    Text(userLocation)
+                                        .bold()
+                                }
+                                Image(systemName: "chevron.down")
+                                    .font(.system(size: 17)).bold()
+                                Spacer()
                             }
-                            Image(systemName: "chevron.down")
-                                .font(.system(size: 17)).bold()
-                            Spacer()
+                            .foregroundStyle(.primary)
+                            .contentShape(Rectangle())
                         }
-                        .foregroundStyle(.primary)
-                        .contentShape(Rectangle())
+                        .buttonStyle(.plain)
+                        
+                        Spacer()
+                        
+                        Image("ecoTouchLogo")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 24)
+                            .padding(12)
+                            .background(
+                                Color(#colorLiteral(red: 1, green: 0.9679821134, blue: 0.8170431256, alpha: 1)),in: Circle()
+                            )
+                            .onTapGesture {
+                                router.push(to: DonersRouter.profile)
+                            }
                     }
-                    .buttonStyle(.plain)
                     
                     // MARK: - Intro
                     VStack(alignment: .leading, spacing: 4) {
@@ -103,11 +119,18 @@ struct HomeView: View {
                         //MARK: - Untuk Kamu
                         VStack(alignment: .leading, spacing: 8) {
                             HStack(spacing: 8) {
-                                Text("Untuk Kamu")
-                                    .font(.title2).bold()
+                                Button{
+                                    router.push(to: .forYouPage)
+                                }label: {
+                                    Text("Untuk Kamu")
+                                        .font(.title2).bold()
+                                
                                 Image(systemName: "chevron.right")
                                     .font(.system(size: 15)).bold()
                                     .foregroundStyle(Color.secondary)
+                                }
+                                .buttonStyle(.plain)
+                                
                                 Spacer()
                             }
                             ScrollView(.horizontal, showsIndicators: false){
@@ -139,11 +162,17 @@ struct HomeView: View {
                         //MARK: - Sedang Tren
                         VStack(alignment: .leading, spacing: 8) {
                             HStack(spacing: 8) {
-                                Text("Sedang Tren")
-                                    .font(.title2).bold()
+                                Button{
+                                    router.push(to: .trendPage)
+                                }label: {
+                                    Text("Sedang Trend")
+                                        .font(.title2).bold()
+                                
                                 Image(systemName: "chevron.right")
                                     .font(.system(size: 15)).bold()
                                     .foregroundStyle(Color.secondary)
+                                }
+                                .buttonStyle(.plain)
                                 Spacer()
                             }
                             ScrollView(.horizontal, showsIndicators: false){
