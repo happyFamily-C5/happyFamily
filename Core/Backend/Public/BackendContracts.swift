@@ -120,10 +120,22 @@ enum BackendError: Error, Equatable, Sendable, LocalizedError {
             "Terlalu banyak percobaan. Coba lagi nanti."
         case "BOOKING_CREDENTIALS_INVALID":
             "ID booking atau nomor telepon tidak cocok."
-        case "PUBLIC_BOOKING_DISABLED":
-            "Booking sedang dinonaktifkan sementara."
         case "AUTH_REQUIRED", "AUTH_INVALID":
             "Sesi login tidak valid. Silakan masuk kembali."
+        case "WORKSPACE_PROFILE_INCOMPLETE":
+            "Lengkapi profil workspace sebelum melanjutkan."
+        case "EVENT_PUBLISH_FIELDS_REQUIRED":
+            "Lengkapi semua data acara sebelum dipublikasikan."
+        case "INVALID_DONATION_LIMIT":
+            "Limit donasi per donatur tidak valid."
+        case "IDEMPOTENCY_CONFLICT":
+            "Perubahan bentrok dengan permintaan sebelumnya. Muat ulang lalu coba lagi."
+        case "IDEMPOTENCY_INCOMPLETE":
+            "Sinkronisasi belum selesai. Coba lagi."
+        case "EVENT_NOT_CANCELLABLE":
+            "Acara sudah tidak dapat dibatalkan."
+        case "DRAFT_HAS_BOOKINGS":
+            "Draf memiliki donasi terkait dan tidak dapat dihapus."
         default:
             "Permintaan gagal (\(code))."
         }
@@ -259,4 +271,84 @@ struct RecapData: Decodable, Equatable, Sendable {
     let rejectedBookingCount: Int64
     let uniqueDonorCount: Int64
     let completedEventCount: Int64
+}
+
+/// Row shape of `event_user_json` (admin event responses).
+struct EventRecordDTO: Decodable, Equatable, Sendable {
+    let id: UUID
+    let name: String?
+    let description: String?
+    let status: EventStatusCode
+    let startAt: Date?
+    let endAt: Date?
+    let timezoneName: String?
+    let operationalDays: [Int]?
+    let opensAtLocal: String?
+    let closesAtLocal: String?
+    let locationName: String?
+    let locationAddress: String?
+    let latitude: Double?
+    let longitude: Double?
+    let capacityGrams: Int64?
+    let receivedWeightGrams: Int64
+    let bannerObjectPath: String?
+    let receiverName: String?
+    let receiverPhone: String?
+    let receiverAddress: String?
+    let criteria: [EventCriterionCode]
+    let maxDonationPerUserGrams: Int64?
+    let version: Int64?
+}
+
+/// Body of `upsert_event_draft` on `POST /operations`. Receiver fields are a
+/// workspace snapshot the server owns, so they are never sent. Optional keys
+/// are omitted when nil and the server then preserves its current value.
+struct EventDraftPayload: Encodable, Sendable {
+    let name: String
+    let description: String?
+    let startAt: String
+    let endAt: String
+    let timezoneName: String
+    let operationalDays: [Int]
+    let opensAtLocal: String
+    let closesAtLocal: String
+    let locationName: String?
+    let locationAddress: String?
+    let locationCountryCode: String
+    let latitude: Double?
+    let longitude: Double?
+    let capacityGrams: Int64
+    let bannerObjectPath: String?
+    let maxDonationPerUserGrams: Int64?
+    let criteria: [EventCriterionCode]
+
+    init(event: BackendAdminEvent) {
+        name = event.name
+        description = event.description
+        startAt = event.startDate.ISO8601Format()
+        endAt = event.endDate.ISO8601Format()
+        timezoneName = event.timezoneName
+        operationalDays = event.operationalDays
+        opensAtLocal = event.opensAtLocal
+        closesAtLocal = event.closesAtLocal
+        locationName = event.locationName
+        locationAddress = event.locationAddress
+        locationCountryCode = "ID"
+        latitude = event.latitude
+        longitude = event.longitude
+        capacityGrams = Int64(event.capacityKg) * 1000
+        bannerObjectPath = event.bannerObjectPath
+        maxDonationPerUserGrams = event.maxDonationPerUserKg.map { Int64($0) * 1000 }
+        criteria = event.criteria
+    }
+}
+
+/// Dual-shape response of `cancel_or_delete_event`: a deleted draft returns
+/// `action: "draft_deleted"`; a cancelled live event returns a status plus the
+/// number of waiting bookings that were cancelled along with it.
+struct CancelEventData: Decodable, Equatable, Sendable {
+    let eventId: UUID
+    let status: EventStatusCode?
+    let action: String?
+    let cancelledWaitingBookings: Int?
 }

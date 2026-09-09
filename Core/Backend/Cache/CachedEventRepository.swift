@@ -49,9 +49,9 @@ actor CachedEventRepository: EventRepository {
             }
         } catch {
             guard Self.isConnectivityError(error) else { throw error }
-            let events = try await store.cachedEvents(ownerUserId: ownerUserId)
-            guard !events.isEmpty else { throw error }
-            return EventPage(events: events, cursor: requestedCursor ?? cachedCursor)
+            let page = try await cachedPage(ownerUserId: ownerUserId, cursor: requestedCursor ?? cachedCursor)
+            guard !page.events.isEmpty else { throw error }
+            return page
         }
     }
 
@@ -98,20 +98,14 @@ actor CachedEventRepository: EventRepository {
         try await remote.publish(eventId: eventId)
     }
 
-    func terminate(
-        eventId: UUID,
-        status: EventStatusCode,
-        reason: String?
-    ) async throws -> BackendAdminEvent {
-        let event = try await remote.terminate(eventId: eventId, status: status, reason: reason)
+    func cancelOrDelete(eventId: UUID) async throws -> CancelEventData {
+        let data = try await remote.cancelOrDelete(eventId: eventId)
+        // The response carries no record, so the cached copy (and any queued
+        // draft) must go; the next list pulls server truth.
         if let ownerUserId = try? await ownerUserId() {
-            try? await store.cacheRemoteEvents(
-                [event],
-                cursor: nil,
-                ownerUserId: ownerUserId
-            )
+            try? await store.deleteEvent(eventId: eventId, ownerUserId: ownerUserId)
         }
-        return event
+        return data
     }
 
     private func flushPendingDrafts(ownerUserId: UUID) async throws -> Bool {
@@ -137,7 +131,16 @@ actor CachedEventRepository: EventRepository {
     }
 
     private func cachedPage(ownerUserId: UUID, cursor: String?) async throws -> EventPage {
-        let events = try await store.cachedEvents(ownerUserId: ownerUserId)
+        var events = try await store.cachedEvents(ownerUserId: ownerUserId)
+        // Pending drafts live outside the cached rows until they sync; merge
+        // them so an offline-created draft is visible in the list.
+        for draft in try await store.pendingDrafts(ownerUserId: ownerUserId) {
+            if let index = events.firstIndex(where: { $0.id == draft.event.id }) {
+                events[index] = draft.event
+            } else {
+                events.append(draft.event)
+            }
+        }
         return EventPage(events: events, cursor: cursor)
     }
 

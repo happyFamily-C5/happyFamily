@@ -41,83 +41,27 @@ actor SupabaseEventRepository: EventRepository {
             )
             preparedEvent.bannerObjectPath = uploaded.objectPath
         }
-        let response = try await client
-            .schema("api")
-            .rpc(
-                "upsert_event_draft_v1",
-                params: UpsertEventParameters(
-                    eventId: preparedEvent.id,
-                    mutationId: mutationId,
-                    payload: EventDraftPayload(event: preparedEvent)
-                )
-            )
-            .execute()
-        let record = try BackendJSON.decoder().decode(EventRecord.self, from: response.data)
+        let record = try await edge.upsertEventDraft(
+            eventId: preparedEvent.id,
+            mutationId: mutationId,
+            payload: EventDraftPayload(event: preparedEvent)
+        )
         return BackendAdminEvent(record: record, bannerImageData: event.bannerImageData)
     }
 
-    func terminate(
-        eventId: UUID,
-        status: EventStatusCode,
-        reason: String?
-    ) async throws -> BackendAdminEvent {
-        guard status == .closed || status == .cancelled else {
-            throw BackendError.api(
-                code: "INVALID_EVENT_TRANSITION",
-                retryable: false,
-                fieldErrors: [:],
-                requestId: nil
-            )
-        }
-        let response = try await client
-            .schema("api")
-            .rpc(
-                "terminate_event_v1",
-                params: TerminateEventParameters(
-                    eventId: eventId,
-                    status: status,
-                    reason: reason,
-                    requestId: UUID()
-                )
-            )
-            .execute()
-        let record = try BackendJSON.decoder().decode(EventRecord.self, from: response.data)
-        return BackendAdminEvent(record: record)
+    func cancelOrDelete(eventId: UUID) async throws -> CancelEventData {
+        try await edge.cancelOrDeleteEvent(eventId: eventId)
     }
 }
 
 private struct EventListResponse: Decodable {
-    let items: [EventRecord]
+    let items: [EventRecordDTO]
     let cursor: String?
 }
 
-private struct EventRecord: Decodable {
-    let id: UUID
-    let name: String?
-    let description: String?
-    let status: EventStatusCode
-    let startAt: Date?
-    let endAt: Date?
-    let timezoneName: String?
-    let operationalDays: [Int]?
-    let opensAtLocal: String?
-    let closesAtLocal: String?
-    let locationName: String?
-    let locationAddress: String?
-    let latitude: Double?
-    let longitude: Double?
-    let capacityGrams: Int64?
-    let receivedWeightGrams: Int64
-    let bannerObjectPath: String?
-    let receiverName: String?
-    let receiverPhone: String?
-    let receiverAddress: String?
-    let criteria: [EventCriterionCode]
-    let version: Int64
-}
 
 private extension BackendAdminEvent {
-    init(record: EventRecord, bannerImageData: Data? = nil) {
+    init(record: EventRecordDTO, bannerImageData: Data? = nil) {
         self.init(
             id: record.id,
             name: record.name ?? "Draf tanpa nama",
@@ -138,10 +82,11 @@ private extension BackendAdminEvent {
             latitude: record.latitude,
             longitude: record.longitude,
             criteria: record.criteria,
+            maxDonationPerUserKg: record.maxDonationPerUserGrams.map { Int($0 / 1000) },
             receiverName: record.receiverName,
             receiverPhone: record.receiverPhone,
             receiverAddress: record.receiverAddress,
-            version: record.version
+            version: record.version ?? 0
         )
     }
 }
@@ -156,72 +101,4 @@ private struct ListEventsParameters: Encodable {
     }
 }
 
-private struct UpsertEventParameters: Encodable {
-    let eventId: UUID?
-    let mutationId: UUID
-    let payload: EventDraftPayload
 
-    enum CodingKeys: String, CodingKey {
-        case eventId = "p_event_id"
-        case mutationId = "p_mutation_id"
-        case payload = "p_payload"
-    }
-}
-
-private struct TerminateEventParameters: Encodable {
-    let eventId: UUID
-    let status: EventStatusCode
-    let reason: String?
-    let requestId: UUID
-
-    enum CodingKeys: String, CodingKey {
-        case eventId = "p_event_id"
-        case status = "p_status"
-        case reason = "p_reason"
-        case requestId = "p_request_id"
-    }
-}
-
-private struct EventDraftPayload: Encodable {
-    let name: String
-    let description: String?
-    let startAt: String
-    let endAt: String
-    let timezoneName: String
-    let operationalDays: [Int]
-    let opensAtLocal: String
-    let closesAtLocal: String
-    let locationName: String?
-    let locationAddress: String?
-    let locationCountryCode: String
-    let latitude: Double?
-    let longitude: Double?
-    let capacityGrams: Int64
-    let bannerObjectPath: String?
-    let receiverName: String?
-    let receiverPhone: String?
-    let receiverAddress: String?
-    let criteria: [EventCriterionCode]
-
-    init(event: BackendAdminEvent) {
-        name = event.name
-        description = event.description
-        startAt = event.startDate.ISO8601Format()
-        endAt = event.endDate.ISO8601Format()
-        timezoneName = event.timezoneName
-        operationalDays = event.operationalDays
-        opensAtLocal = event.opensAtLocal
-        closesAtLocal = event.closesAtLocal
-        locationName = event.locationName
-        locationAddress = event.locationAddress
-        locationCountryCode = "ID"
-        latitude = event.latitude
-        longitude = event.longitude
-        capacityGrams = Int64(event.capacityKg) * 1000
-        bannerObjectPath = event.bannerObjectPath
-        receiverName = event.receiverName
-        receiverPhone = event.receiverPhone
-        receiverAddress = event.receiverAddress
-        criteria = event.criteria
-    }
-}

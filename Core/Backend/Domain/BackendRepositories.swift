@@ -23,7 +23,7 @@ protocol EventRepository: Sendable {
     func list(cursor: String?) async throws -> EventPage
     func upsertDraft(_ event: BackendAdminEvent, mutationId: UUID) async throws -> BackendAdminEvent
     func publish(eventId: UUID) async throws -> PublishEventData
-    func terminate(eventId: UUID, status: EventStatusCode, reason: String?) async throws -> BackendAdminEvent
+    func cancelOrDelete(eventId: UUID) async throws -> CancelEventData
 }
 
 struct PendingDraftSync: Sendable, Equatable {
@@ -55,6 +55,8 @@ protocol EventLocalStore: SessionCache, Sendable {
         mutationId: UUID,
         ownerUserId: UUID
     ) async throws
+    /// Removes a deleted event's cached row and any queued draft for it.
+    func deleteEvent(eventId: UUID, ownerUserId: UUID) async throws
 }
 
 struct AuthUserSession: Sendable, Equatable {

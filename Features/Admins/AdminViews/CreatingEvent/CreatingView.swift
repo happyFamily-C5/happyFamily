@@ -4,9 +4,11 @@ import MapKit
 import CoreLocation
 
 struct CreatingView: View {
+    let model: DashboardModel
+
     @Environment(\.dismiss) var dismiss
     @FocusState private var focusedField: FocusedField?
-    
+
     // Callback untuk mengirim data event baru kembali ke Dashboard
     var onEventCreated: (AdminEvent) -> Void
     var onViewCreatedEvent: ((AdminEvent) -> Void)? = nil
@@ -39,16 +41,13 @@ struct CreatingView: View {
     }
     
     // State untuk Form Step 3 (Kriteria Donasi & Kapasitas)
-    let availableCategories: [String] = [
-        "Katun", "Linen", "Rayon", "Wol",
-        "Tencel", "Sutra", "Tidak Elastis",
-        "Denim", "Tidak berenda",
-        "Poliester"
-    ]
+    let availableCategories: [String] = EventCriterionCode.uiLabels
     @State private var selectedCategories: Set<String> = []
     @State private var donationCapacity: Int = 10
+    @State private var selectedDonationLimit: Int = 1
+    @State private var isSubmitting: Bool = false
+    @State private var submitError: String?
     @State private var pendingCreatedEvent: AdminEvent?
-    
     var body: some View {
         Group {
             if let pendingCreatedEvent {
@@ -90,15 +89,24 @@ struct CreatingView: View {
                     
                     // MARK: - 3. Tombol Aksi Bawah (Lanjut / Selesai)
                     VStack {
-                        PrimaryButton(title: currentStep == totalSteps ? "Buat Acara" : "Lanjut") {
+                        if let submitError {
+                            Text(submitError)
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.red)
+                                .padding(12)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color.red.opacity(0.08))
+                                .clipShape(RoundedRectangle(cornerRadius: 16))
+                        }
+                        PrimaryButton(title: currentStep == totalSteps ? (isSubmitting ? "Menyimpan…" : "Buat Acara") : "Lanjut") {
                             if currentStep < totalSteps {
                                 currentStep += 1
                             } else {
-                                pendingCreatedEvent = makeEvent()
+                                submit()
                             }
                         }
-                        .disabled(!isCurrentStepValid)
-                        .opacity(isCurrentStepValid ? 1.0 : 0.6)
+                        .disabled(!isCurrentStepValid || isSubmitting)
+                        .opacity(isCurrentStepValid && !isSubmitting ? 1.0 : 0.6)
                     }
                     .padding(.bottom, 16)
                 }
@@ -119,6 +127,24 @@ struct CreatingView: View {
         }
     }
     
+    private func submit() {
+        guard !isSubmitting else { return }
+        isSubmitting = true
+        submitError = nil
+        let event = makeEvent()
+        Task {
+            let ok = await model.createDraft(event.toBackendAdminEvent())
+            isSubmitting = false
+            if ok {
+                // Success view tetap muncul walau offline: CachedEventRepository
+                // mengembalikan event secara optimistik dan mengantre sinkron.
+                pendingCreatedEvent = event
+            } else {
+                submitError = model.errorMessage
+            }
+        }
+    }
+
     private func makeEvent() -> AdminEvent {
         AdminEvent(
             name: eventName,
@@ -135,7 +161,8 @@ struct CreatingView: View {
             donationCriteria: availableCategories.filter { selectedCategories.contains($0) },
             capacityKg: donationCapacity,
             collectedKg: 0,
-            bannerImageData: selectedImageData
+            bannerImageData: selectedImageData,
+            maxDonationPerUserKg: selectedDonationLimit
         )
     }
     
@@ -346,6 +373,9 @@ struct CreatingView: View {
             
             DonationCapacityCardView(selectedCapacity: $donationCapacity)
                 .padding(.horizontal, 20)
+
+            DonationLimitCardView(selectedLimit: $selectedDonationLimit)
+                .padding(.horizontal, 20)
         }
     }
     
@@ -356,7 +386,10 @@ struct CreatingView: View {
 
 #Preview {
     NavigationStack {
-        CreatingView { _ in }
+        CreatingView(
+            model: DashboardModel(repository: BackendDependencies.eventRepository()),
+            onEventCreated: { _ in }
+        )
     }
     .environment(AppRouter())
 }

@@ -16,10 +16,12 @@ final class DashboardModel {
 
     init(
         repository: any EventRepository,
-        reportRepository: (any ReportRepository)? = nil
+        reportRepository: (any ReportRepository)? = nil,
+        backendBaseURL: URL? = nil
     ) {
         self.repository = repository
         self.reportRepository = reportRepository
+        self.backendBaseURL = backendBaseURL
     }
 
     /// True when recap totals are absent (nothing collected yet).
@@ -47,9 +49,6 @@ final class DashboardModel {
         do {
             events = try await repository.list(cursor: nil).events
             errorMessage = nil
-            if let environment = try? BackendEnvironment.load(bundle: .main) {
-                backendBaseURL = environment.baseURL
-            }
             await preloadMissingBanners()
         } catch {
             errorMessage = error.localizedDescription
@@ -84,7 +83,8 @@ final class DashboardModel {
         }
     }
 
-    func createDraft(_ event: BackendAdminEvent) async {
+    @discardableResult
+    func createDraft(_ event: BackendAdminEvent) async -> Bool {
         do {
             let saved = try await repository.upsertDraft(event, mutationId: UUID())
             if let index = events.firstIndex(where: { $0.id == saved.id }) {
@@ -93,8 +93,22 @@ final class DashboardModel {
                 events.append(saved)
             }
             errorMessage = nil
+            return true
         } catch {
             errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    @discardableResult
+    func cancelOrDelete(_ eventId: UUID) async -> Bool {
+        do {
+            _ = try await repository.cancelOrDelete(eventId: eventId)
+            events.removeAll { $0.id == eventId }
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
         }
     }
 

@@ -197,6 +197,24 @@ actor SwiftDataEventStore: EventLocalStore {
         try modelContext.save()
     }
 
+    func deleteEvent(eventId: UUID, ownerUserId: UUID) throws {
+        let scopedId = EventCacheSchemaV1.CachedEvent.scopedId(
+            ownerUserId: ownerUserId,
+            eventId: eventId
+        )
+        var cachedDescriptor = FetchDescriptor<EventCacheSchemaV1.CachedEvent>(
+            predicate: #Predicate { $0.scopedId == scopedId }
+        )
+        cachedDescriptor.fetchLimit = 1
+        if let cached = try modelContext.fetch(cachedDescriptor).first {
+            modelContext.delete(cached)
+        }
+        if let pending = try pendingDraft(ownerUserId: ownerUserId, eventId: eventId) {
+            modelContext.delete(pending)
+        }
+        try modelContext.save()
+    }
+
     func purge() {
         do {
             for record in try modelContext.fetch(FetchDescriptor<EventCacheSchemaV1.CachedEvent>()) {

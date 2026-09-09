@@ -34,12 +34,7 @@ struct EditEventView: View {
     @State private var isShowingCancelSuccess = false
     @State private var shouldCommitLocationOnDismiss = false
     
-    private let availableCategories: [String] = [
-        "Katun", "Linen", "Rayon", "Wol",
-        "Tencel", "Sutra", "Tidak Elastis",
-        "Denim", "Tidak berenda",
-        "Poliester"
-    ]
+    private let availableCategories: [String] = EventCriterionCode.uiLabels
     private let capacityOptions = Array(stride(from: 10, through: 100, by: 10)) + [200, 300, 400, 500]
     
     private var selectedCriteria: [String] {
@@ -79,7 +74,9 @@ struct EditEventView: View {
             donationCriteria: selectedCriteria,
             capacityKg: donationCapacity,
             collectedKg: originalEvent.collectedKg,
-            bannerImageData: selectedImageData
+            bannerImageData: selectedImageData,
+            bannerObjectPath: originalEvent.bannerObjectPath,
+            maxDonationPerUserKg: originalEvent.maxDonationPerUserKg
         )
     }
     

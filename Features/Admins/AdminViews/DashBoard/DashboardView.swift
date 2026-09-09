@@ -6,14 +6,19 @@ struct DashboardView: View {
     private let onLogout: () -> Void
     
     @Environment(AppRouter.self) var router
-    @Environment(AdminEventStore.self) private var eventStore
     
     
     @State private var searchText: String = ""
     @State private var adminProfile: AdminProfile
     
     // State utama untuk status apakah sudah ada event
-    @State private var hasAnyEvent: Bool = false
+    // Sumber data: cache backend (DashboardModel), bukan AdminEventStore.
+    @State private var model = DashboardModel(
+        repository: BackendDependencies.eventRepository(),
+        backendBaseURL: BackendDependencies.backendBaseURL()
+    )
+
+    private var hasAnyEvent: Bool { !model.events.isEmpty }
     //    @State private var isRecapDataEmpty: Bool = true
     
     // State untuk membuka modal CreatingView multi-step
@@ -36,9 +41,13 @@ struct DashboardView: View {
     }
     
     private var totalCollectedWeight: Double {
-        eventStore.events.reduce(0) { total, event in
+        model.events.reduce(0) { total, event in
             total + event.collectedKg
         }
+    }
+
+    private var displayEvents: [AdminEvent] {
+        model.events.map(AdminEvent.init(backend:))
     }
     
     var body: some View {
@@ -87,7 +96,7 @@ struct DashboardView: View {
                             VStack(alignment: .leading, spacing: 24) {
                                 
                                 // A. BAGIAN EVENT BERLANGSUNG (Ongoing)
-                                let ongoingEvents = eventStore.events.filter { $0.isOngoing }
+                                let ongoingEvents = displayEvents.filter { $0.isOngoing }
                                 if !ongoingEvents.isEmpty {
                                     VStack(alignment: .leading, spacing: 16) {
                                         DashboardTitleView(hasOngoingEvent: true)
@@ -100,7 +109,6 @@ struct DashboardView: View {
                                                         title: event.name,
                                                         date: event.formattedDateRange
                                                     ) {
-                                                        eventStore.selectedEventID = event.id
                                                         selectedEvent = event
                                                     }
                                                 }
@@ -115,7 +123,7 @@ struct DashboardView: View {
                                 }
                                 
                                 // B. BAGIAN ACARA MENDATANG (Upcoming)
-                                let upcomingEvents = eventStore.events.filter {
+                                let upcomingEvents = displayEvents.filter {
                                     $0.isUpcoming
                                 }
                                 if !upcomingEvents.isEmpty {
@@ -166,6 +174,7 @@ struct DashboardView: View {
                     .scrollDismissesKeyboard(.immediately)
                 }
             }
+            .task { await model.load() }
             
             // While editing, a transparent layer over the dashboard catches
             // taps and resigns focus. It sits above the content but below the
@@ -204,13 +213,13 @@ struct DashboardView: View {
         .fullScreenCover(isPresented: $isShowingCreateModal) {
             NavigationStack(path: $router.mapPath) {
                 CreatingView(
-                    onEventCreated: { newEvent in
-                        eventStore.events.append(newEvent)
-                        hasAnyEvent = true
+                    model: model,
+                    onEventCreated: { _ in
+                        // Model sudah berisi hasil server lewat createDraft.
                     },
-                    onViewCreatedEvent: { newEvent in
+                    onViewCreatedEvent: { local in
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                            selectedEvent = newEvent
+                            selectedEvent = displayEvents.first(where: { $0.id == local.id }) ?? local
                         }
                     }
                 )
@@ -237,20 +246,12 @@ struct DashboardView: View {
                 onShareTapped: { print("Share event: \(event.name)") },
                 onEditTapped: { print("Edit event: \(event.name)") },
                 onEventUpdated: { updatedEvent in
-                    if let index = eventStore.events.firstIndex(
-                        where: { $0.id == updatedEvent.id }
-                    ) {
-                        eventStore.events[index] = updatedEvent
-                    }
-                    
+                    // Id sama = upsert; semua event pada pass ini berstatus draft.
+                    Task { _ = await model.createDraft(updatedEvent.toBackendAdminEvent()) }
                     selectedEvent = updatedEvent
                 },
                 onEventDeleted: { deletedEvent in
-                    eventStore.events.removeAll {
-                        $0.id == deletedEvent.id
-                    }
-                    
-                    hasAnyEvent = !eventStore.events.isEmpty
+                    Task { _ = await model.cancelOrDelete(deletedEvent.id) }
                     selectedEvent = nil
                 }
             )
@@ -282,6 +283,13 @@ struct AdminEvent: Identifiable {
     /// The cover the organiser picked in CreatingView, kept as Data so the
     /// event stays a plain value type — SwiftUI's Image is not persistable.
     var bannerImageData: Data?
+
+    /// Storage path of the uploaded banner, carried through edits so an
+    /// untouched banner keeps pointing at the same object server-side.
+    var bannerObjectPath: String?
+
+    /// Per-donor donation limit in kilograms (backend: grams).
+    var maxDonationPerUserKg: Int?
     
     /// The organiser's cover, falling back to the placeholder when they
     /// skipped the picker (the cover is optional in step 1).
@@ -308,7 +316,9 @@ struct AdminEvent: Identifiable {
         donationCriteria: [String],
         capacityKg: Int,
         collectedKg: Double,
-        bannerImageData: Data?
+        bannerImageData: Data?,
+        bannerObjectPath: String? = nil,
+        maxDonationPerUserKg: Int? = nil
     ) {
         self.id = id
         self.name = name
@@ -326,6 +336,8 @@ struct AdminEvent: Identifiable {
         self.capacityKg = capacityKg
         self.collectedKg = collectedKg
         self.bannerImageData = bannerImageData
+        self.bannerObjectPath = bannerObjectPath
+        self.maxDonationPerUserKg = maxDonationPerUserKg
     }
     
     var progress: Double {

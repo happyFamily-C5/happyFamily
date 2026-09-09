@@ -26,6 +26,7 @@ struct HeaderNavigationView: View {
                     .clipShape(Circle())
             }
             .buttonStyle(PlainButtonStyle())
+            .accessibilityIdentifier("dashboardAddEvent")
         }
         .padding(.horizontal, 16)
         .padding(.top, 8)

@@ -70,14 +70,14 @@ struct BackendContractTests {
 @Suite("Dashboard repository seam")
 struct DashboardRepositoryTests {
     @Test @MainActor func dashboardLoadsAndCreatesThroughRepository() async {
-        let existing = AdminEvent.fixture(name: "Existing", version: 1)
-        let created = AdminEvent.fixture(name: "Created", version: 1)
+        let existing = BackendAdminEvent.fixture(name: "Existing", version: 1)
+        let created = BackendAdminEvent.fixture(name: "Created", version: 1)
         let repository = MockEventRepository(initial: [existing], saved: created)
         let model = DashboardModel(repository: repository)
 
         await model.load()
         #expect(model.events == [existing])
-        await model.createDraft(AdminEvent.fixture(name: "Draft"))
+        await model.createDraft(BackendAdminEvent.fixture(name: "Draft"))
         #expect(model.events == [existing, created])
         #expect(model.errorMessage == nil)
     }
@@ -101,7 +101,7 @@ struct OfflineDraftSynchronizationTests {
         let remote = DraftSyncRemote()
         let repository = CachedEventRepository(remote: remote, store: store) { ownerUserId }
 
-        let initial = AdminEvent.fixture(name: "Draf offline")
+        let initial = BackendAdminEvent.fixture(name: "Draf offline")
         let firstResult = try await repository.upsertDraft(initial, mutationId: firstMutationId)
         #expect(firstResult == initial)
 
@@ -128,8 +128,8 @@ struct OfflineDraftSynchronizationTests {
         let ownerA = try #require(UUID(uuidString: "10000000-0000-4000-8000-00000000000a"))
         let ownerB = try #require(UUID(uuidString: "10000000-0000-4000-8000-00000000000b"))
         let store = try SwiftDataEventStore.make(isStoredInMemoryOnly: true)
-        let eventA = AdminEvent.fixture(name: "Tenant A")
-        let eventB = AdminEvent.fixture(name: "Tenant B")
+        let eventA = BackendAdminEvent.fixture(name: "Tenant A")
+        let eventB = BackendAdminEvent.fixture(name: "Tenant B")
 
         try await store.cacheRemoteEvents([eventA], cursor: "cursor-a", ownerUserId: ownerA)
         try await store.cacheRemoteEvents([eventB], cursor: "cursor-b", ownerUserId: ownerB)
@@ -168,10 +168,10 @@ private enum TestFailure: Error {
 }
 
 private actor MockEventRepository: EventRepository {
-    private let initial: [AdminEvent]
-    private let saved: AdminEvent
+    private let initial: [BackendAdminEvent]
+    private let saved: BackendAdminEvent
 
-    init(initial: [AdminEvent], saved: AdminEvent) {
+    init(initial: [BackendAdminEvent], saved: BackendAdminEvent) {
         self.initial = initial
         self.saved = saved
     }
@@ -180,7 +180,7 @@ private actor MockEventRepository: EventRepository {
         EventPage(events: initial, cursor: "opaque-cursor")
     }
 
-    func upsertDraft(_: AdminEvent, mutationId _: UUID) async throws -> AdminEvent {
+    func upsertDraft(_: BackendAdminEvent, mutationId _: UUID) async throws -> BackendAdminEvent {
         saved
     }
 
@@ -188,21 +188,17 @@ private actor MockEventRepository: EventRepository {
         throw TestFailure.unexpectedCall
     }
 
-    func terminate(
-        eventId _: UUID,
-        status _: EventStatusCode,
-        reason _: String?
-    ) async throws -> AdminEvent {
+    func cancelOrDelete(eventId _: UUID) async throws -> CancelEventData {
         throw TestFailure.unexpectedCall
     }
 }
 
 private actor DraftSyncRemote: EventRepository {
     private var online = false
-    private var savedEvent: AdminEvent?
+    private var savedEvent: BackendAdminEvent?
     private var mutationIds: [UUID] = []
 
-    func goOnline(savedEvent: AdminEvent) {
+    func goOnline(savedEvent: BackendAdminEvent) {
         online = true
         self.savedEvent = savedEvent
     }
@@ -216,7 +212,7 @@ private actor DraftSyncRemote: EventRepository {
         return EventPage(events: [], cursor: "server-cursor")
     }
 
-    func upsertDraft(_ event: AdminEvent, mutationId: UUID) async throws -> AdminEvent {
+    func upsertDraft(_ event: BackendAdminEvent, mutationId: UUID) async throws -> BackendAdminEvent {
         mutationIds.append(mutationId)
         guard online else { throw URLError(.notConnectedToInternet) }
         return savedEvent ?? event
@@ -226,11 +222,7 @@ private actor DraftSyncRemote: EventRepository {
         throw URLError(.notConnectedToInternet)
     }
 
-    func terminate(
-        eventId _: UUID,
-        status _: EventStatusCode,
-        reason _: String?
-    ) async throws -> AdminEvent {
+    func cancelOrDelete(eventId _: UUID) async throws -> CancelEventData {
         throw URLError(.notConnectedToInternet)
     }
 }
@@ -307,9 +299,9 @@ private struct PublicBackendStub: PublicBackendServing {
     }
 }
 
-private extension AdminEvent {
-    static func fixture(name: String, version: Int64 = 0) -> AdminEvent {
-        AdminEvent(
+private extension BackendAdminEvent {
+    static func fixture(name: String, version: Int64 = 0) -> BackendAdminEvent {
+        BackendAdminEvent(
             name: name,
             startDate: Date(timeIntervalSince1970: 1_800_000_000),
             endDate: Date(timeIntervalSince1970: 1_800_003_600),

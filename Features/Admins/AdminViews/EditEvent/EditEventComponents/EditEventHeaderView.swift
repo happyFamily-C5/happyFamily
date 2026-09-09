@@ -35,6 +35,7 @@ struct EditEventHeaderView: View {
                         .clipShape(Circle())
                 }
                 .buttonStyle(PlainButtonStyle())
+                .accessibilityIdentifier("editEventSave")
             } else {
                 Color.clear
                     .frame(width: 36, height: 36)

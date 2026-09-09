@@ -2,6 +2,8 @@ import Foundation
 
 protocol OrganizerEdgeServing: Sendable {
     func uploadEventBanner(data: Data, contentType: String) async throws -> BannerUploadData
+    func upsertEventDraft(eventId: UUID?, mutationId: UUID, payload: EventDraftPayload) async throws -> EventRecordDTO
+    func cancelOrDeleteEvent(eventId: UUID) async throws -> CancelEventData
     func publish(eventId: UUID) async throws -> PublishEventData
     func resolveQR(token: String) async throws -> ResolvedQRBooking
     func exportCSV(filter: ReportFilter) async throws -> Data
@@ -32,13 +34,42 @@ struct OrganizerBackendHTTPClient: OrganizerEdgeServing, Sendable {
         body.append(data)
         body.appendUTF8("\r\n--\(boundary)--\r\n")
 
-        var request = try await makeBaseRequest("upload-event-banner", method: "POST")
+        var request = try await makeBaseRequest("admin-banner", method: "POST")
         request.setValue(
             "multipart/form-data; boundary=\(boundary)",
             forHTTPHeaderField: "Content-Type"
         )
         request.httpBody = body
         return try await decodeEnvelope(executeRaw(request))
+    }
+
+    func upsertEventDraft(
+        eventId: UUID?,
+        mutationId: UUID,
+        payload: EventDraftPayload
+    ) async throws -> EventRecordDTO {
+        try await send(
+            "operations",
+            method: "POST",
+            body: UpsertEventDraftRequest(
+                eventId: eventId,
+                mutationId: mutationId,
+                payload: payload
+            ),
+            idempotencyKey: nil
+        )
+    }
+
+    /// The server decides between deleting a draft and cancelling a live
+    /// event. The deterministic key scopes retries to this admin + event, so
+    /// a replayed cancel returns the stored decision instead of erroring.
+    func cancelOrDeleteEvent(eventId: UUID) async throws -> CancelEventData {
+        try await send(
+            "operations",
+            method: "POST",
+            body: CancelOrDeleteEventRequest(eventId: eventId),
+            idempotencyKey: "cancel-delete-\(eventId.uuidString)"
+        )
     }
 
     func publish(eventId: UUID) async throws -> PublishEventData {
@@ -186,6 +217,18 @@ struct OrganizerBackendHTTPClient: OrganizerEdgeServing, Sendable {
 }
 
 private struct PublishRequest: Encodable, Sendable {
+    let eventId: UUID
+}
+
+private struct UpsertEventDraftRequest: Encodable, Sendable {
+    let action = "upsert_event_draft"
+    let eventId: UUID?
+    let mutationId: UUID
+    let payload: EventDraftPayload
+}
+
+private struct CancelOrDeleteEventRequest: Encodable, Sendable {
+    let action = "cancel_or_delete_event"
     let eventId: UUID
 }
 

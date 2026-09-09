@@ -64,6 +64,12 @@ enum BackendDependencies {
         try? authSession(bundle: bundle)
     }
 
+    /// Non-throwing variant for view-layer default arguments: returns nil
+    /// instead of throwing when backend configuration is incomplete.
+    static func backendBaseURL(bundle: Bundle = .main) -> URL? {
+        (try? BackendEnvironment.load(bundle: bundle))?.baseURL
+    }
+
     static func receptionRepository(bundle: Bundle = .main) throws -> any ReceptionRepository {
         let environment = try BackendEnvironment.load(bundle: bundle)
         let client = makeClient(environment: environment)
@@ -126,11 +132,7 @@ private struct UnavailableEventRepository: EventRepository {
         throw error
     }
 
-    func terminate(
-        eventId _: UUID,
-        status _: EventStatusCode,
-        reason _: String?
-    ) async throws -> BackendAdminEvent {
+    func cancelOrDelete(eventId _: UUID) async throws -> CancelEventData {
         throw error
     }
 }

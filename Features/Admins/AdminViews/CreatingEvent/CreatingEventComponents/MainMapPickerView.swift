@@ -97,6 +97,14 @@ struct MainMapPickerView: View {
                 hasSelected: $hasSelectedLocation
             )
         }
+        .onChange(of: hasSelectedLocation) { _, selected in
+            // A search selection places the pin but dismisses the search
+            // sheet before it can present the confirmation panel; opening
+            // it here keeps the search flow completable.
+            if selected {
+                isConfirmationPresented = true
+            }
+        }
         .onAppear(perform: loadInitialSelection)
     }
 
