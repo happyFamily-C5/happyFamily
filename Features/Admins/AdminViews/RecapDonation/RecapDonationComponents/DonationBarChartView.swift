@@ -1,17 +1,24 @@
 import SwiftUI
 
 struct DonationBarChartView: View {
-    // Data dummy harian (bisa diganti dinamis nanti)
-    let chartData: [(day: String, height: CGFloat, weightLabel: String?)] = [
+    /// Injected from RecapModel (real backend aggregation). The default keeps
+    /// canvas previews rendering; runtime call sites always pass live data.
+    var chartData: [(day: String, height: CGFloat, weightLabel: String?)] = [
         ("Sen", 90, nil),
         ("Sel", 130, nil),
         ("Rab", 100, nil),
         ("Kam", 60, nil),
         ("Jum", 85, "45 kg"), // Contoh ada tooltip "45 kg" di atas hari Jumat
         ("Sab", 70, nil),
-        ("Min", 110, nil)
+        ("Min", 110, nil),
     ]
-    
+
+    init(chartData: [(day: String, height: CGFloat, weightLabel: String?)]? = nil) {
+        if let chartData {
+            self.chartData = chartData
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .bottom, spacing: 16) {
@@ -27,21 +34,21 @@ struct DonationBarChartView: View {
                             // Spacer agar tinggi baris atas tetap sejajar walau tidak ada label
                             Spacer().frame(height: 18)
                         }
-                        
+
                         // Batang Grafik dengan Gradasi & Sudut Melengkung
                         RoundedRectangle(cornerRadius: 10)
                             .fill(
                                 LinearGradient(
                                     colors: [
                                         Color("2-BoldDarkSoftCyan"), // Hijau tua di atas
-                                        Color("5-LightSoftCyan")     // Hijau muda di bawah
+                                        Color("5-LightSoftCyan"), // Hijau muda di bawah
                                     ],
                                     startPoint: .top,
                                     endPoint: .bottom
                                 )
                             )
                             .frame(width: 24, height: data.height)
-                        
+
                         // Label Hari (Sen, Sel, Rab, dll)
                         Text(data.day)
                             .font(.system(size: 13, weight: .medium))
@@ -59,6 +66,7 @@ struct DonationBarChartView: View {
 }
 
 // MARK: - Preview
+
 #Preview(traits: .sizeThatFitsLayout) {
     DonationBarChartView()
         .padding()

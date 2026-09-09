@@ -5,35 +5,7 @@
 //  Created by Calzy Akmal Indyramdhani on 26/08/26.
 //
 
-struct AccessoryFinding: Identifiable, Equatable {
-    let attribute: String
-    let confidence: Float
-    let isPresent: Bool
-
-    var id: String {
-        attribute
-    }
-}
-
-struct GarmentType: Equatable {
-    let name: String
-    let confidence: Float
-}
-
-struct AccessoryScanResult: Equatable {
-    let findings: [AccessoryFinding]
-    let garmentType: GarmentType?
-    let multipleGarmentsProbability: Float
-    let hasMultipleGarments: Bool
-
-    var removable: [AccessoryFinding] {
-        findings.filter { $0.isPresent && AccessoryHead.removeFlagAttributes.contains($0.attribute) }
-    }
-
-    var present: [AccessoryFinding] {
-        findings.filter(\.isPresent)
-    }
-
+extension AccessoryScanResult {
     var grouped: [(label: String, confidence: Float)] {
         var order: [String] = []
         var best: [String: Float] = [:]
@@ -47,14 +19,4 @@ struct AccessoryScanResult: Equatable {
         return order.map { ($0, best[$0] ?? 0) }
     }
 
-    var needsProcessing: Bool {
-        !removable.isEmpty
-    }
-
-    static let empty = AccessoryScanResult(
-        findings: [],
-        garmentType: nil,
-        multipleGarmentsProbability: 0,
-        hasMultipleGarments: false
-    )
 }

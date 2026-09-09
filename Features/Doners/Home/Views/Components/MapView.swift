@@ -10,8 +10,8 @@ import SwiftUI
 
 struct MapView: View {
     let coordinate: CLLocationCoordinate2D
-    let locationName: String = "EcoTouch Office"
-    
+    let locationName: String
+
     var body: some View {
         Map(
             initialPosition: .region(
@@ -25,7 +25,7 @@ struct MapView: View {
             )
         ) {
             Marker(
-                "EcoTouch",
+                locationName,
                 coordinate: coordinate
             )
         }
@@ -35,23 +35,23 @@ struct MapView: View {
             openInMaps()
         }
     }
-    
+
     private func openInMaps() {
         let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
         let mapItem = MKMapItem(location: location, address: nil)
         mapItem.name = locationName
         mapItem.openInMaps(launchOptions: [
-            MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving
+            MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving,
         ])
     }
 }
-
 
 #Preview {
     MapView(
         coordinate: CLLocationCoordinate2D(
             latitude: -6.1667,
             longitude: 106.7900
-        )
+        ),
+        locationName: "EcoTouch Office"
     )
 }

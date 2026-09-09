@@ -9,23 +9,40 @@ import SwiftUI
 
 struct BannerEvent: View {
     let image: Image?
+    var remoteURL: URL? = nil
 
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 40)
                 .fill(AppColor.primaryCyan)
 
-            if let image {
+            if let remoteURL {
+                AsyncImage(url: remoteURL) { phase in
+                    if let image = phase.image {
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    } else if phase.error != nil {
+                        fallback
+                    } else {
+                        ProgressView()
+                    }
+                }
+            } else if let image {
                 image
                     .resizable()
                     .scaledToFill()
             } else {
-                Text("There is No Upcoming Event")
-                    .font(.headline)
-                    .foregroundStyle(AppColor.textDarkCyan)
+                fallback
             }
         }
         .aspectRatio(4 / 3, contentMode: .fit)
+    }
+
+    private var fallback: some View {
+        Text("Banner acara tidak tersedia")
+            .font(.headline)
+            .foregroundStyle(AppColor.textDarkCyan)
     }
 }
 

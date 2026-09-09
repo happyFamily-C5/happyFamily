@@ -26,6 +26,18 @@ LD_RUNPATH_SEARCH_PATHS = $(inherited) @executable_path/Frameworks
 ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon
 ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor
 
+// Backend endpoint selectors. Credentials and hosted project URLs are supplied
+// through the ignored Config/Secrets.xcconfig file; source control contains no
+// production or service-role material.
+KUMPUL_LOCAL_BACKEND_URL = http:/$()/127.0.0.1:54321
+KUMPUL_LOCAL_PUBLISHABLE_KEY =
+KUMPUL_STAGING_BACKEND_URL = https:/$()/staging.invalid
+KUMPUL_STAGING_PUBLISHABLE_KEY =
+KUMPUL_PRODUCTION_BACKEND_URL = https:/$()/production.invalid
+KUMPUL_PRODUCTION_PUBLISHABLE_KEY =
+
+#include? "Secrets.xcconfig"
+
 // Full-screen launch / orientation
 // Without a launch screen, iOS runs the app in compatibility mode (letterboxed,
 // not edge-to-edge). Generate an empty launch screen and declare orientations.
