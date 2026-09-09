@@ -15,7 +15,7 @@ struct TermsPage: View {
     
     var body: some View {
         VStack(spacing: 74) {
-            VStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 16) {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Terima Ketentuan")
                         .font(.title).bold()

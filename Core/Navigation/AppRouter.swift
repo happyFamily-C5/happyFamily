@@ -42,6 +42,10 @@ final class AppRouter {
     /// Shared donation flow state. App-scope so the event detail CTA and
     /// the flow's step views observe the same instance.
     let donation = DonationViewModel()
+    var adminProfile = AdminProfile.defaultProfile
+    var donorProfile = DonorProfile.defaultProfile
+    var adminEvents: [AdminEvent] = []
+    var donorEvents: [AdminEvent] = []
 
     func push(to destination:AdminsRouter) {
         adminPath.append(destination)
@@ -49,6 +53,12 @@ final class AppRouter {
     
     func push(to destination:DonersRouter) {
         donersPath.append(destination)
+    }
+    
+    func pop(){
+        if !donersPath.isEmpty {
+            donersPath.removeLast()
+        }
     }
 
     func openClothDetail(for item: ClothingItem) {
@@ -128,6 +138,12 @@ extension View {
                 DashboardView()
             case .addEvent:
                 EmptyView()
+            case .openScanner:
+                QRScannerView()
+            case .profile:
+                ProfileView(
+                    profile: Bindable(router).adminProfile
+                )
             }
         }
     }
@@ -166,6 +182,17 @@ extension View {
                 DonorBookingDetailView(bookingId: bookingId)
             case .history:
                 DonorHistoryView()
+            case .profile:
+                DonorProfileView(
+                    events: router.donorEvents,
+                    profile: Bindable(router).donorProfile
+                )
+            case .trackingHistory:
+                TrackingHistoryView()
+            case .forYouPage:
+                ForYouView()
+            case .trendPage:
+                TrendingView()
             }
         }
     }

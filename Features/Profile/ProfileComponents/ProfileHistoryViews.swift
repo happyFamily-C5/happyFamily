@@ -285,7 +285,7 @@ private struct HistoryErrorView: View {
     }
 }
 
-private struct ProfileEmptyHistoryView: View {
+struct ProfileEmptyHistoryView: View {
     let systemImage: String
     let title: String
     let message: String

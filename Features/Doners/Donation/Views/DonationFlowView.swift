@@ -9,7 +9,7 @@ import SwiftUI
 
 struct DonationFlowView: View {
     @Environment(AppRouter.self) var router
-
+    
     var body: some View {
         ZStack {
             if router.currentStep == 3 {
@@ -20,7 +20,7 @@ struct DonationFlowView: View {
                 )
                 .ignoresSafeArea()
             }
-            VStack(spacing: 32) {
+            VStack(spacing: 24) {
                 VStack(spacing: 16) {
                     HStack{
                         Text("Step \(router.currentStep) of 3")

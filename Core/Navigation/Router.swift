@@ -8,6 +8,8 @@ import Foundation
 enum AdminsRouter: Hashable {
     case dashboard
     case addEvent
+    case openScanner
+    case profile
 }
 
 enum MapPickerRouter: Hashable {
@@ -24,4 +26,9 @@ enum DonersRouter: Hashable {
     case myBookings
     case bookingDetail(UUID)
     case history
+    case profile
+    case trackingHistory
+    case forYouPage
+    case trendPage
 }
+

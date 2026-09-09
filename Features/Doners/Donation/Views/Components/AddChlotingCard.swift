@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct AddClothingCard: View {
+    @Environment(AppRouter.self) var router
     var onTap: () -> Void
     
     var body: some View {
@@ -20,7 +21,7 @@ struct AddClothingCard: View {
             }
             
             Button{
-                
+                router.push(to: .openCamera)
             }label: {
                 Text("Tambah")
                     .foregroundStyle(Color.white)
@@ -47,4 +48,5 @@ struct AddClothingCard: View {
 
 #Preview {
     AddClothingCard{}
+        .environment(AppRouter())
 }

@@ -112,6 +112,7 @@ struct CreatingView: View {
                 }
             }
         }
+        .background(Color(.systemBackground).ignoresSafeArea())
         .contentShape(Rectangle())
         .onTapGesture { focusedField = nil }
         .navigationBarHidden(true)

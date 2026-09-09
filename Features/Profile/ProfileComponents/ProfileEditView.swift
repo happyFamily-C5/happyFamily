@@ -84,7 +84,7 @@ struct ProfileEditView: View {
                         ProfileTextInput(
                             placeholder: "Alamat Pengelola",
                             text: $draftCompanyAddress,
-                            minHeight: 112,
+                            minHeight: 137,
                             isMultiline: true
                         )
                         .focused($isFieldFocused)

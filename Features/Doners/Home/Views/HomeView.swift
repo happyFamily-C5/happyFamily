@@ -10,6 +10,8 @@ import SwiftUI
 
 /// Donor home driven by `account:dashboard` (active/recommended/trending
 /// rails). Every card pushes `account:event_detail` through the router.
+/// UI structure follows the staging redesign: the rail titles navigate to
+/// the dedicated For You / Trending pages.
 struct HomeView: View {
 
     @Environment(AppRouter.self) private var router
@@ -51,6 +53,17 @@ struct HomeView: View {
                             Image(systemName: "clock.arrow.circlepath")
                                 .font(.system(size: 18, weight: .semibold))
                         }
+                        Image("ecoTouchLogo")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 24)
+                            .padding(12)
+                            .background(
+                                Color(#colorLiteral(red: 1, green: 0.9679821134, blue: 0.8170431256, alpha: 1)), in: Circle()
+                            )
+                            .onTapGesture {
+                                router.push(to: DonersRouter.profile)
+                            }
                     }
                     .foregroundStyle(.primary)
 
@@ -169,25 +182,32 @@ struct HomeView: View {
     private func recommendedRail(_ events: [DonorEventDTO]) -> some View {
         eventRail(
             title: "Untuk Kamu",
-            events: events
+            events: events,
+            route: .forYouPage
         )
     }
 
     private func trendingRail(_ events: [DonorEventDTO]) -> some View {
         eventRail(
             title: "Sedang Tren",
-            events: events
+            events: events,
+            route: .trendPage
         )
     }
 
-    private func eventRail(title: String, events: [DonorEventDTO]) -> some View {
+    private func eventRail(title: String, events: [DonorEventDTO], route: DonersRouter? = nil) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                Text(title)
-                    .font(.title2).bold()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 15)).bold()
-                    .foregroundStyle(Color.secondary)
+                if let route {
+                    Button {
+                        router.push(to: route)
+                    } label: {
+                        railTitle(title)
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    railTitle(title)
+                }
                 Spacer()
             }
             if events.isEmpty {
@@ -213,6 +233,16 @@ struct HomeView: View {
                     }
                 }
             }
+        }
+    }
+
+    private func railTitle(_ title: String) -> some View {
+        HStack(spacing: 8) {
+            Text(title)
+                .font(.title2).bold()
+            Image(systemName: "chevron.right")
+                .font(.system(size: 15)).bold()
+                .foregroundStyle(Color.secondary)
         }
     }
 }

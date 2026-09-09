@@ -14,7 +14,19 @@ struct FormView: View {
     @Environment(DonationViewModel.self) var donationVM
     @Environment(AppRouter.self) var router
     @State var showPrivacyPolice = false
-
+    @State var leaveProcess = false
+    
+    
+    /// Phone uses a number pad, which has no Return key — without an explicit
+    /// dismissal that keyboard can never be closed. Tapping anywhere off a
+    /// field clears focus, and the keyboard toolbar gives a visible way out.
+    @FocusState private var focusedField: Field?
+    
+    private enum Field {
+        case name
+        case phone
+    }
+    
     let onNext: () -> Void
 
     var body: some View {
@@ -48,6 +60,22 @@ struct FormView: View {
         .sheet(isPresented: $showPrivacyPolice) {
             PrivacyPolicyView()
                 .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $leaveProcess) {
+            LeaveBookingProses()
+                .background(Color.white)
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+        }
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button{
+                    leaveProcess = true
+                }label: {
+                    Image(systemName: "chevron.left")
+                }
+            }
         }
     }
 

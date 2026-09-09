@@ -25,42 +25,56 @@ struct ProfileView: View {
                     onCloseTapped: { dismiss() }
                 )
                 
-                ScrollView(showsIndicators: false) {
+
                     VStack(alignment: .leading, spacing: 24) {
                         ProfileHeaderCard(
                             imageData: profile.imageData,
-                            companyName: profile.companyName,
-                            companyAddress: profile.companyAddress,
+                            name: profile.companyName,
+                            address: profile.companyAddress,
                             onTap: { isShowingEditProfile = true }
                         )
                         
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Aktifitas Terbaru")
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(.primary)
-                                .padding(.horizontal, 20)
-                            
-                            VStack(spacing: 0) {
-                                ProfileMenuRow(title: "Riwayat Acara") {
+                        List {
+                            Section(
+                                header: Text("Aktifitas Terbaru")
+                                    .font(.title2)
+                                    .bold()
+                                    .foregroundStyle(Color.black)
+                            ) {
+                                Button{
                                     isShowingEventHistory = true
+                                }label: {
+                                    HStack{
+                                        Text("Riwayat Acara")
+                                            .font(.body)
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .font(.system(size: 16))
+                                    }
                                 }
+                                .buttonStyle(.plain)
                                 
-                                Divider()
-                                    .padding(.leading, 16)
-                                
-                                ProfileMenuRow(title: "Riwayat Pendonasi") {
+                                Button{
                                     isShowingDonationHistory = true
+                                }label: {
+                                    HStack{
+                                        Text("Riwayat Donasi")
+                                            .font(.body)
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .font(.system(size: 16))
+                                    }
                                 }
+                                .buttonStyle(.plain)
                             }
-                            .background(Color(.systemGray6))
-                            .cornerRadius(16)
-                            .padding(.horizontal, 20)
+                            .listRowBackground(Color(#colorLiteral(red: 0.9499571919, green: 0.9500558972, blue: 0.953115046, alpha: 1)))
                         }
-                        
-                        Spacer().frame(height: 120)
+                        .listStyle(.insetGrouped)
+                        .scrollDisabled(true)
+                        .scrollContentBackground(.hidden)
+
                     }
                     .padding(.top, 12)
-                }
             }
             .background(Color(.systemBackground))
             
