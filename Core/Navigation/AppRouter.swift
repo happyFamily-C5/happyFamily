@@ -47,6 +47,9 @@ final class AppRouter {
     /// Set by the root coordinator: donor-profile logout must end the whole
     /// session, not just pop the navigation stack.
     var onLogout: (() -> Void)?
+    /// Backend-backed admin profile save (uploads the logo, updates the
+    /// workspace, and requests the email change when needed).
+    var onSaveAdminProfile: ((AdminProfile) async throws -> Void)?
 
     func push(to destination:AdminsRouter) {
         adminPath.append(destination)
@@ -143,7 +146,9 @@ extension View {
                 QRScannerView()
             case .profile:
                 ProfileView(
-                    profile: Bindable(router).adminProfile
+                    profile: Bindable(router).adminProfile,
+                    onLogout: { router.onLogout?() },
+                    onSaveProfile: router.onSaveAdminProfile
                 )
             }
         }

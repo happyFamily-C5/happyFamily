@@ -233,6 +233,10 @@ struct AppCoordinatorView: View {
     /// the same backend-backed edits are shown after relaunch.
     private func syncAdminRouterProfile() {
         router.onLogout = { logout() }
+        router.onSaveAdminProfile = { profile in
+            try await saveAdminProfile(profile)
+            router.adminProfile = adminProfile
+        }
         router.adminProfile = adminProfile
     }
 
