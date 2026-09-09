@@ -52,13 +52,16 @@ struct LocationPickerView: View {
                                 .tint(Color("3-DarkSoftCyan"))
                         }
                         .disabled(true)
+                        .frame(maxWidth: .infinity)
                         .frame(height: 140)
                         .clipShape(RoundedRectangle(cornerRadius: 16))
                     }
                 }
                 .padding(16)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color(.systemGray6))
                 .cornerRadius(24)
+                .contentShape(RoundedRectangle(cornerRadius: 24))
             } else {
                 HStack(spacing: 12) {
                     Image(systemName: "location.north.fill")

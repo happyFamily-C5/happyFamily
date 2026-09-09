@@ -39,6 +39,10 @@ final class AppRouter {
     let mapPickerSession = MapPickerSession()
     var selectedClothingItem: ClothingItem?
     var currentStep: Int = 1
+    var adminProfile = AdminProfile.defaultProfile
+    var donorProfile = DonorProfile.defaultProfile
+    var adminEvents: [AdminEvent] = []
+    var donorEvents: [AdminEvent] = []
 
     func push(to destination:AdminsRouter) {
         adminPath.append(destination)
@@ -46,6 +50,12 @@ final class AppRouter {
     
     func push(to destination:DonersRouter) {
         donersPath.append(destination)
+    }
+    
+    func pop(){
+        if !donersPath.isEmpty {
+            donersPath.removeLast()
+        }
     }
 
     func openClothDetail(for item: ClothingItem) {
@@ -125,6 +135,11 @@ extension View {
                 EmptyView()
             case .openScanner:
                 QRScannerView()
+            case .profile:
+                ProfileView(
+                    events: router.adminEvents,
+                    profile: Bindable(router).adminProfile
+                )
             }
         }
     }
@@ -149,6 +164,17 @@ extension View {
                 } else {
                     EmptyView()
                 }
+            case .profile:
+                DonorProfileView(
+                    events: router.donorEvents,
+                    profile: Bindable(router).donorProfile
+                )
+            case .trackingHistory:
+                TrackingHistoryView()
+            case .forYouPage:
+                ForYouView()
+            case .trendPage:
+                TrendingView()
             }
         }
     }

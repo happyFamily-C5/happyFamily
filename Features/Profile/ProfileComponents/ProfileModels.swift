@@ -1,5 +1,7 @@
 import Foundation
 import CoreLocation
+import SwiftUI
+import UIKit
 
 struct AdminProfile {
     var companyName: String
@@ -15,6 +17,44 @@ struct AdminProfile {
         email: "",
         imageData: nil
     )
+}
+
+struct DonorProfile {
+    var fullName: String
+    var address: String
+    var imageData: Data?
+    
+    static let defaultProfile = DonorProfile(
+        fullName: "Yuan Dimianta",
+        address: "Jl. Kutilang 9-2, Palmerah, Kec. Palmerah, Kota Jakarta Barat.",
+        imageData: nil
+    )
+}
+
+// MARK: Donor's donation history — events they've personally contributed to, with the weight they gave
+struct DonorDonation: Identifiable {
+    let id = UUID()
+    let eventName: String
+    let dateRangeText: String
+    let weightText: String
+    let bannerImageData: Data?
+    
+    var bannerImage: Image {
+        if let bannerImageData, let uiImage = UIImage(data: bannerImageData) {
+            return Image(uiImage: uiImage)
+        }
+        return Image("EventBannerPlaceholder")
+    }
+    
+    static let sampleData: [DonorDonation] = [
+        DonorDonation(eventName: "Ecoday | drop your unused shirt", dateRangeText: "9 Sept - 16 Sept 2026", weightText: "4.3 kg", bannerImageData: nil),
+        DonorDonation(eventName: "Give Clothes a Second Life", dateRangeText: "9 Sept - 16 Sept 2026", weightText: "3.8 kg", bannerImageData: nil),
+        DonorDonation(eventName: "Textile Rescue Day", dateRangeText: "9 Sept - 16 Sept 2026", weightText: "4.9 kg", bannerImageData: nil),
+        DonorDonation(eventName: "ReWear & Recycle", dateRangeText: "9 Sept - 16 Sept 2026", weightText: "4.1 kg", bannerImageData: nil),
+        DonorDonation(eventName: "From Closet to Impact", dateRangeText: "9 Sept - 16 Sept 2026", weightText: "3.2 kg", bannerImageData: nil),
+        DonorDonation(eventName: "Old Clothes, New Purpose", dateRangeText: "9 Sept - 16 Sept 2026", weightText: "4.2 kg", bannerImageData: nil),
+        DonorDonation(eventName: "Don't Trash Your Textile", dateRangeText: "9 Sept - 16 Sept 2026", weightText: "4.3 kg", bannerImageData: nil)
+    ]
 }
 
 struct RegisterAccountDraft {

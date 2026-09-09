@@ -13,6 +13,7 @@ struct FormView: View {
     @State var showNameError = false
     @State var showPhoneError = false
     @State var showPrivacyPolice = false
+    @State var leaveProcess = false
     
     
     /// Phone uses a number pad, which has no Return key — without an explicit
@@ -150,6 +151,22 @@ struct FormView: View {
         .sheet(isPresented: $showPrivacyPolice) {
             PrivacyPolicyView()
                 .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $leaveProcess) {
+            LeaveBookingProses()
+                .background(Color.white)
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+        }
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button{
+                    leaveProcess = true
+                }label: {
+                    Image(systemName: "chevron.left")
+                }
+            }
         }
     }
 }

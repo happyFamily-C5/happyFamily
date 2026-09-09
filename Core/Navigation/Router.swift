@@ -9,6 +9,7 @@ enum AdminsRouter: Hashable {
     case dashboard
     case addEvent
     case openScanner
+    case profile
 }
 
 enum MapPickerRouter: Hashable {
@@ -21,4 +22,9 @@ enum DonersRouter: Hashable {
     case openCamera
     case mapPicker
     case clothDetail
+    case profile
+    case trackingHistory
+    case forYouPage
+    case trendPage
 }
+

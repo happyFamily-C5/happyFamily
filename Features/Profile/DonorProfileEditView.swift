@@ -2,40 +2,30 @@ import SwiftUI
 import PhotosUI
 
 @MainActor
-struct ProfileEditView: View {
+struct DonorProfileEditView: View {
     @Environment(\.dismiss) private var dismiss
     
-    @Binding var companyName: String
-    @Binding var companyAddress: String
-    @Binding var phoneNumber: String
-    @Binding var email: String
+    @Binding var fullName: String
+    @Binding var address: String
     @Binding var selectedImageData: Data?
     
     @State private var selectedItem: PhotosPickerItem?
-    @State private var draftCompanyName: String
-    @State private var draftCompanyAddress: String
-    @State private var draftPhoneNumber: String
-    @State private var draftEmail: String
+    @State private var draftFullName: String
+    @State private var draftAddress: String
     @State private var draftImageData: Data?
     @State private var isPhotoPickerPresented = false
     @FocusState private var isFieldFocused: Bool
     
     init(
-        companyName: Binding<String>,
-        companyAddress: Binding<String>,
-        phoneNumber: Binding<String>,
-        email: Binding<String>,
+        fullName: Binding<String>,
+        address: Binding<String>,
         selectedImageData: Binding<Data?>
     ) {
-        _companyName = companyName
-        _companyAddress = companyAddress
-        _phoneNumber = phoneNumber
-        _email = email
+        _fullName = fullName
+        _address = address
         _selectedImageData = selectedImageData
-        _draftCompanyName = State(initialValue: companyName.wrappedValue)
-        _draftCompanyAddress = State(initialValue: companyAddress.wrappedValue)
-        _draftPhoneNumber = State(initialValue: phoneNumber.wrappedValue)
-        _draftEmail = State(initialValue: email.wrappedValue)
+        _draftFullName = State(initialValue: fullName.wrappedValue)
+        _draftAddress = State(initialValue: address.wrappedValue)
         _draftImageData = State(initialValue: selectedImageData.wrappedValue)
     }
     
@@ -71,34 +61,16 @@ struct ProfileEditView: View {
                         ProfileSectionTitle(title: "Informasi Umum")
                         
                         ProfileTextInput(
-                            placeholder: "Nama Pengelola",
-                            text: $draftCompanyName
+                            placeholder: "Nama",
+                            text: $draftFullName
                         )
                         .focused($isFieldFocused)
                         
                         ProfileTextInput(
-                            placeholder: "Alamat Pengelola",
-                            text: $draftCompanyAddress,
+                            placeholder: "Alamat",
+                            text: $draftAddress,
                             minHeight: 112,
                             isMultiline: true
-                        )
-                        .focused($isFieldFocused)
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 12) {
-                        ProfileSectionTitle(title: "Informasi Kontak")
-                        
-                        ProfileTextInput(
-                            placeholder: "Nomor Telepon",
-                            text: $draftPhoneNumber,
-                            keyboardType: .phonePad
-                        )
-                        .focused($isFieldFocused)
-                        
-                        ProfileTextInput(
-                            placeholder: "Email",
-                            text: $draftEmail,
-                            keyboardType: .emailAddress
                         )
                         .focused($isFieldFocused)
                     }
@@ -124,10 +96,8 @@ struct ProfileEditView: View {
     }
     
     private func saveProfile() {
-        companyName = draftCompanyName
-        companyAddress = draftCompanyAddress
-        phoneNumber = draftPhoneNumber
-        email = draftEmail
+        fullName = draftFullName
+        address = draftAddress
         selectedImageData = draftImageData
         dismiss()
     }
@@ -144,17 +114,13 @@ struct ProfileEditView: View {
 }
 
 #Preview {
-    @Previewable @State var name = "EcoTouch Office"
-    @Previewable @State var address = "Jl. Arjuna Utara No. 14D,\nTanjung Duren Selatan\nJakarta Barat"
-    @Previewable @State var phone = ""
-    @Previewable @State var email = ""
+    @Previewable @State var name = "Yuan Dimianta"
+    @Previewable @State var address = "Jl. Kutilang 9-2, Palmerah, Kec. Palmerah, Kota Jakarta Barat."
     @Previewable @State var imageData: Data?
     
-    ProfileEditView(
-        companyName: $name,
-        companyAddress: $address,
-        phoneNumber: $phone,
-        email: $email,
+    DonorProfileEditView(
+        fullName: $name,
+        address: $address,
         selectedImageData: $imageData
     )
 }
