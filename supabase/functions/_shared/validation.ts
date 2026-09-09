@@ -35,6 +35,13 @@ export type BookingInput = {
   privacy_version: string;
 };
 
+/**
+ * Input accepted from an authenticated donor account.  Identity is deliberately
+ * absent: the Edge Function obtains the name and phone number from the
+ * authenticated profile before it encrypts them for the booking record.
+ */
+export type AccountBookingInput = Omit<BookingInput, "invocation_token" | "donor_name" | "phone">;
+
 function requiredString(value: unknown, field: string, max: number): string {
   if (typeof value !== "string" || value.trim().length < 1 || value.trim().length > max) {
     throw new ApiError("INVALID_REQUEST", 422, false, { [field]: "invalid" });
@@ -124,4 +131,35 @@ export function validateBooking(body: Record<string, unknown>): BookingInput {
     terms_version: requiredString(body.terms_version, "terms_version", 80),
     privacy_version: requiredString(body.privacy_version, "privacy_version", 80),
   };
+}
+
+export function validateAccountBooking(body: Record<string, unknown>): AccountBookingInput {
+  const allowed = new Set([
+    "estimated_weight_grams",
+    "item_count",
+    "items",
+    "shipping_method",
+    "scan_model_version",
+    "terms_version",
+    "privacy_version",
+  ]);
+  const unknown = Object.keys(body).filter((key) => !allowed.has(key));
+  if (unknown.length > 0) {
+    if (unknown.some((key) => forbiddenMetadata.test(key))) {
+      throw new ApiError("PHOTO_DATA_FORBIDDEN", 422);
+    }
+    throw new ApiError("UNKNOWN_FIELD", 422);
+  }
+
+  // Reuse the single item/weight/consent validator without accepting or
+  // trusting a donor identity from an authenticated client.
+  const validated = validateBooking({
+    ...body,
+    invocation_token: "account",
+    donor_name: "account",
+    phone: "+62800000000",
+  });
+  const { invocation_token: _invocationToken, donor_name: _donorName, phone: _phone, ...booking } =
+    validated;
+  return booking;
 }
