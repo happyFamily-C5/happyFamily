@@ -16,6 +16,12 @@ SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG $(inherited)
 GCC_OPTIMIZATION_LEVEL = 0
 GCC_PREPROCESSOR_DEFINITIONS = DEBUG=1 $(inherited)
 
+// Debug points at the local Supabase stack. Put the local publishable key in
+// Config/Secrets.xcconfig so it never enters source control.
+KUMPUL_BACKEND_URL = $(KUMPUL_LOCAL_BACKEND_URL)
+KUMPUL_BACKEND_PUBLISHABLE_KEY = $(KUMPUL_LOCAL_PUBLISHABLE_KEY)
+KUMPUL_BACKEND_ENVIRONMENT = local
+
 // Debugging & Testing
 ENABLE_TESTABILITY = YES
 ONLY_ACTIVE_ARCH = YES

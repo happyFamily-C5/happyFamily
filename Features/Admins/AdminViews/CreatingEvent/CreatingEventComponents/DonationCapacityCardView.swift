@@ -31,16 +31,14 @@ struct DonationCapacityCardView: View {
                         HStack(spacing: 4) {
                             Text("\(selectedCapacity) kg")
                                 .font(.system(size: 15, weight: .semibold))
-                                .foregroundColor(.primary)
+                                .foregroundColor(.secondary)
                             
                             Image(systemName: "chevron.up.chevron.down")
                                 .font(.system(size: 10, weight: .semibold))
                                 .foregroundColor(.secondary)
                         }
                         .padding(.horizontal, 14)
-                        .padding(.vertical, 6)
-                        .background(Color(.systemBackground))
-                        .cornerRadius(8)
+                        .padding(.vertical, 2)
                     }
                     .padding(16)
                 }
@@ -63,7 +61,7 @@ struct DonationCapacityCardView: View {
                 }
             }
             .background(Color(.systemGray6))
-            .cornerRadius(20)
+            .cornerRadius(30)
         }
     }
 }

@@ -22,6 +22,8 @@ happyFamily/
 ├── Resources/          # Assets, icons, fonts, and localization files
 ├── Tests/              # Unit test suites
 ├── UITests/            # UI test suites
+├── supabase/           # Versioned database, Edge Functions, seed, and backend tests
+├── docs/               # Product requirements and operational runbooks
 ├── fastlane/           # Fastlane automation pipelines (Fastfile, Appfile)
 ├── .github/workflows/  # GitHub Actions CI/CD workflows
 ├── project.yml         # XcodeGen specification
@@ -71,7 +73,7 @@ The project provides dedicated build configurations managed through `.xcconfig` 
 
 | Environment | Configuration | Bundle Identifier | Description |
 |---|---|---|---|
-| **Personal Team** | `Local` | Set per developer | Local iPhone development without the official App Clip/signing team |
+| **Personal Team** | `Local` | Set per developer | Local iPhone development without the official signing team |
 | **Debug** | `Debug` | `com.academy.hendraaaa.happyFamily.debug` | Local development with debug symbols |
 | **Staging** | `Staging` | `com.academy.hendraaaa.happyFamily.staging` | Internal QA and TestFlight staging builds |
 | **Release** | `Release` | `com.academy.hendraaaa.happyFamily` | Production App Store & TestFlight builds |
@@ -94,9 +96,9 @@ Team ID is not known yet, select the Personal Team once under the
 `happyFamilyPersonal` target's Signing & Capabilities settings, then copy the
 resulting `DEVELOPMENT_TEAM` value into the local override before regenerating.
 
-The Personal Team target intentionally excludes the App Clip and its association
-entitlements. Use the official Debug/Staging/Release targets for App Clip,
-TestFlight, and release validation. Never commit `LocalOverrides.xcconfig`, a
+The Personal Team target intentionally excludes team-owned distribution
+entitlements. Use the official Debug/Staging/Release configurations for
+TestFlight and release validation. Never commit `LocalOverrides.xcconfig`, a
 certificate, provisioning profile, or Apple Account credential.
 
 ---
@@ -111,6 +113,29 @@ bundle exec fastlane lint
 
 # Automatically format and autocorrect violations
 bundle exec fastlane format
+```
+
+---
+
+## Backend .kumpul
+
+Backend MVP memakai Supabase/PostgreSQL sebagai source of truth, Edge Functions untuk boundary
+public/PII, RPC untuk mutation atomik, Storage untuk banner, dan Cron untuk lifecycle/retention.
+Main app menambahkan cache event serta antrean Draf offline tenant-scoped di SwiftData; mutation
+operasional seperti publish, booking, QR, accept, dan reject tetap online-only.
+
+- Product contract: [`docs/BACKEND_PRD.md`](docs/BACKEND_PRD.md)
+- Local setup, deployment, key rotation, monitoring, dan recovery:
+  [`docs/BACKEND_RUNBOOK.md`](docs/BACKEND_RUNBOOK.md)
+- CI backend: `.github/workflows/backend-ci.yml`
+
+Quick verification setelah local stack dan secret sementara dikonfigurasi:
+
+```bash
+supabase db reset
+supabase test db --local
+bash supabase/tests/http/smoke.sh
+bash supabase/tests/load/run.sh
 ```
 
 ---

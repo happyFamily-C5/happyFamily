@@ -13,22 +13,22 @@ struct EmptyStateViewDashboard: View {
             Spacer()
             
            
-            Image("EmptyRecycleImage")
+            Image("emptyViewHome")
                 .resizable()
                 .scaledToFit()
-                .frame(maxHeight: 220)
+                .frame(width: 300)
             
             VStack(spacing: 8) {
                 // 2. Judul Utama
                 Text("Buat Event,\nKurangi Limbah tekstil")
-                    .font(.system(size: 22, weight: .bold))
+                    .font(.title).bold()
                     .multilineTextAlignment(.center)
                     .foregroundColor(.primary)
                     .lineSpacing(4) 
                 
                 // 3. Subteks Deskripsi
                 Text("Kumpulkan limbah tekstil bersama-sama di drop point pilihanmu dan ajak orang-orang mengumpulkan tekstil bekas ke drop point yang tersedia.")
-                    .font(.system(size: 14, weight: .regular))
+                    .font(.footnote)
                     .multilineTextAlignment(.center)
                     .foregroundColor(.secondary)
                     .padding(.horizontal, 16)
