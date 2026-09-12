@@ -1,9 +1,4 @@
-import {
-  activeEncryptionKeyVersion,
-  decrypt,
-  encrypt,
-  sha256Hex,
-} from "../_shared/crypto.ts";
+import { activeEncryptionKeyVersion, decrypt, encrypt, sha256Hex } from "../_shared/crypto.ts";
 import { environment, requireEnv } from "../_shared/env.ts";
 import { ApiError, method, readJson, serve, success } from "../_shared/http.ts";
 import { opaqueToken } from "../_shared/ids.ts";
@@ -28,9 +23,7 @@ function optionalInt(
   key: string,
 ): number | null {
   const value = body[key];
-  return typeof value === "number" && Number.isInteger(value) && value > 0
-    ? value
-    : null;
+  return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : null;
 }
 
 function optionalCursor(
@@ -228,9 +221,7 @@ serve("operations", async (req, requestId) => {
       await rpc(client, "decide_reception_v2", {
         p_booking_id: uuid(body.booking_id),
         p_decision: decision,
-        p_actual_weight_grams: decision === "accepted"
-          ? body.actual_weight_grams
-          : null,
+        p_actual_weight_grams: decision === "accepted" ? body.actual_weight_grams : null,
         p_idempotency_key: key,
         p_request_id: requestId,
       }),
