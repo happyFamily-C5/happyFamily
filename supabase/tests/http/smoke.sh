@@ -266,12 +266,19 @@ assert_json "$SMOKE_TMP/photo.json" "photo payload error" \
 
 jq -nc --arg value "$(head -c 33000 /dev/zero | tr '\0' x)" \
   '{oversized:$value}' >"$SMOKE_TMP/oversized.json"
-OVERSIZED_STATUS="$(curl -sS -o "$SMOKE_TMP/oversized-response.json" -w '%{http_code}' \
-  "$FUNCTIONS_URL/create-booking" \
-  -H "apikey: $PUBLISHABLE_KEY" \
-  -H "idempotency-key: oversized-$SUFFIX" \
-  -H 'content-type: application/json' \
-  --data-binary "@$SMOKE_TMP/oversized.json")"
+OVERSIZED_STATUS=""
+for _attempt in 1 2 3; do
+  OVERSIZED_STATUS="$(curl -sS -o "$SMOKE_TMP/oversized-response.json" -w '%{http_code}' \
+    "$FUNCTIONS_URL/create-booking" \
+    -H "apikey: $PUBLISHABLE_KEY" \
+    -H "idempotency-key: oversized-$SUFFIX" \
+    -H 'content-type: application/json' \
+    --data-binary "@$SMOKE_TMP/oversized.json")"
+  # Cold edge isolates on slow CI runners can trip the gateway timeout;
+  # retry on transient 5xx before evaluating the boundary assertion.
+  [[ "$OVERSIZED_STATUS" =~ ^5 ]] || break
+  sleep 2
+done
 assert_status "$OVERSIZED_STATUS" 413 "oversized booking payload"
 assert_json "$SMOKE_TMP/oversized-response.json" "oversized payload error" \
   '.error.code == "PAYLOAD_TOO_LARGE"'
