@@ -247,7 +247,7 @@ private struct DonorDonationRow: View {
 
     private var weightText: String {
         let grams = donation.actualWeightGrams ?? donation.estimatedWeightGrams
-        let kg = Double(grams) / 1_000
+        let kg = Double(grams) / 1000
         return String(format: "%.1f kg", kg)
     }
 

@@ -3,7 +3,7 @@ import UIKit
 
 struct EditEventCard<Content: View>: View {
     @ViewBuilder var content: Content
-    
+
     var body: some View {
         content
             .padding(14)
@@ -16,21 +16,21 @@ struct EditEventCard<Content: View>: View {
 
 struct EditEventRowTitle: View {
     let title: String
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
                 Text(title)
                     .font(.system(size: 15, weight: .bold))
                     .foregroundColor(.primary)
-                
+
                 Image(systemName: "chevron.right")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundColor(.secondary)
-                
+
                 Spacer()
             }
-            
+
             Rectangle()
                 .fill(Color(.systemGray4))
                 .frame(maxWidth: .infinity)
@@ -41,13 +41,13 @@ struct EditEventRowTitle: View {
 
 struct EditEventPlainTitle: View {
     let title: String
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
                 .font(.system(size: 15, weight: .bold))
                 .foregroundColor(.primary)
-            
+
             Rectangle()
                 .fill(Color(.systemGray4))
                 .frame(maxWidth: .infinity)
@@ -58,18 +58,16 @@ struct EditEventPlainTitle: View {
 
 struct EditEventBannerImage: View {
     let imageData: Data?
-    
+
     var body: some View {
-        Group {
-            if let imageData, let uiImage = UIImage(data: imageData) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .scaledToFill()
-            } else {
-                Image("DummyImageBanner")
-                    .resizable()
-                    .scaledToFill()
-            }
+        if let imageData, let uiImage = UIImage(data: imageData) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFill()
+        } else {
+            Image("DummyImageBanner")
+                .resizable()
+                .scaledToFill()
         }
     }
 }

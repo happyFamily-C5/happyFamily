@@ -182,13 +182,15 @@ private final class FakeReceptionRepository: ReceptionRepository, @unchecked Sen
 
     func advanceTracking(bookingId: UUID, status: BookingStatusCode) async throws -> ReceptionDecisionData {
         advances.append((bookingId, status))
-        if let advanceError { throw advanceError }
+        if let advanceError {
+            throw advanceError
+        }
         return ReceptionDecisionData(
             bookingId: bookingId,
             publicBookingId: "KMP-TEST-001",
             status: decisionStatus,
             receivedWeightGrams: 750,
-            capacityGrams: 10_000,
+            capacityGrams: 10000,
             capacityFull: false
         )
     }

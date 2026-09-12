@@ -13,7 +13,8 @@ final class CameraManager: NSObject {
     func configure() -> Bool {
         guard !isConfigured else { return true }
         guard let device = AVCaptureDevice.default(for: .video),
-              let input = try? AVCaptureDeviceInput(device: device) else {
+              let input = try? AVCaptureDeviceInput(device: device)
+        else {
             return false
         }
 
@@ -61,7 +62,8 @@ extension CameraManager: AVCaptureMetadataOutputObjectsDelegate {
         guard let code = metadataObjects
             .compactMap({ $0 as? AVMetadataMachineReadableCodeObject })
             .first(where: { $0.type == .qr }),
-              let value = code.stringValue else {
+            let value = code.stringValue
+        else {
             return
         }
 

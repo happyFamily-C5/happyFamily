@@ -148,11 +148,12 @@ struct LoginWelcomeView: View {
 
     private func handleAppleCompletion(_ result: Result<ASAuthorization, Error>) {
         switch result {
-        case .success(let authorization):
+        case let .success(authorization):
             guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
                   let tokenData = credential.identityToken,
                   let idToken = String(data: tokenData, encoding: .utf8),
-                  let nonce = appleNonce else {
+                  let nonce = appleNonce
+            else {
                 model.errorMessage = "Sign in with Apple tidak lengkap. Coba lagi."
                 return
             }
@@ -161,7 +162,7 @@ struct LoginWelcomeView: View {
                     onAuthenticated()
                 }
             }
-        case .failure(let error):
+        case let .failure(error):
             guard (error as? ASAuthorizationError)?.code != .canceled else { return }
             model.errorMessage = "Sign in with Apple gagal. Coba lagi atau gunakan email."
         }

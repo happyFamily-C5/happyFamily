@@ -58,7 +58,8 @@ struct StorageMediaClient: Sendable {
         guard let (data, response) = try? await execute(request),
               let http = response as? HTTPURLResponse,
               (200 ..< 300).contains(http.statusCode),
-              !data.isEmpty else {
+              !data.isEmpty
+        else {
             return nil
         }
         return data
@@ -132,7 +133,8 @@ struct StorageMediaClient: Sendable {
 
     private static func storageFailureMessage(_ data: Data) -> String {
         guard let object = try? JSONSerialization.jsonObject(with: data),
-              let body = object as? [String: Any] else {
+              let body = object as? [String: Any]
+        else {
             return String(bytes: data, encoding: .utf8)?.lowercased() ?? ""
         }
         return ["error", "message"]
@@ -159,15 +161,18 @@ struct StorageMediaClient: Sendable {
     /// is re-encoded as JPEG so the bytes match the declared content type.
     static func normalizedImage(data: Data) throws -> (Data, String) {
         if data.count <= maximumUploadBytes,
-           data.starts(with: [0x89, 0x50, 0x4E, 0x47]) {
+           data.starts(with: [0x89, 0x50, 0x4E, 0x47])
+        {
             return (data, "image/png")
         }
         if data.count <= maximumUploadBytes,
-           data.starts(with: [0xFF, 0xD8]) {
+           data.starts(with: [0xFF, 0xD8])
+        {
             return (data, "image/jpeg")
         }
         guard let image = UIImage(data: data),
-              let jpeg = compressedJPEG(image) else {
+              let jpeg = compressedJPEG(image)
+        else {
             throw BackendError.api(
                 code: "PROFILE_MEDIA_REJECTED",
                 retryable: false,
@@ -183,7 +188,7 @@ struct StorageMediaClient: Sendable {
         guard sourceSize.width > 0, sourceSize.height > 0 else { return nil }
 
         let largestSide = max(sourceSize.width, sourceSize.height)
-        let scale = min(1, CGFloat(2_048) / largestSide)
+        let scale = min(1, CGFloat(2048) / largestSide)
         let targetSize = CGSize(
             width: max(1, (sourceSize.width * scale).rounded(.down)),
             height: max(1, (sourceSize.height * scale).rounded(.down))
@@ -194,7 +199,8 @@ struct StorageMediaClient: Sendable {
         }
         for quality in [CGFloat(0.85), 0.7, 0.55] {
             if let data = rendered.jpegData(compressionQuality: quality),
-               data.count <= maximumUploadBytes {
+               data.count <= maximumUploadBytes
+            {
                 return data
             }
         }

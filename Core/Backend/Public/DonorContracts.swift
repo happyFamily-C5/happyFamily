@@ -102,7 +102,9 @@ struct DonorBookingListItem: Decodable, Equatable, Sendable, Identifiable {
     let createdAt: Date
     let statusUpdatedAt: Date?
 
-    var id: UUID { bookingId }
+    var id: UUID {
+        bookingId
+    }
 }
 
 struct DonorBookingTimelineEntry: Decodable, Equatable, Sendable, Identifiable {

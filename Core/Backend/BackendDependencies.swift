@@ -112,12 +112,12 @@ enum BackendDependencies {
         )
     }
 
-
     /// Non-throwing variant for view-layer default arguments: returns nil
     /// instead of crashing when backend configuration is incomplete.
     static func accountClientOrDefault(bundle: Bundle = .main) -> (any AccountBackendServing)? {
         try? accountClient(bundle: bundle)
     }
+
     /// Non-throwing variant for view-layer default arguments: returns nil
     /// instead of crashing when backend configuration is incomplete.
     static func reportRepositoryOrDefault(bundle: Bundle = .main) -> (any ReportRepository)? {

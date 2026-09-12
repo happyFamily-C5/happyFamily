@@ -1,5 +1,5 @@
-import Foundation
 import CoreLocation
+import Foundation
 @testable import happyFamily
 import Testing
 
@@ -80,12 +80,12 @@ struct AdminEventMappingTests {
     func kilogramsEncodeAsGrams() {
         let event = AdminEvent(backend: backendEvent(capacityKg: 10))
         let payload = EventDraftPayload(event: event.toBackendAdminEvent())
-        #expect(payload.capacityGrams == 10_000)
-        #expect(payload.maxDonationPerUserGrams == 1_000)
+        #expect(payload.capacityGrams == 10000)
+        #expect(payload.maxDonationPerUserGrams == 1000)
     }
 
     @Test("Local schedule strings parse into today's hour and minute")
-    func localTimesParse() throws {
+    func localTimesParse() {
         let event = AdminEvent(backend: backendEvent(opensAtLocal: "08:00:00", closesAtLocal: "17:30:00"))
         let calendar = Calendar.current
         let start = calendar.dateComponents([.hour, .minute], from: event.startTime)

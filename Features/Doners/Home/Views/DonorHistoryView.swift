@@ -15,7 +15,9 @@ struct DonorHistoryView: View {
         case donations = "Donasi"
         case completed = "Selesai"
 
-        var id: String { rawValue }
+        var id: String {
+            rawValue
+        }
     }
 
     @Environment(\.dismiss) private var dismiss
@@ -60,7 +62,7 @@ struct DonorHistoryView: View {
     private var segmentContent: some View {
         switch segment {
         case .donations:
-            historyList(
+            historyList(HistorySection(
                 items: model.donations,
                 isLoading: model.isLoadingDonations,
                 isLoadingMore: model.isLoadingMoreDonations,
@@ -70,9 +72,9 @@ struct DonorHistoryView: View {
                 emptyMessage: "Donasi yang telah diterima akan tampil di halaman ini",
                 load: { await model.loadDonations() },
                 loadMore: { await model.loadMoreDonations() }
-            )
+            ))
         case .completed:
-            historyList(
+            historyList(HistorySection(
                 items: model.completed,
                 isLoading: model.isLoadingCompleted,
                 isLoadingMore: model.isLoadingMoreCompleted,
@@ -82,44 +84,47 @@ struct DonorHistoryView: View {
                 emptyMessage: "Acara yang telah selesai akan tampil di halaman ini",
                 load: { await model.loadCompleted() },
                 loadMore: { await model.loadMoreCompleted() }
-            )
+            ))
         }
     }
 
-    private func historyList(
-        items: [BookingHistoryItem],
-        isLoading: Bool,
-        isLoadingMore: Bool,
-        errorMessage: String?,
-        hasMore: Bool,
-        emptyTitle: String,
-        emptyMessage: String,
-        load: @escaping () async -> Void,
-        loadMore: @escaping () async -> Void
-    ) -> some View {
-        ScrollView(showsIndicators: false) {
+    private struct HistorySection {
+        let items: [BookingHistoryItem]
+        let isLoading: Bool
+        let isLoadingMore: Bool
+        let errorMessage: String?
+        let hasMore: Bool
+        let emptyTitle: String
+        let emptyMessage: String
+        let load: () async -> Void
+        let loadMore: () async -> Void
+    }
+
+    private func historyList(_ section: HistorySection) -> some View {
+        let items = section.items
+        return ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 16) {
-                if let errorMessage, items.isEmpty {
+                if let errorMessage = section.errorMessage, items.isEmpty {
                     VStack(spacing: 12) {
                         Text(errorMessage)
                             .font(.footnote)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
                         Button("Coba lagi") {
-                            Task { await load() }
+                            Task { await section.load() }
                         }
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.top, 120)
-                } else if isLoading && items.isEmpty {
+                } else if section.isLoading, items.isEmpty {
                     ProgressView()
                         .frame(maxWidth: .infinity)
                         .padding(.top, 120)
                 } else if items.isEmpty {
                     DonorEmptyHistoryView(
                         systemImage: "clock.arrow.circlepath",
-                        title: emptyTitle,
-                        message: emptyMessage
+                        title: section.emptyTitle,
+                        message: section.emptyMessage
                     )
                     .frame(maxWidth: .infinity)
                     .padding(.top, 120)
@@ -128,12 +133,12 @@ struct DonorHistoryView: View {
                         ForEach(items) { item in
                             historyRow(item)
                                 .onAppear {
-                                    if item.id == items.last?.id, hasMore {
-                                        Task { await loadMore() }
+                                    if item.id == items.last?.id, section.hasMore {
+                                        Task { await section.loadMore() }
                                     }
                                 }
                         }
-                        if isLoadingMore {
+                        if section.isLoadingMore {
                             ProgressView()
                                 .frame(maxWidth: .infinity)
                         }

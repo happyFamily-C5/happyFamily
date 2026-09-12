@@ -201,7 +201,7 @@ struct AccountBackendHTTPClient: AccountBackendServing, Sendable {
         idempotencyKey: String? = nil
     ) async throws -> Data {
         var payload = try BackendJSON.encoder().encode(body)
-        var object = (try JSONSerialization.jsonObject(with: payload) as? [String: Any]) ?? [:]
+        var object = try (JSONSerialization.jsonObject(with: payload) as? [String: Any]) ?? [:]
         object["action"] = action
         payload = try JSONSerialization.data(withJSONObject: object)
         var request = URLRequest(url: environment.functionsURL.appending(path: "account"))
@@ -211,9 +211,11 @@ struct AccountBackendHTTPClient: AccountBackendServing, Sendable {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue(environment.publishableKey, forHTTPHeaderField: "apikey")
-        request.setValue("Bearer \(try await accessToken())", forHTTPHeaderField: "Authorization")
+        try await request.setValue("Bearer \(accessToken())", forHTTPHeaderField: "Authorization")
         request.setValue(UUID().uuidString.lowercased(), forHTTPHeaderField: "X-Request-ID")
-        if let idempotencyKey { request.setValue(idempotencyKey, forHTTPHeaderField: "Idempotency-Key") }
+        if let idempotencyKey {
+            request.setValue(idempotencyKey, forHTTPHeaderField: "Idempotency-Key")
+        }
         let (data, response) = try await session.data(for: request)
         guard let response = response as? HTTPURLResponse else { throw BackendError.invalidResponse }
         guard (200 ..< 300).contains(response.statusCode) else {

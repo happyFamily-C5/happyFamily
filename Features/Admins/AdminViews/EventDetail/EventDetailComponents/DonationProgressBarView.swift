@@ -2,30 +2,30 @@ import SwiftUI
 
 struct DonationProgressBarView: View {
     let currentWeightText: String // Contoh: "250 kg"
-    let targetWeightText: String  // Contoh: "Terkumpul dari 500 kg"
-    let progressValue: Double     // Nilai dari 0.0 sampai 1.0
-    
+    let targetWeightText: String // Contoh: "Terkumpul dari 500 kg"
+    let progressValue: Double // Nilai dari 0.0 sampai 1.0
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .lastTextBaseline) {
                 Text(currentWeightText)
                     .font(.system(size: 20, weight: .bold))
                     .foregroundColor(.primary)
-                
+
                 Spacer()
-                
+
                 Text(targetWeightText)
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(.primary)
             }
-            
+
             // Bar Progress Native
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 8)
                         .fill(Color(.systemGray4))
                         .frame(height: 12)
-                    
+
                     RoundedRectangle(cornerRadius: 8)
                         .fill(Color("3-DarkSoftCyan"))
                         .frame(width: geometry.size.width * CGFloat(min(max(progressValue, 0.0), 1.0)), height: 12)

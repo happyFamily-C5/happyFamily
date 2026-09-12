@@ -248,19 +248,30 @@ private actor DraftRetryRepository: EventRepository {
     private var attempts = 0
     private var ids: [UUID] = []
 
-    func mutationIds() -> [UUID] { ids }
+    func mutationIds() -> [UUID] {
+        ids
+    }
 
-    func list(cursor _: String?) async throws -> EventPage { EventPage(events: [], cursor: nil) }
+    func list(cursor _: String?) async throws -> EventPage {
+        EventPage(events: [], cursor: nil)
+    }
 
     func upsertDraft(_ event: BackendAdminEvent, mutationId: UUID) async throws -> BackendAdminEvent {
         attempts += 1
         ids.append(mutationId)
-        if attempts == 1 { throw URLError(.timedOut) }
+        if attempts == 1 {
+            throw URLError(.timedOut)
+        }
         return event
     }
 
-    func publish(eventId _: UUID) async throws -> PublishEventData { throw TestFailure.unexpectedCall }
-    func cancelOrDelete(eventId _: UUID) async throws -> CancelEventData { throw TestFailure.unexpectedCall }
+    func publish(eventId _: UUID) async throws -> PublishEventData {
+        throw TestFailure.unexpectedCall
+    }
+
+    func cancelOrDelete(eventId _: UUID) async throws -> CancelEventData {
+        throw TestFailure.unexpectedCall
+    }
 }
 
 private actor CursorResetRepository: EventRepository {
@@ -288,8 +299,13 @@ private actor CursorResetRepository: EventRepository {
         throw TestFailure.unexpectedCall
     }
 
-    func publish(eventId _: UUID) async throws -> PublishEventData { throw TestFailure.unexpectedCall }
-    func cancelOrDelete(eventId _: UUID) async throws -> CancelEventData { throw TestFailure.unexpectedCall }
+    func publish(eventId _: UUID) async throws -> PublishEventData {
+        throw TestFailure.unexpectedCall
+    }
+
+    func cancelOrDelete(eventId _: UUID) async throws -> CancelEventData {
+        throw TestFailure.unexpectedCall
+    }
 }
 
 private actor AuthSessionSpy: AuthSession {

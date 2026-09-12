@@ -1,5 +1,5 @@
-import SwiftUI
 import PhotosUI
+import SwiftUI
 
 /// Donor profile editor. Saving is backend-backed: an untouched avatar path
 /// is preserved, a picked image is uploaded by the donor to the private
@@ -107,7 +107,11 @@ struct DonorProfileEditView: View {
             "Simpan profil gagal",
             isPresented: Binding(
                 get: { saveError != nil },
-                set: { if !$0 { saveError = nil } }
+                set: {
+                    if !$0 {
+                        saveError = nil
+                    }
+                }
             )
         ) {
             Button("OK", role: .cancel) {}

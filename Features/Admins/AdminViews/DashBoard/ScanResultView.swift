@@ -37,7 +37,11 @@ struct ScanResultView: View {
         .task { await resolveBooking() }
         .alert("Penerimaan gagal", isPresented: Binding(
             get: { errorMessage != nil && booking != nil },
-            set: { if !$0 { errorMessage = nil } }
+            set: {
+                if !$0 {
+                    errorMessage = nil
+                }
+            }
         )) {
             Button("OK", role: .cancel) {}
         } message: {
@@ -45,7 +49,6 @@ struct ScanResultView: View {
         }
     }
 
-    @ViewBuilder
     private func bookingDetail(_ booking: ResolvedQRBooking) -> some View {
         VStack {
             VStack(spacing: 28) {
@@ -117,7 +120,10 @@ struct ScanResultView: View {
     }
 
     private func receptionRow(_ title: String, _ value: String) -> some View {
-        HStack { Text(title); Spacer(); Text(value).bold() }
+        HStack { Text(title)
+            Spacer()
+            Text(value).bold()
+        }
     }
 
     private func resolveBooking() async {
@@ -151,7 +157,11 @@ struct ScanResultView: View {
                 requestId: UUID()
             ))
             NotificationCenter.default.post(name: .adminOperationsDidChange, object: nil)
-            if decision == .accepted { showDonationSuccess = true } else { showDonationReject = true }
+            if decision == .accepted {
+                showDonationSuccess = true
+            } else {
+                showDonationReject = true
+            }
         } catch {
             errorMessage = error.localizedDescription
         }

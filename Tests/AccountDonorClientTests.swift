@@ -145,7 +145,7 @@ struct AccountDonorClientTests {
                     "end_at": "2026-02-21T00:00:00Z",
                     "timezone_name": "Asia/Jakarta",
                     "location_name": "Jakarta",
-                    "capacity_grams": 10_000,
+                    "capacity_grams": 10000,
                     "received_weight_grams": 1000,
                     "reserved_weight_grams": 500,
                     "used_weight_grams": 1500,
@@ -202,7 +202,7 @@ struct AccountDonorClientTests {
         let booking = try #require(bookings.first)
         #expect(booking.status == .waiting)
         #expect(booking.canCancel)
-        #expect(booking.event.capacityGrams == 10_000)
+        #expect(booking.event.capacityGrams == 10000)
         #expect(booking.actualWeightGrams == nil)
     }
 
@@ -224,7 +224,7 @@ struct AccountDonorClientTests {
         let detail = try await makeAccountClient().bookingDetail(id: bookingId)
 
         let request = try #require(recorder.snapshot().first)
-        #expect(UUID(uuidString: try #require(request.jsonBody?["booking_id"] as? String)) == bookingId)
+        #expect(try UUID(uuidString: #require(request.jsonBody?["booking_id"] as? String)) == bookingId)
         #expect(detail.status == .accepted)
         #expect(detail.canCancel == false)
         #expect(detail.qrToken == "opaque-qr-token")
@@ -344,7 +344,7 @@ private func donorEventJSON() -> [String: Any] {
         "end_at": "2026-02-21T00:00:00Z",
         "timezone_name": "Asia/Jakarta",
         "location_name": "Jakarta",
-        "capacity_grams": 10_000,
+        "capacity_grams": 10000,
         "received_weight_grams": 1000,
         "reserved_weight_grams": 500,
         "used_weight_grams": 1500,

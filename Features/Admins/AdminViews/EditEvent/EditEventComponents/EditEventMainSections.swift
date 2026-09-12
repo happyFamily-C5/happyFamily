@@ -1,11 +1,11 @@
-import SwiftUI
-import MapKit
 import CoreLocation
+import MapKit
+import SwiftUI
 
 struct EditEventBannerSection: View {
     let selectedImageData: Data?
     var onTap: () -> Void
-    
+
     var body: some View {
         Button(action: onTap) {
             ZStack(alignment: .bottomLeading) {
@@ -13,7 +13,7 @@ struct EditEventBannerSection: View {
                     .frame(height: 184)
                     .frame(maxWidth: .infinity)
                     .clipShape(RoundedRectangle(cornerRadius: 16))
-                
+
                 Label("Edit Sampul", systemImage: "photo")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(.primary)
@@ -34,12 +34,12 @@ struct EditEventInformationSection: View {
     let formattedDateRange: String
     let formattedTimeInfo: String
     var onTap: () -> Void
-    
+
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 10) {
                 Spacer(minLength: 0)
-                
+
                 VStack(alignment: .center, spacing: 6) {
                     Text(eventName.isEmpty ? "Nama acara belum diisi" : eventName)
                         .font(.system(size: 20, weight: .bold))
@@ -47,23 +47,23 @@ struct EditEventInformationSection: View {
                         .multilineTextAlignment(.center)
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
-                    
+
                     VStack(alignment: .center, spacing: 2) {
                         Text(formattedDateRange)
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(.primary)
-                        
+
                         Text(formattedTimeInfo)
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(.primary)
                             .lineLimit(1)
                     }
                 }
-                
+
                 Image(systemName: "chevron.right")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(.secondary)
-                
+
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, 16)
@@ -81,12 +81,12 @@ struct EditEventCapacitySection: View {
     @Binding var donationCapacity: Int
     @Binding var isPickerOpen: Bool
     let capacityOptions: [Int]
-    
+
     var body: some View {
         EditEventCard {
             VStack(alignment: .leading, spacing: 10) {
                 EditEventPlainTitle(title: "Kapasitas Donasi")
-                
+
                 Button {
                     withAnimation(.snappy) {
                         isPickerOpen.toggle()
@@ -96,14 +96,14 @@ struct EditEventCapacitySection: View {
                         Text("Jumlah")
                             .font(.system(size: 14))
                             .foregroundColor(.primary)
-                        
+
                         Spacer()
-                        
+
                         HStack(spacing: 4) {
                             Text("\(donationCapacity) kg")
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundColor(.primary)
-                            
+
                             Image(systemName: "chevron.up.chevron.down")
                                 .font(.system(size: 9, weight: .semibold))
                                 .foregroundColor(.secondary)
@@ -115,10 +115,10 @@ struct EditEventCapacitySection: View {
                     }
                 }
                 .buttonStyle(PlainButtonStyle())
-                
+
                 if isPickerOpen {
                     Divider()
-                    
+
                     Picker("Kapasitas", selection: $donationCapacity) {
                         ForEach(capacityOptions, id: \.self) { amount in
                             Text("\(amount) kg").tag(amount)
@@ -139,19 +139,19 @@ struct EditEventCriteriaSection: View {
     let selectedCriteria: [String]
     let criteriaRows: [[String]]
     var onTap: () -> Void
-    
+
     var body: some View {
         Button(action: onTap) {
             VStack(alignment: .leading, spacing: 12) {
                 EditEventRowTitle(title: "Kriteria Donasi")
                     .padding(.horizontal, 16)
-                
+
                 if selectedCriteria.isEmpty {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Belum ada kriteria")
                             .font(.system(size: 12))
                             .foregroundColor(.secondary)
-                        
+
                         Text("Pilih minimal 1 kriteria sebelum menyimpan.")
                             .font(.system(size: 11, weight: .medium))
                             .foregroundColor(Color(red: 0.78, green: 0.12, blue: 0.12))
@@ -181,13 +181,13 @@ struct EditEventLocationSection: View {
     let selectedLocationAddress: String?
     let selectedCoordinate: CLLocationCoordinate2D?
     var onTap: () -> Void
-    
+
     var body: some View {
         Button(action: onTap) {
             VStack(alignment: .leading, spacing: 8) {
                 EditEventRowTitle(title: "Lokasi")
                     .padding(.horizontal, 16)
-                
+
                 VStack(alignment: .leading, spacing: 14) {
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 4) {
@@ -195,17 +195,17 @@ struct EditEventLocationSection: View {
                                 .font(.system(size: 15, weight: .bold))
                                 .foregroundColor(.primary)
                                 .lineLimit(1)
-                        
+
                             Text((selectedLocationAddress?.isEmpty == false) ? selectedLocationAddress ?? "" : "Lokasi belum dipilih")
                                 .font(.system(size: 12))
                                 .foregroundColor(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
                                 .lineLimit(2)
                         }
-                        
+
                         Spacer()
                     }
-                    
+
                     Map(initialPosition: .region(MKCoordinateRegion(
                         center: selectedCoordinate ?? CLLocationCoordinate2D(latitude: -6.1754, longitude: 106.8272),
                         span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
@@ -233,13 +233,13 @@ struct EditEventLocationSection: View {
 struct EditEventDescriptionSection: View {
     let eventDescription: String
     var onTap: () -> Void
-    
+
     var body: some View {
         Button(action: onTap) {
             VStack(alignment: .leading, spacing: 8) {
                 EditEventRowTitle(title: "Detail Acara")
                     .padding(.horizontal, 16)
-                    
+
                 Text(eventDescription.isEmpty ? "Tidak ada deskripsi" : eventDescription)
                     .font(.system(size: 12, weight: .regular))
                     .foregroundColor(.primary)

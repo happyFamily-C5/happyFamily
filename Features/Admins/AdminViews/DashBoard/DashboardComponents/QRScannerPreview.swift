@@ -21,6 +21,9 @@ final class PreviewView: UIView {
     }
 
     var videoPreviewLayer: AVCaptureVideoPreviewLayer {
+        // layerClass is overridden to AVCaptureVideoPreviewLayer, so the
+        // backing layer is always this type (Apple's standard preview pattern).
+        // swiftlint:disable:next force_cast
         layer as! AVCaptureVideoPreviewLayer
     }
 }

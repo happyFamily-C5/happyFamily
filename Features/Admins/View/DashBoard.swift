@@ -21,8 +21,7 @@ struct DashBoard: View {
                         IconButton(
                             systemName: "qrcode",
                             accessibilityLabel: "QR Code"
-                        ) {
-                        }
+                        ) {}
 
                         IconButton(
                             systemName: "plus",

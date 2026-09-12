@@ -37,6 +37,7 @@ enum AppleSignInSupport {
         }
         return nonce
     }
+
     private static func sha256Hex(_ value: String) -> String {
         SHA256.hash(data: Data(value.utf8))
             .map { String(format: "%02x", $0) }

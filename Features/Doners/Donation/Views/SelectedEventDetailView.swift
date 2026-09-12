@@ -1,12 +1,12 @@
 //
-//  EventDetailView.swift
+//  SelectedEventDetailView.swift
 //  happyFamily
 //
 //  Created by Muhamad Yuan Sastro Dimianta on 08/09/26.
 //
 
-import SwiftUI
 import MapKit
+import SwiftUI
 
 /// Donor event detail backed by `account:event_detail`: real event data,
 /// donor availability, and the CTA that seeds the donation flow.
@@ -70,6 +70,7 @@ struct SelectedEventDetailView: View {
         VStack(spacing: 32) {
             VStack(spacing: 16) {
                 // MARK: - Banner
+
                 Group {
                     if let bannerURL = model.bannerURL() {
                         AsyncImage(url: bannerURL) { image in
@@ -87,6 +88,7 @@ struct SelectedEventDetailView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 16))
 
                 // MARK: - Title
+
                 VStack {
                     Text(event.name)
                         .font(.title).bold()
@@ -96,6 +98,7 @@ struct SelectedEventDetailView: View {
                 }
 
                 // MARK: - Date Time
+
                 VStack(spacing: 4) {
                     Text(Self.dateRangeText(event))
                         .font(.callout).bold()
@@ -108,11 +111,13 @@ struct SelectedEventDetailView: View {
 
             VStack(alignment: .leading, spacing: 16) {
                 // MARK: - Donation Capacity
+
                 if let maxKg = event.maxDonationPerUserGrams.map({ Double($0) / 1000 }) {
                     MaxDonationCard(maxCapacity: maxKg)
                 }
 
                 // MARK: - Kriteria Donasi
+
                 Text("Kriteria Donasi")
                     .font(.body).bold()
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -131,6 +136,7 @@ struct SelectedEventDetailView: View {
                 }
 
                 // MARK: Lokasi
+
                 VStack(spacing: 8) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Lokasi")
@@ -155,6 +161,7 @@ struct SelectedEventDetailView: View {
                 }
 
                 // MARK: - Deskripsi
+
                 VStack(spacing: 8) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Deskripsi Acara")

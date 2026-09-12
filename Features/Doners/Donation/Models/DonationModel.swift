@@ -34,7 +34,6 @@ struct GuideSlide: Identifiable {
     let illustration: String
     let title: String
     let description: String
-    
 }
 
 struct ScanningGuideSlide: Identifiable {
@@ -42,5 +41,4 @@ struct ScanningGuideSlide: Identifiable {
     let illustration: String
     let title: String
     let description: String
-    
 }

@@ -2,19 +2,19 @@ import SwiftUI
 
 struct CancelEventSuccessView: View {
     var onReturnHomeTapped: () -> Void
-    
+
     var body: some View {
         VStack(spacing: 0) {
             Spacer()
-            
+
             VStack(spacing: 18) {
                 CancelEventStatusIcon()
-                
+
                 VStack(spacing: 8) {
                     Text("Acara Dibatalkan")
                         .font(.system(size: 22, weight: .bold))
                         .foregroundColor(.primary)
-                    
+
                     Text("Acara telah dibatalkan, notifikasi telah dikirimkan kepada para donatur ")
                         .font(.system(size: 13))
                         .foregroundColor(.primary)
@@ -23,9 +23,9 @@ struct CancelEventSuccessView: View {
                 }
             }
             .padding(.horizontal, 36)
-            
+
             Spacer()
-            
+
             PrimaryButton(title: "Kembali ke Beranda", action: onReturnHomeTapped)
                 .padding(.bottom, 10)
         }

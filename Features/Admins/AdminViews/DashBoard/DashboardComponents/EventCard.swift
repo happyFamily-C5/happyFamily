@@ -5,24 +5,22 @@ struct EventCard: View {
     let title: String
     let date: String
     var onTap: () -> Void
-    
+
     var body: some View {
         Button(action: onTap) {
             VStack(alignment: .leading, spacing: 10) {
-               
                 cardImage
                     .resizable()
                     .scaledToFill()
                     .frame(width: 170, height: 140)
                     .clipShape(RoundedRectangle(cornerRadius: 16))
-                
+
                 VStack(alignment: .leading, spacing: 4) {
-    
                     Text(title)
                         .font(.system(size: 14, weight: .bold))
                         .foregroundColor(.primary)
                         .lineLimit(1)
-                    
+
                     Text(date)
                         .font(.system(size: 12, weight: .medium))
                         .foregroundColor(.secondary)
@@ -35,6 +33,7 @@ struct EventCard: View {
 }
 
 // MARK: - Preview
+
 #Preview(traits: .sizeThatFitsLayout) {
     ScrollView(.horizontal, showsIndicators: false) {
         HStack(spacing: 16) {
@@ -45,7 +44,7 @@ struct EventCard: View {
             ) {
                 print("Card 1 diklik!")
             }
-            
+
             EventCard(
                 cardImage: Image("DummyImageBanner"),
                 title: "Eco Textile Fair",

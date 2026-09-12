@@ -66,8 +66,9 @@ struct DonationLimitCardView: View {
 }
 
 // MARK: - Preview
+
 #Preview(traits: .sizeThatFitsLayout) {
-    @Previewable @State var limit: Int = 1
+    @Previewable @State var limit = 1
 
     return DonationLimitCardView(selectedLimit: $limit)
         .padding()

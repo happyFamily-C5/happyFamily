@@ -8,10 +8,9 @@
 import SwiftUI
 
 struct MaxDonationCard: View {
-    
     var maxCapacity: Double
-    
-    var body: some  View{
+
+    var body: some View {
         HStack {
             Text("Maksimal Donasi / \nOrang")
                 .font(.body).bold()

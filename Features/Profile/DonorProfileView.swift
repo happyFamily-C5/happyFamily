@@ -1,5 +1,5 @@
-import SwiftUI
 import PhotosUI
+import SwiftUI
 import UIKit
 
 struct DonorProfileView: View {
@@ -25,69 +25,69 @@ struct DonorProfileView: View {
                 ProfileTopBar(
                     onCloseTapped: { dismiss() }
                 )
-                
-                    VStack(alignment: .leading, spacing: 24) {
-                        ProfileHeaderCard(
-                            imageData: profile.imageData,
-                            name: profile.fullName,
-                            address: profile.address,
-                            namePlaceholder: "Nama Anda",
-                            addressPlaceholder: "Alamat Anda",
-                            onTap: { isShowingEditProfile = true }
-                        )
-                        
-                        List {
-                            Section(
-                                header: Text("Aktifitas Terbaru")
-                                    .font(.title2)
-                                    .bold()
-                                    .foregroundStyle(Color.black)
-                            ) {
-                                Button{
-                                    isShowingEventHistory = true
-                                }label: {
-                                    HStack{
-                                        Text("Riwayat Acara")
-                                            .font(.body)
-                                        Spacer()
-                                        Image(systemName: "chevron.right")
-                                            .font(.system(size: 16))
-                                    }
-                                }
-                                .buttonStyle(.plain)
-                                
-                                Button{
-                                    isShowingDonationHistory = true
-                                }label: {
-                                    HStack{
-                                        Text("Riwayat Donasi")
-                                            .font(.body)
-                                        Spacer()
-                                        Image(systemName: "chevron.right")
-                                            .font(.system(size: 16))
-                                    }
-                                }
-                                .buttonStyle(.plain)
-                            }
-                            .listRowBackground(Color(#colorLiteral(red: 0.9499571919, green: 0.9500558972, blue: 0.953115046, alpha: 1)))
 
-                            Section("Akun") {
-                                Button(role: .destructive) {
-                                    isShowingDeleteConfirmation = true
-                                } label: {
-                                    Label("Hapus Akun", systemImage: "trash")
+                VStack(alignment: .leading, spacing: 24) {
+                    ProfileHeaderCard(
+                        imageData: profile.imageData,
+                        name: profile.fullName,
+                        address: profile.address,
+                        namePlaceholder: "Nama Anda",
+                        addressPlaceholder: "Alamat Anda",
+                        onTap: { isShowingEditProfile = true }
+                    )
+
+                    List {
+                        Section(
+                            header: Text("Aktifitas Terbaru")
+                                .font(.title2)
+                                .bold()
+                                .foregroundStyle(Color.black)
+                        ) {
+                            Button {
+                                isShowingEventHistory = true
+                            } label: {
+                                HStack {
+                                    Text("Riwayat Acara")
+                                        .font(.body)
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 16))
                                 }
-                                .disabled(isDeletingAccount || onDeleteAccount == nil)
                             }
+                            .buttonStyle(.plain)
+
+                            Button {
+                                isShowingDonationHistory = true
+                            } label: {
+                                HStack {
+                                    Text("Riwayat Donasi")
+                                        .font(.body)
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 16))
+                                }
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .listStyle(.insetGrouped)
-                        .scrollDisabled(true)
-                        .scrollContentBackground(.hidden)
+                        .listRowBackground(Color(#colorLiteral(red: 0.9499571919, green: 0.9500558972, blue: 0.953115046, alpha: 1)))
+
+                        Section("Akun") {
+                            Button(role: .destructive) {
+                                isShowingDeleteConfirmation = true
+                            } label: {
+                                Label("Hapus Akun", systemImage: "trash")
+                            }
+                            .disabled(isDeletingAccount || onDeleteAccount == nil)
+                        }
                     }
-                    .padding(.top, 12)
+                    .listStyle(.insetGrouped)
+                    .scrollDisabled(true)
+                    .scrollContentBackground(.hidden)
+                }
+                .padding(.top, 12)
             }
             .background(Color(.systemBackground))
-            
+
             if isShowingLogoutConfirmation {
                 ProfileLogoutOverlay(
                     onCancelTapped: { isShowingLogoutConfirmation = false },
@@ -131,7 +131,11 @@ struct DonorProfileView: View {
             "Hapus akun gagal",
             isPresented: Binding(
                 get: { deleteAccountError != nil },
-                set: { if !$0 { deleteAccountError = nil } }
+                set: {
+                    if !$0 {
+                        deleteAccountError = nil
+                    }
+                }
             )
         ) {
             Button("OK", role: .cancel) {}
@@ -168,7 +172,7 @@ struct DonorProfileView: View {
             _ = await (donations, completed)
         }
     }
-    
+
     private func logout() {
         isShowingLogoutConfirmation = false
         onLogout()
@@ -190,7 +194,7 @@ struct DonorProfileView: View {
 
 #Preview {
     @Previewable @State var profile = DonorProfile.defaultProfile
-    
+
     DonorProfileView(
         profile: $profile
     )

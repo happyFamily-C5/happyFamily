@@ -29,7 +29,7 @@ struct BookingAttemptStoreTests {
         let store = makeStore()
         let eventId = UUID()
         let original = bookingBody()
-        let first = store.resolveAttempt(eventId: eventId, payload: try bookingBodyPayload(original))
+        let first = try store.resolveAttempt(eventId: eventId, payload: bookingBodyPayload(original))
 
         var changed = original
         changed = AccountBookingBody(
@@ -41,7 +41,7 @@ struct BookingAttemptStoreTests {
             termsVersion: original.termsVersion,
             privacyVersion: original.privacyVersion
         )
-        let second = store.resolveAttempt(eventId: eventId, payload: try bookingBodyPayload(changed))
+        let second = try store.resolveAttempt(eventId: eventId, payload: bookingBodyPayload(changed))
 
         #expect(first.idempotencyKey != second.idempotencyKey)
     }

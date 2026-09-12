@@ -5,12 +5,12 @@ struct QRScannerView: View {
     @StateObject var scanner = QRScannerViewModel()
     @State var showResult = false
     @State private var shouldRestartAfterResult = true
-    
+
     var body: some View {
         ZStack {
             QRScannerPreview(session: scanner.session)
                 .ignoresSafeArea()
-            
+
             Image(systemName: "viewfinder")
                 .font(.system(size: 260, weight: .thin))
                 .foregroundStyle(.black)

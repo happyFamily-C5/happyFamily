@@ -1,5 +1,5 @@
-import Foundation
 import CoreLocation
+import Foundation
 import SwiftUI
 import UIKit
 
@@ -59,28 +59,54 @@ struct DonorProfile {
 }
 
 // MARK: Donor's donation history — events they've personally contributed to, with the weight they gave
+
 struct DonorDonation: Identifiable {
     let id = UUID()
     let eventName: String
     let dateRangeText: String
     let weightText: String
     let bannerImageData: Data?
-    
+
     var bannerImage: Image {
         if let bannerImageData, let uiImage = UIImage(data: bannerImageData) {
             return Image(uiImage: uiImage)
         }
         return Image("EventBannerPlaceholder")
     }
-    
+
     static let sampleData: [DonorDonation] = [
-        DonorDonation(eventName: "Ecoday | drop your unused shirt", dateRangeText: "9 Sept - 16 Sept 2026", weightText: "4.3 kg", bannerImageData: nil),
-        DonorDonation(eventName: "Give Clothes a Second Life", dateRangeText: "9 Sept - 16 Sept 2026", weightText: "3.8 kg", bannerImageData: nil),
+        DonorDonation(
+            eventName: "Ecoday | drop your unused shirt",
+            dateRangeText: "9 Sept - 16 Sept 2026",
+            weightText: "4.3 kg",
+            bannerImageData: nil
+        ),
+        DonorDonation(
+            eventName: "Give Clothes a Second Life",
+            dateRangeText: "9 Sept - 16 Sept 2026",
+            weightText: "3.8 kg",
+            bannerImageData: nil
+        ),
         DonorDonation(eventName: "Textile Rescue Day", dateRangeText: "9 Sept - 16 Sept 2026", weightText: "4.9 kg", bannerImageData: nil),
         DonorDonation(eventName: "ReWear & Recycle", dateRangeText: "9 Sept - 16 Sept 2026", weightText: "4.1 kg", bannerImageData: nil),
-        DonorDonation(eventName: "From Closet to Impact", dateRangeText: "9 Sept - 16 Sept 2026", weightText: "3.2 kg", bannerImageData: nil),
-        DonorDonation(eventName: "Old Clothes, New Purpose", dateRangeText: "9 Sept - 16 Sept 2026", weightText: "4.2 kg", bannerImageData: nil),
-        DonorDonation(eventName: "Don't Trash Your Textile", dateRangeText: "9 Sept - 16 Sept 2026", weightText: "4.3 kg", bannerImageData: nil)
+        DonorDonation(
+            eventName: "From Closet to Impact",
+            dateRangeText: "9 Sept - 16 Sept 2026",
+            weightText: "3.2 kg",
+            bannerImageData: nil
+        ),
+        DonorDonation(
+            eventName: "Old Clothes, New Purpose",
+            dateRangeText: "9 Sept - 16 Sept 2026",
+            weightText: "4.2 kg",
+            bannerImageData: nil
+        ),
+        DonorDonation(
+            eventName: "Don't Trash Your Textile",
+            dateRangeText: "9 Sept - 16 Sept 2026",
+            weightText: "4.3 kg",
+            bannerImageData: nil
+        ),
     ]
 }
 

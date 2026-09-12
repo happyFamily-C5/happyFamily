@@ -6,7 +6,7 @@ struct StatisticCardView: View {
     let unit: String
     let backgroundColor: Color
     let systemImageName: String
-    
+
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
             // Latar Belakang Gambar / Ikon Transparan di Pojok Kanan Bawah
@@ -14,19 +14,19 @@ struct StatisticCardView: View {
                 .font(.system(size: 64, weight: .light))
                 .foregroundColor(.primary.opacity(0.08))
                 .offset(x: 16, y: 16)
-            
+
             // Konten Utama Kartu
             VStack(alignment: .leading, spacing: 16) {
                 Text(title)
                     .font(.system(size: 15, weight: .medium))
                     .foregroundColor(.primary)
                     .lineSpacing(2)
-                
+
                 HStack(alignment: .lastTextBaseline, spacing: 4) {
                     Text(value)
                         .font(.system(size: 36, weight: .bold))
                         .foregroundColor(.primary)
-                    
+
                     Text(unit)
                         .font(.system(size: 15, weight: .medium))
                         .foregroundColor(.secondary)
@@ -42,6 +42,7 @@ struct StatisticCardView: View {
 }
 
 // MARK: - Preview dengan 4 Kartu Sesuai Gambar
+
 #Preview(traits: .sizeThatFitsLayout) {
     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
         StatisticCardView(
@@ -51,7 +52,7 @@ struct StatisticCardView: View {
             backgroundColor: Color(.systemBlue).opacity(0.15),
             systemImageName: "cube.box.fill"
         )
-        
+
         StatisticCardView(
             title: "Total\npendonasi",
             value: "0",
@@ -59,7 +60,7 @@ struct StatisticCardView: View {
             backgroundColor: Color(.systemPurple).opacity(0.15),
             systemImageName: "person.crop.circle.fill"
         )
-        
+
         StatisticCardView(
             title: "Acara\nSelesai",
             value: "0",
@@ -67,8 +68,9 @@ struct StatisticCardView: View {
             backgroundColor: Color(.systemGreen).opacity(0.15),
             systemImageName: "calendar.badge.checkmark"
         )
-        
-        StatisticCardView(title:
+
+        StatisticCardView(
+            title:
             "Rata-Rata\nper-donasi",
             value: "0",
             unit: "kg",

@@ -147,5 +147,4 @@ final class RecapModel {
             )
         }
     }
-
 }

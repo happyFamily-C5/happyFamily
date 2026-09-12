@@ -4,14 +4,16 @@ enum AdminSegment: String, CaseIterable, Identifiable {
     case history
     case draft
 
-    var id: Self { self }
+    var id: Self {
+        self
+    }
 
     var title: String {
         switch self {
         case .history:
-            return "History"
+            "History"
         case .draft:
-            return "Draft"
+            "Draft"
         }
     }
 }

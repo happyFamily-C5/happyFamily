@@ -40,7 +40,7 @@ struct MyBookingsView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.top, 120)
-                    } else if model.isLoading && model.bookings.isEmpty {
+                    } else if model.isLoading, model.bookings.isEmpty {
                         ProgressView()
                             .frame(maxWidth: .infinity)
                             .padding(.top, 120)

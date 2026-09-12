@@ -1,4 +1,5 @@
 import Foundation
+
 actor SupabaseReportRepository: ReportRepository {
     private let edge: any OrganizerEdgeServing
 

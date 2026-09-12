@@ -80,7 +80,7 @@ final class DashboardModel {
             self.nextCursor = page.cursor
             errorMessage = nil
             await preloadMissingBanners()
-        } catch BackendError.api(let code, _, _, _) where code == "CURSOR_INVALID" {
+        } catch let BackendError.api(code, _, _, _) where code == "CURSOR_INVALID" {
             await load()
         } catch {
             errorMessage = error.localizedDescription

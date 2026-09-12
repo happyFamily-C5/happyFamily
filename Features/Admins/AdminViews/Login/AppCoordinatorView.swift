@@ -82,7 +82,11 @@ struct AppCoordinatorView: View {
             .donersRouter(router)
             .alert("Tidak dapat melanjutkan", isPresented: Binding(
                 get: { bootstrapError != nil },
-                set: { if !$0 { bootstrapError = nil } }
+                set: {
+                    if !$0 {
+                        bootstrapError = nil
+                    }
+                }
             )) {
                 Button("OK", role: .cancel) {}
             } message: {
@@ -94,7 +98,9 @@ struct AppCoordinatorView: View {
     private func advanceAfterSplash() {
         guard isSplashAnimationDone, isSessionResolved else { return }
         withAnimation(.easeInOut(duration: 0.35)) {
-            if currentScreen == .splash { currentScreen = .login }
+            if currentScreen == .splash {
+                currentScreen = .login
+            }
         }
     }
 
@@ -135,7 +141,9 @@ struct AppCoordinatorView: View {
         } catch {
             // No stored/valid session is normal at splash. Authenticated
             // bootstrap errors must stay visible, never default to Admin.
-            if !isSplash { bootstrapError = error.localizedDescription }
+            if !isSplash {
+                bootstrapError = error.localizedDescription
+            }
         }
     }
 
@@ -174,7 +182,8 @@ struct AppCoordinatorView: View {
         let workspace = try await BackendDependencies.organizerClient().workspaceProfile()
         var logoObjectPath = workspace.logoObjectPath ?? ""
         if let imageData = profile.imageData,
-           adminProfile.logoObjectPath == nil || adminProfile.imageData != imageData {
+           adminProfile.logoObjectPath == nil || adminProfile.imageData != imageData
+        {
             logoObjectPath = try await BackendDependencies.storageMediaClient()
                 .uploadWorkspaceLogo(data: imageData, workspaceId: workspace.id)
         }

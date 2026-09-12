@@ -18,7 +18,7 @@ struct ForYouView: View {
 
     var body: some View {
         Group {
-            if model.isLoading && model.dashboard == nil {
+            if model.isLoading, model.dashboard == nil {
                 VStack {
                     ProgressView("Memuat acara…")
                     Spacer()

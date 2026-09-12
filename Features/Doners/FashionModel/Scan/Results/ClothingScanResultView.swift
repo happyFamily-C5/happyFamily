@@ -1,5 +1,5 @@
 //
-//  ScanResultView.swift
+//  ClothingScanResultView.swift
 //  happyFamily
 //
 //  Created by Calzy Akmal Indyramdhani on 27/08/26.

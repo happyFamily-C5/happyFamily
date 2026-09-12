@@ -1,4 +1,5 @@
 import Foundation
+
 actor SupabaseReceptionRepository: ReceptionRepository {
     private let edge: any OrganizerEdgeServing
 

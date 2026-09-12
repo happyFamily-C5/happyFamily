@@ -1,5 +1,5 @@
-import SwiftUI
 import PhotosUI
+import SwiftUI
 
 struct DonorProfileCompletionView: View {
     @State private var displayName: String
@@ -90,7 +90,6 @@ struct DonorProfileCompletionView: View {
         }
     }
 
-    @ViewBuilder
     private var avatarPreview: some View {
         Group {
             if let avatarData, let image = UIImage(data: avatarData) {

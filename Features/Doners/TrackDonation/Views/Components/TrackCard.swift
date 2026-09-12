@@ -12,7 +12,7 @@ import SwiftUI
 /// derived from local state.
 struct TrackCard: View {
     let booking: DonorBookingListItem
-    var bannerURL: URL? = nil
+    var bannerURL: URL?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -38,7 +38,7 @@ struct TrackCard: View {
                         .multilineTextAlignment(.leading)
                 }
 
-                VStack(spacing: 4){
+                VStack(spacing: 4) {
                     Text("Nomor Booking")
                         .font(.footnote)
                     Text(booking.publicBookingId)
@@ -105,9 +105,9 @@ struct TrackCard: View {
             bookingId: UUID(),
             publicBookingId: "SS-76329",
             status: .accepted,
-            estimatedWeightGrams: 1_500,
+            estimatedWeightGrams: 1500,
             actualWeightGrams: nil,
-            expiresAt: Date().addingTimeInterval(86_400),
+            expiresAt: Date().addingTimeInterval(86400),
             event: .previewFixture,
             canCancel: true,
             createdAt: Date(),
@@ -125,7 +125,7 @@ private extension DonorEventDTO {
             description: nil,
             status: .ongoing,
             startAt: Date(),
-            endAt: Date().addingTimeInterval(86_400 * 7),
+            endAt: Date().addingTimeInterval(86400 * 7),
             timezoneName: nil,
             locationName: "EcoTouch Office",
             locationAddress: nil,

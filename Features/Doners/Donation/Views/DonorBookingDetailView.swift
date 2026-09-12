@@ -30,7 +30,7 @@ struct DonorBookingDetailView: View {
                     Text("Detail Booking")
                         .font(.system(size: 26, weight: .bold))
 
-                    if model.isLoadingDetail && model.detail == nil {
+                    if model.isLoadingDetail, model.detail == nil {
                         ProgressView()
                             .frame(maxWidth: .infinity)
                             .padding(.top, 120)
@@ -73,7 +73,11 @@ struct DonorBookingDetailView: View {
             "Pembatalan gagal",
             isPresented: Binding(
                 get: { model.cancelError != nil },
-                set: { if !$0 { model.cancelError = nil } }
+                set: {
+                    if !$0 {
+                        model.cancelError = nil
+                    }
+                }
             )
         ) {
             Button("OK", role: .cancel) {}
@@ -82,7 +86,6 @@ struct DonorBookingDetailView: View {
         }
     }
 
-    @ViewBuilder
     private func detailContent(_ detail: DonorBookingDetail) -> some View {
         VStack(alignment: .leading, spacing: 20) {
             VStack(alignment: .leading, spacing: 6) {

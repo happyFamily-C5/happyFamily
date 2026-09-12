@@ -173,13 +173,13 @@ struct OrganizerOperationsClientTests {
         #expect(UUID(uuidString: json["event_id"] as? String ?? "") == eventId)
         #expect(UUID(uuidString: json["mutation_id"] as? String ?? "") == mutationId)
         let payloadJSON = try #require(json["payload"] as? [String: Any])
-        #expect(payloadJSON["max_donation_per_user_grams"] as? Int64 == 1_000)
+        #expect(payloadJSON["max_donation_per_user_grams"] as? Int64 == 1000)
         #expect(payloadJSON["receiver_name"] == nil)
         #expect(payloadJSON["receiver_phone"] == nil)
         #expect(payloadJSON["receiver_address"] == nil)
 
         #expect(record.id == UUID(uuidString: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"))
-        #expect(record.maxDonationPerUserGrams == 1_000)
+        #expect(record.maxDonationPerUserGrams == 1000)
         #expect(record.status == .draft)
     }
 
@@ -599,7 +599,7 @@ private func eventRecordJSON() -> [String: Any] {
         "location_address": "Jl. Test",
         "latitude": -6.2,
         "longitude": 106.8,
-        "capacity_grams": 10_000,
+        "capacity_grams": 10000,
         "received_weight_grams": 0,
         "max_donation_per_user_grams": 1000,
         "banner_object_path": NSNull(),
@@ -636,7 +636,7 @@ private func resolvedQRJSON() -> [String: Any] {
             "location_address": "Jl. Test",
             "latitude": -6.2,
             "longitude": 106.8,
-            "capacity_grams": 10_000,
+            "capacity_grams": 10000,
             "received_weight_grams": 0,
             "banner_object_path": "workspace/banner.png",
             "receiver_name": "Workspace",
@@ -654,7 +654,7 @@ private func receptionDecisionJSON() -> [String: Any] {
         "public_booking_id": "KMP-TEST-001",
         "status": "accepted",
         "received_weight_grams": 750,
-        "capacity_grams": 10_000,
+        "capacity_grams": 10000,
         "capacity_full": false,
     ]
 }

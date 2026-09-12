@@ -5,6 +5,8 @@ enum EditEventEditor: Identifiable {
     case criteria
     case location
     case description
-    
-    var id: Self { self }
+
+    var id: Self {
+        self
+    }
 }

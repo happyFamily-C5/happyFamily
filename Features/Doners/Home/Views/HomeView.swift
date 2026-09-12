@@ -13,7 +13,6 @@ import SwiftUI
 /// UI structure follows the staging redesign: the rail titles navigate to
 /// the dedicated For You / Trending pages.
 struct HomeView: View {
-
     @Environment(AppRouter.self) private var router
 
     @State private var userLocation: String
@@ -38,6 +37,7 @@ struct HomeView: View {
             VStack(spacing: 32) {
                 VStack(alignment: .leading, spacing: 16) {
                     // MARK: - Header
+
                     HStack(spacing: 12) {
                         locationButton
                         Spacer()
@@ -68,12 +68,13 @@ struct HomeView: View {
                     .foregroundStyle(.primary)
 
                     // MARK: - Intro
+
                     VStack(alignment: .leading, spacing: 4) {
                         Text("""
-                            \(Text("Jelajahi ").font(.largeTitle).bold())\
-                            \(Text("dan mulai").font(.largeTitle))\
-                                \(Text("menjaga lingkungan").font(.largeTitle).bold())
-                            """)
+                        \(Text("Jelajahi ").font(.largeTitle).bold())\
+                        \(Text("dan mulai").font(.largeTitle))\
+                            \(Text("menjaga lingkungan").font(.largeTitle).bold())
+                        """)
                         Text("Temukan acara yang cocok dengan kamu")
                             .font(.callout)
                     }
@@ -116,7 +117,7 @@ struct HomeView: View {
 
     @ViewBuilder
     private var railContent: some View {
-        if model.isLoading && model.dashboard == nil {
+        if model.isLoading, model.dashboard == nil {
             VStack {
                 ProgressView("Memuat acara…")
                 Spacer()
@@ -152,7 +153,6 @@ struct HomeView: View {
         }
     }
 
-    @ViewBuilder
     private func activeRail(_ events: [DonorEventDTO]) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Acara Aktif Kamu")

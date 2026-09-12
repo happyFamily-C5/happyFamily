@@ -1,6 +1,6 @@
-import Testing
 import Foundation
 @testable import happyFamily
+import Testing
 
 @Suite("Event banner policy")
 struct EventBannerPolicyTests {

@@ -25,7 +25,7 @@ struct ProfileEventHistoryView: View {
                         .padding(.horizontal, 20)
                     }
 
-                    if model.isLoadingEvents && model.events.isEmpty {
+                    if model.isLoadingEvents, model.events.isEmpty {
                         ProgressView()
                             .frame(maxWidth: .infinity)
                             .padding(.top, 170)
@@ -91,7 +91,7 @@ struct ProfileDonationHistoryView: View {
                         .padding(.horizontal, 20)
                     }
 
-                    if model.isLoadingDonations && model.donations.isEmpty {
+                    if model.isLoadingDonations, model.donations.isEmpty {
                         ProgressView()
                             .frame(maxWidth: .infinity)
                             .padding(.top, 170)

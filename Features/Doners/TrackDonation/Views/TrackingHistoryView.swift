@@ -1,5 +1,5 @@
 //
-//  TrackingView.swift
+//  TrackingHistoryView.swift
 //  happyFamily
 //
 //  Created by Muhamad Yuan Sastro Dimianta on 09/09/26.
@@ -18,7 +18,7 @@ struct TrackingHistoryView: View {
 
     var body: some View {
         Group {
-            if model.isLoading && model.bookings.isEmpty {
+            if model.isLoading, model.bookings.isEmpty {
                 VStack {
                     ProgressView("Memuat booking…")
                     Spacer()

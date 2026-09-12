@@ -5,9 +5,9 @@
 //  Created by Muhamad Yuan Sastro Dimianta on 03/09/26.
 //
 
+import CoreLocation
 import Observation
 import SwiftUI
-import CoreLocation
 
 @Observable
 final class MapPickerSession {
@@ -54,15 +54,15 @@ final class AppRouter {
     /// workspace, and requests the email change when needed).
     var onSaveAdminProfile: ((AdminProfile) async throws -> Void)?
 
-    func push(to destination:AdminsRouter) {
+    func push(to destination: AdminsRouter) {
         adminPath.append(destination)
     }
-    
-    func push(to destination:DonersRouter) {
+
+    func push(to destination: DonersRouter) {
         donersPath.append(destination)
     }
-    
-    func pop(){
+
+    func pop() {
         if !donersPath.isEmpty {
             donersPath.removeLast()
         }
@@ -103,13 +103,13 @@ final class AppRouter {
         mapPickerSession.confirm()
         mapPath.removeLast()
     }
-    
-    func popToRoot(){
-        if !adminPath.isEmpty{
+
+    func popToRoot() {
+        if !adminPath.isEmpty {
             adminPath.removeAll()
         }
 
-        if !donersPath.isEmpty{
+        if !donersPath.isEmpty {
             donersPath.removeAll()
         }
 
@@ -123,7 +123,6 @@ final class AppRouter {
     func nextStep() {
         currentStep += 1
     }
-    
 }
 
 extension View {
@@ -157,7 +156,7 @@ extension View {
             }
         }
     }
-    
+
     func donersRouter(_ router: AppRouter) -> some View {
         self.navigationDestination(for: DonersRouter.self) { destination in
             switch destination {
@@ -175,10 +174,8 @@ extension View {
             case .clothDetail:
                 if let item = router.selectedClothingItem {
                     ClothDetailView(item: item)
-                } else {
-                    EmptyView()
                 }
-            case .eventDetail(let eventId):
+            case let .eventDetail(eventId):
                 SelectedEventDetailView(
                     model: DonorEventDetailModel(
                         eventId: eventId,
@@ -188,7 +185,7 @@ extension View {
                 )
             case .myBookings:
                 MyBookingsView()
-            case .bookingDetail(let bookingId):
+            case let .bookingDetail(bookingId):
                 DonorBookingDetailView(bookingId: bookingId)
             case .history:
                 DonorHistoryView()

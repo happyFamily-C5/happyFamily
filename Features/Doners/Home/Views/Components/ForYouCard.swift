@@ -16,22 +16,22 @@ struct ForYouCard: View {
     var startDate: String
     var endDate: String
     var location: String
-    var bannerURL: URL? = nil
+    var bannerURL: URL?
 
     var body: some View {
-        HStack(spacing: 16){
+        HStack(spacing: 16) {
             banner
                 .frame(width: 121, height: 84)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
 
-            VStack(alignment: .leading, spacing: 0){
+            VStack(alignment: .leading, spacing: 0) {
                 Text(name)
                     .font(.caption)
                     .foregroundStyle(Color.secondary)
                 Text(title)
                     .font(.body).bold()
                     .lineLimit(2)
-                HStack(spacing: 8){
+                HStack(spacing: 8) {
                     Image(systemName: "calendar.circle.fill")
                         .font(.system(size: 11))
                         .foregroundStyle(Color.secondary)
@@ -40,7 +40,7 @@ struct ForYouCard: View {
                         .foregroundStyle(Color.secondary)
                 }
 
-                HStack(spacing: 8){
+                HStack(spacing: 8) {
                     Image(systemName: "location.circle.fill")
                         .font(.system(size: 11))
                         .foregroundStyle(Color.secondary)

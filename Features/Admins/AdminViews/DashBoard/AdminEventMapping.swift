@@ -1,8 +1,8 @@
 import CoreLocation
 import Foundation
 
-// Labels MUST stay identical to the chip lists in CreatingView and
-// EditEventView — selection is matched by string.
+/// Labels MUST stay identical to the chip lists in CreatingView and
+/// EditEventView — selection is matched by string.
 extension EventCriterionCode {
     var uiLabel: String {
         switch self {
@@ -28,15 +28,14 @@ extension EventCriterionCode {
     }
 }
 
-// Bridges the dashboard's UI model to the backend admin model. Wire days are
-// ISO 1=Monday..7=Sunday; the UI indexes Monday-first into `activeDays`.
+/// Bridges the dashboard's UI model to the backend admin model. Wire days are
+/// ISO 1=Monday..7=Sunday; the UI indexes Monday-first into `activeDays`.
 extension AdminEvent {
     init(backend: BackendAdminEvent) {
-        let coordinate: CLLocationCoordinate2D?
-        if let latitude = backend.latitude, let longitude = backend.longitude {
-            coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+        let coordinate: CLLocationCoordinate2D? = if let latitude = backend.latitude, let longitude = backend.longitude {
+            CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
         } else {
-            coordinate = nil
+            nil
         }
         self.init(
             id: backend.id,
@@ -48,7 +47,7 @@ extension AdminEvent {
             locationAddress: backend.locationAddress ?? "",
             coordinate: coordinate,
             operationalMode: Self.operationalMode(for: backend.operationalDays),
-            activeDays: (0..<7).map { backend.operationalDays.contains($0 + 1) },
+            activeDays: (0 ..< 7).map { backend.operationalDays.contains($0 + 1) },
             startTime: Self.time(from: backend.opensAtLocal, fallbackHour: 8),
             endTime: Self.time(from: backend.closesAtLocal, fallbackHour: 17),
             donationCriteria: backend.criteria.map(\.uiLabel),

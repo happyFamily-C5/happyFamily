@@ -68,7 +68,7 @@ final class AuthViewModel {
             errorMessage = "Periksa kembali email dan kata sandi."
             return false
         }
-        if isSignUpMode && !isPasswordValid {
+        if isSignUpMode, !isPasswordValid {
             errorMessage = "Periksa kembali email dan kata sandi."
             return false
         }
@@ -143,5 +143,4 @@ final class AuthViewModel {
         }
         return message
     }
-
 }

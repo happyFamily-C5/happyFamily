@@ -25,8 +25,8 @@ struct ResultView: View {
     var body: some View {
         ZStack {
             VStack(spacing: 32) {
-
                 // MARK: - Badge Icon
+
                 VStack(spacing: 8) {
                     ZStack {
                         Image(systemName: "seal.fill")
@@ -48,7 +48,7 @@ struct ResultView: View {
                         .padding(.horizontal, 32)
                 }
 
-                if donationVM.booking == nil && donationVM.isCreatingBooking {
+                if donationVM.booking == nil, donationVM.isCreatingBooking {
                     ProgressView("Mengirim booking…")
                     Spacer()
                 } else if donationVM.booking == nil {
@@ -69,10 +69,12 @@ struct ResultView: View {
                     Spacer()
                 } else {
                     // MARK: - Label Card
+
                     labelCard
                     Spacer()
 
                     // MARK: - Buttons
+
                     VStack(spacing: 12) {
                         if labelFile != nil {
                             Button {

@@ -106,55 +106,37 @@ enum BackendError: Error, Equatable, Sendable, LocalizedError {
         }
     }
 
+    private static let localizedMessages: [String: String] = [
+        "INVOCATION_INVALID": "Tautan acara tidak valid atau sudah dicabut.",
+        "EVENT_FULL": "Kapasitas acara sudah penuh.",
+        "EVENT_UNAVAILABLE": "Acara atau booking sudah tidak tersedia.",
+        "BOOKING_NOT_PROCESSABLE": "Acara atau booking sudah tidak tersedia.",
+        "BOOKING_NOT_CANCELLABLE": "Booking hanya dapat dibatalkan saat masih menunggu.",
+        "DONATION_LIMIT_EXCEEDED": "Berat donasi melewati batas yang ditetapkan acara.",
+        "ROLE_FORBIDDEN": "Akun ini tidak memiliki akses untuk tindakan tersebut.",
+        "ROLE_IMMUTABLE": "Akun ini tidak memiliki akses untuk tindakan tersebut.",
+        "RATE_LIMITED": "Terlalu banyak percobaan. Coba lagi nanti.",
+        "BOOKING_CREDENTIALS_INVALID": "ID booking atau nomor telepon tidak cocok.",
+        "PHONE_INVALID": "Masukkan nomor WhatsApp Indonesia yang valid, misalnya 0812 3456 7890.",
+        "AUTH_REQUIRED": "Sesi login tidak valid. Silakan masuk kembali.",
+        "AUTH_INVALID": "Sesi login tidak valid. Silakan masuk kembali.",
+        "ACCOUNT_DELETE_FAILED": "Akun belum dapat dihapus. Coba lagi atau hubungi dukungan.",
+        "WORKSPACE_PROFILE_INCOMPLETE": "Lengkapi profil workspace sebelum melanjutkan.",
+        "EVENT_PUBLISH_FIELDS_REQUIRED": "Lengkapi semua data acara sebelum dipublikasikan.",
+        "INVALID_DONATION_LIMIT": "Limit donasi per donatur tidak valid.",
+        "IDEMPOTENCY_CONFLICT": "Perubahan bentrok dengan permintaan sebelumnya. Muat ulang lalu coba lagi.",
+        "IDEMPOTENCY_INCOMPLETE": "Sinkronisasi belum selesai. Coba lagi.",
+        "EVENT_NOT_CANCELLABLE": "Acara sudah tidak dapat dibatalkan.",
+        "DRAFT_HAS_BOOKINGS": "Draf memiliki donasi terkait dan tidak dapat dihapus.",
+        "BANNER_REJECTED": "Upload gambar tidak diizinkan. Gunakan JPEG atau PNG.",
+        "PROFILE_MEDIA_REJECTED": "Upload gambar ditolak oleh penyimpanan. Gunakan JPEG atau PNG berukuran maksimal 5 MB.",
+        "PROFILE_MEDIA_FORBIDDEN": "Anda tidak memiliki izin untuk mengunggah gambar ini. Muat ulang profil lalu coba lagi.",
+        "BANNER_TOO_LARGE": "Ukuran gambar melebihi 5 MB. Kompres atau pilih gambar lain.",
+        "PROFILE_MEDIA_TOO_LARGE": "Ukuran gambar melebihi 5 MB. Kompres atau pilih gambar lain.",
+    ]
+
     private static func localizedMessage(for code: String) -> String {
-        switch code {
-        case "INVOCATION_INVALID":
-            "Tautan acara tidak valid atau sudah dicabut."
-        case "EVENT_FULL":
-            "Kapasitas acara sudah penuh."
-        case "EVENT_UNAVAILABLE", "BOOKING_NOT_PROCESSABLE":
-            "Acara atau booking sudah tidak tersedia."
-        case "BOOKING_NOT_CANCELLABLE":
-            "Booking hanya dapat dibatalkan saat masih menunggu."
-        case "DONATION_LIMIT_EXCEEDED":
-            "Berat donasi melewati batas yang ditetapkan acara."
-        case "ROLE_FORBIDDEN", "ROLE_IMMUTABLE":
-            "Akun ini tidak memiliki akses untuk tindakan tersebut."
-        case "RATE_LIMITED":
-            "Terlalu banyak percobaan. Coba lagi nanti."
-        case "BOOKING_CREDENTIALS_INVALID":
-            "ID booking atau nomor telepon tidak cocok."
-        case "PHONE_INVALID":
-            "Masukkan nomor WhatsApp Indonesia yang valid, misalnya 0812 3456 7890."
-        case "AUTH_REQUIRED", "AUTH_INVALID":
-            "Sesi login tidak valid. Silakan masuk kembali."
-        case "ACCOUNT_DELETE_FAILED":
-            "Akun belum dapat dihapus. Coba lagi atau hubungi dukungan."
-        case "WORKSPACE_PROFILE_INCOMPLETE":
-            "Lengkapi profil workspace sebelum melanjutkan."
-        case "EVENT_PUBLISH_FIELDS_REQUIRED":
-            "Lengkapi semua data acara sebelum dipublikasikan."
-        case "INVALID_DONATION_LIMIT":
-            "Limit donasi per donatur tidak valid."
-        case "IDEMPOTENCY_CONFLICT":
-            "Perubahan bentrok dengan permintaan sebelumnya. Muat ulang lalu coba lagi."
-        case "IDEMPOTENCY_INCOMPLETE":
-            "Sinkronisasi belum selesai. Coba lagi."
-        case "EVENT_NOT_CANCELLABLE":
-            "Acara sudah tidak dapat dibatalkan."
-        case "DRAFT_HAS_BOOKINGS":
-            "Draf memiliki donasi terkait dan tidak dapat dihapus."
-        case "BANNER_REJECTED":
-            "Upload gambar tidak diizinkan. Gunakan JPEG atau PNG."
-        case "PROFILE_MEDIA_REJECTED":
-            "Upload gambar ditolak oleh penyimpanan. Gunakan JPEG atau PNG berukuran maksimal 5 MB."
-        case "PROFILE_MEDIA_FORBIDDEN":
-            "Anda tidak memiliki izin untuk mengunggah gambar ini. Muat ulang profil lalu coba lagi."
-        case "BANNER_TOO_LARGE", "PROFILE_MEDIA_TOO_LARGE":
-            "Ukuran gambar melebihi 5 MB. Kompres atau pilih gambar lain."
-        default:
-            "Permintaan gagal (\(code))."
-        }
+        localizedMessages[code] ?? "Permintaan gagal (\(code))."
     }
 }
 
@@ -270,7 +252,9 @@ struct BookingHistoryItem: Decodable, Equatable, Sendable, Identifiable {
     let createdAt: Date
     let statusUpdatedAt: Date?
 
-    var id: UUID { bookingId }
+    var id: UUID {
+        bookingId
+    }
 }
 
 struct HistoryPage: Decodable, Equatable, Sendable {

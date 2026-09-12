@@ -11,7 +11,7 @@ struct StorageUploadClientTests {
             recorder.record(request)
             return try (response(for: request, status: 200), Data("{}".utf8))
         }
-        let workspaceId = UUID(uuidString: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee")!
+        let workspaceId = try #require(UUID(uuidString: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"))
 
         let path = try await makeStorageClient().uploadWorkspaceLogo(
             data: Data([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A]),
@@ -41,7 +41,7 @@ struct StorageUploadClientTests {
             recorder.record(request)
             return try (response(for: request, status: 200), Data("{}".utf8))
         }
-        let userId = UUID(uuidString: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee")!
+        let userId = try #require(UUID(uuidString: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"))
 
         let path = try await makeStorageClient().uploadProfileAvatar(
             data: Data([0xFF, 0xD8, 0xFF, 0xE1, 0x00, 0x00]),

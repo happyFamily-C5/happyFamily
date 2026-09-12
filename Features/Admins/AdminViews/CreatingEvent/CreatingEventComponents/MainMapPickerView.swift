@@ -1,14 +1,14 @@
-import SwiftUI
-import MapKit
 import CoreLocation
+import MapKit
+import SwiftUI
 
 struct MainMapPickerView: View {
     @Binding var selectedLocation: String?
     @Binding var selectedAddress: String?
     @Binding var selectedCoordinate: CLLocationCoordinate2D?
     @State private var isConfirmationPresented = false
-    
-    var onConfirm: (() -> Void)? = nil
+
+    var onConfirm: (() -> Void)?
     @Environment(\.dismiss) private var dismiss
 
     @State private var cameraPosition: MapCameraPosition = .region(
@@ -76,7 +76,6 @@ struct MainMapPickerView: View {
                     .padding(.top, 8)
 
                     Spacer()
-
                 }
             }
         }
@@ -160,14 +159,12 @@ struct MainMapPickerView: View {
                     .frame(width: 40, height: 40)
                     .background(AppColor.secondaryCyan.opacity(0.5))
                     .clipShape(Circle())
-        
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(confirmedLocationName)
                         .font(.body).bold()
                     Text(confirmedAddress)
                         .font(.subheadline)
-                
                         .foregroundColor(.secondary)
                         .lineLimit(2)
                 }
@@ -177,9 +174,9 @@ struct MainMapPickerView: View {
             .padding(.vertical, 12)
             .background(Color(#colorLiteral(red: 0.9594197869, green: 0.9599153399, blue: 0.975127399, alpha: 1)))
             .clipShape(RoundedRectangle(cornerRadius: 24))
-            
+
             Spacer()
-            
+
             Button {
                 selectedLocation = confirmedLocationName
                 selectedAddress = confirmedAddress

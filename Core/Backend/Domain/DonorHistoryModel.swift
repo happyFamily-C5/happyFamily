@@ -33,8 +33,13 @@ final class DonorHistoryModel {
         self.backendBaseURL = backendBaseURL
     }
 
-    var hasMoreDonations: Bool { donationCursor != nil }
-    var hasMoreCompleted: Bool { completedCursor != nil }
+    var hasMoreDonations: Bool {
+        donationCursor != nil
+    }
+
+    var hasMoreCompleted: Bool {
+        completedCursor != nil
+    }
 
     func loadDonations() async {
         guard let accountClient, !isLoadingDonations else { return }
@@ -101,7 +106,7 @@ final class DonorHistoryModel {
             let page = try await fetch(cursorValue)
             apply(page)
             self[keyPath: cursor] = page.nextCursor
-        } catch BackendError.api(let code, _, _, _) where code == "CURSOR_INVALID" {
+        } catch let BackendError.api(code, _, _, _) where code == "CURSOR_INVALID" {
             // A stale cursor must not silently merge a shifted page: drop it
             // and rebuild from the first page.
             self[keyPath: cursor] = nil

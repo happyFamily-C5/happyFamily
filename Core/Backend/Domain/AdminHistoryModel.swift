@@ -34,8 +34,13 @@ final class AdminHistoryModel {
         self.receptionRepository = receptionRepository
     }
 
-    var hasMoreDonations: Bool { donationCursor != nil }
-    var hasMoreEvents: Bool { eventCursor != nil }
+    var hasMoreDonations: Bool {
+        donationCursor != nil
+    }
+
+    var hasMoreEvents: Bool {
+        eventCursor != nil
+    }
 
     func loadDonations() async {
         guard let historyRepository, !isLoadingDonations else { return }
@@ -103,7 +108,7 @@ final class AdminHistoryModel {
             replace(status: decision.status, for: decision.bookingId)
             NotificationCenter.default.post(name: .adminOperationsDidChange, object: nil)
             return true
-        } catch BackendError.api(let code, _, _, _) where code == "INVALID_BOOKING_TRANSITION" {
+        } catch let BackendError.api(code, _, _, _) where code == "INVALID_BOOKING_TRANSITION" {
             await loadDonations()
             await loadEvents()
             return false
@@ -125,7 +130,7 @@ final class AdminHistoryModel {
             let page = try await fetch(cursorValue)
             apply(page)
             self[keyPath: cursor] = page.nextCursor
-        } catch BackendError.api(let code, _, _, _) where code == "CURSOR_INVALID" {
+        } catch let BackendError.api(code, _, _, _) where code == "CURSOR_INVALID" {
             // A stale cursor must not silently merge a shifted page: drop it
             // and rebuild from the first page.
             self[keyPath: cursor] = nil

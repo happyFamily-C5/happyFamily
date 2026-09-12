@@ -10,8 +10,8 @@ import XCTest
 /// a persisted session skips the login screen entirely:
 ///   xcrun simctl keychain <sim> reset
 final class HappyFamilyCreateFlowUITests: XCTestCase {
-    // The account must already have an active workspace, since the app's
-    // register screens are local-only.
+    /// The account must already have an active workspace, since the app's
+    /// register screens are local-only.
     private let email = ProcessInfo.processInfo.environment["KUMPUL_UI_EMAIL"]
         ?? "smoke.organizer.kumpul@gmail.com"
     private let password = ProcessInfo.processInfo.environment["KUMPUL_UI_PASSWORD"]
@@ -226,7 +226,7 @@ final class HappyFamilyCreateFlowUITests: XCTestCase {
         // recognized by its recap header.
         let recap = app.staticTexts["Rekap Donasi"]
         var attempts = 0
-        while !recap.exists && attempts < 3 {
+        while !recap.exists, attempts < 3 {
             app.buttons.element(boundBy: 0).tap()
             attempts += 1
             _ = recap.waitForExistence(timeout: 5)

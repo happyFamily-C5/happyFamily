@@ -3,7 +3,9 @@ struct AccessoryFinding: Identifiable, Equatable {
     let confidence: Float
     let isPresent: Bool
 
-    var id: String { attribute }
+    var id: String {
+        attribute
+    }
 }
 
 struct GarmentType: Equatable {

@@ -3,11 +3,11 @@ import SwiftUI
 struct RegisterAccountView: View {
     @State private var name = ""
     @State private var model: AuthViewModel
-    
+
     var onRegisterTapped: (RegisterAccountDraft) -> Void
     var onAppleRegisterTapped: (RegisterAccountDraft) -> Void
     var onLoginTapped: () -> Void
-    
+
     init(
         authSession: (any AuthSession)? = BackendDependencies.authSessionOrDefault(),
         onRegisterTapped: @escaping (RegisterAccountDraft) -> Void,
@@ -24,95 +24,94 @@ struct RegisterAccountView: View {
 
     private var isRegisterFormInvalid: Bool {
         name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
-        !model.isSubmitEnabled ||
-        !model.isEmailValid ||
-        !model.isPasswordValid
+            !model.isSubmitEnabled ||
+            !model.isEmailValid ||
+            !model.isPasswordValid
     }
-    
+
     var body: some View {
         ZStack {
-                VStack(spacing: 0) {
-                    Spacer().frame(height: 72)
-                    
-                    AppLogoHeaderView(imageSize: 82)
-                    
-                    Spacer().frame(height: 28)
-                    
-                    Text("Buat Akun Baru")
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(.primary)
-                        .multilineTextAlignment(.center)
-                    
-                    Spacer().frame(height: 28)
-                    
-                    VStack(spacing: 16) {
-                        RegisterInputField(
-                            label: "Nama",
-                            placeholder: "Masukkan nama",
-                            text: $name,
-                            textContentType: .name
-                        )
-                        
-                        RegisterInputField(
-                            label: "Email",
-                            placeholder: "Masukkan email",
-                            text: $model.email,
-                            keyboardType: .emailAddress,
-                            textContentType: .emailAddress
-                        )
-                        
-                        RegisterSecureInputField(
-                            label: "Kata Sandi",
-                            placeholder: "Masukkan kata sandi",
-                            text: $model.password
-                        )
-                    }
-                    
-                    Spacer().frame(height: 52)
-                    
-                    if let error = model.errorMessage {
-                        Text(error)
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.red)
-                            .padding(.bottom, 16)
-                    }
+            VStack(spacing: 0) {
+                Spacer().frame(height: 72)
 
-                    LoginAuthPrimaryButton(title: model.isSubmitting ? "Memproses…" : "Daftar", isDisabled: isRegisterFormInvalid) {
-                        Task { await submit() }
-                    }
-                    
-                    Spacer().frame(height: 24)
-                    
-                    RegisterDividerLabel(text: "atau")
-                    
-                    Spacer().frame(height: 18)
-                    
-                    SocialAuthButton(title: "Daftar dengan Apple") {
-                        onAppleRegisterTapped(accountDraft)
-                    }
-                    
-                    Spacer().frame(height: 22)
-                    
-                    Button(action: onLoginTapped) {
-                        HStack(spacing: 4) {
-                            Text("Sudah punya akun?")
-                                .foregroundColor(.secondary)
-                            
-                            Text("Masuk sekarang!")
-                                .foregroundColor(.primary)
-                                .underline()
-                        }
-                        .font(.system(size: 13, weight: .medium))
-                    }
-                    .buttonStyle(PlainButtonStyle())
+                AppLogoHeaderView(imageSize: 82)
+
+                Spacer().frame(height: 28)
+
+                Text("Buat Akun Baru")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundColor(.primary)
+                    .multilineTextAlignment(.center)
+
+                Spacer().frame(height: 28)
+
+                VStack(spacing: 16) {
+                    RegisterInputField(
+                        label: "Nama",
+                        placeholder: "Masukkan nama",
+                        text: $name,
+                        textContentType: .name
+                    )
+
+                    RegisterInputField(
+                        label: "Email",
+                        placeholder: "Masukkan email",
+                        text: $model.email,
+                        keyboardType: .emailAddress,
+                        textContentType: .emailAddress
+                    )
+
+                    RegisterSecureInputField(
+                        label: "Kata Sandi",
+                        placeholder: "Masukkan kata sandi",
+                        text: $model.password
+                    )
                 }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 32)
-                .frame(maxWidth: .infinity)
-            
+
+                Spacer().frame(height: 52)
+
+                if let error = model.errorMessage {
+                    Text(error)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.red)
+                        .padding(.bottom, 16)
+                }
+
+                LoginAuthPrimaryButton(title: model.isSubmitting ? "Memproses…" : "Daftar", isDisabled: isRegisterFormInvalid) {
+                    Task { await submit() }
+                }
+
+                Spacer().frame(height: 24)
+
+                RegisterDividerLabel(text: "atau")
+
+                Spacer().frame(height: 18)
+
+                SocialAuthButton(title: "Daftar dengan Apple") {
+                    onAppleRegisterTapped(accountDraft)
+                }
+
+                Spacer().frame(height: 22)
+
+                Button(action: onLoginTapped) {
+                    HStack(spacing: 4) {
+                        Text("Sudah punya akun?")
+                            .foregroundColor(.secondary)
+
+                        Text("Masuk sekarang!")
+                            .foregroundColor(.primary)
+                            .underline()
+                    }
+                    .font(.system(size: 13, weight: .medium))
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 32)
+            .frame(maxWidth: .infinity)
         }
     }
-    
+
     private var accountDraft: RegisterAccountDraft {
         RegisterAccountDraft(
             name: name,
@@ -133,13 +132,13 @@ private struct RegisterInputField: View {
     @Binding var text: String
     var keyboardType: UIKeyboardType = .default
     var textContentType: UITextContentType?
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(label)
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(.primary)
-            
+
             TextField(placeholder, text: $text)
                 .keyboardType(keyboardType)
                 .textContentType(textContentType)
@@ -158,13 +157,13 @@ private struct RegisterSecureInputField: View {
     let label: String
     let placeholder: String
     @Binding var text: String
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(label)
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(.primary)
-            
+
             SecureField(placeholder, text: $text)
                 .textContentType(.newPassword)
                 .textInputAutocapitalization(.never)
@@ -180,18 +179,18 @@ private struct RegisterSecureInputField: View {
 
 private struct RegisterDividerLabel: View {
     let text: String
-    
+
     var body: some View {
         HStack(spacing: 12) {
             Rectangle()
                 .fill(Color(.systemGray4))
                 .frame(height: 1)
-            
+
             Text(text)
                 .font(.system(size: 12, weight: .medium))
                 .foregroundColor(.secondary)
                 .lineLimit(1)
-            
+
             Rectangle()
                 .fill(Color(.systemGray4))
                 .frame(height: 1)

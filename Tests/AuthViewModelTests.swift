@@ -6,8 +6,8 @@ import Testing
 @Suite("Auth login contract")
 @MainActor
 struct AuthViewModelTests {
-    // Contract §2: password must be 12+ characters with lowercase, uppercase,
-    // number, and symbol classes.
+    /// Contract §2: password must be 12+ characters with lowercase, uppercase,
+    /// number, and symbol classes.
     @Test func passwordPolicyRequiresSymbolClass() {
         let model = AuthViewModel(authSession: nil)
         model.isSignUpMode = true

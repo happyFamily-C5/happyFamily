@@ -14,25 +14,24 @@ struct FormView: View {
     @Environment(AppRouter.self) var router
     @State var showPrivacyPolice = false
     @State var leaveProcess = false
-    
-    
+
     /// Phone uses a number pad, which has no Return key — without an explicit
     /// dismissal that keyboard can never be closed. Tapping anywhere off a
     /// field clears focus, and the keyboard toolbar gives a visible way out.
     @FocusState private var focusedField: Field?
-    
+
     private enum Field {
         case name
         case phone
     }
-    
+
     let onNext: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 32) {
             eventHeader
 
-            if donationVM.detail == nil && donationVM.isLoadingDetail {
+            if donationVM.detail == nil, donationVM.isLoadingDetail {
                 VStack {
                     ProgressView("Memuat acara…")
                     Spacer()
@@ -67,9 +66,9 @@ struct FormView: View {
         .navigationBarBackButtonHidden(true)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                Button{
+                Button {
                     leaveProcess = true
-                }label: {
+                } label: {
                     Image(systemName: "chevron.left")
                 }
             }
@@ -122,7 +121,6 @@ struct FormView: View {
                     .font(.footnote)
                     .foregroundColor(.orange)
             }
-
         }
 
         Spacer()
