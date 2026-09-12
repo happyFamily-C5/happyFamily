@@ -1,0 +1,11 @@
+# gitleaks configuration: extend the default rules and silence known
+# false positives. Run with `gitleaks detect --source .`.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Non-secret fixtures: synthetic test passwords and SQL privilege assertions"
+paths = [
+  '''^Tests/AuthViewModelTests\.swift$''',
+  '''^supabase/tests/''',
+]
