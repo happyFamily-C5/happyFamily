@@ -90,6 +90,20 @@ LOGIN_STATUS="$(curl -sS -o "$SMOKE_TMP/session.json" -w '%{http_code}' \
 assert_status "$LOGIN_STATUS" 200 "organizer login"
 ACCESS_TOKEN="$(jq -r '.access_token' "$SMOKE_TMP/session.json")"
 
+# Workspaces are provisioned during onboarding (admin role), not at signup.
+ONBOARD_STATUS="$(curl -sS -o "$SMOKE_TMP/onboard.json" -w '%{http_code}' \
+  "$REST_URL/rpc/complete_onboarding_v1" \
+  -H "apikey: $PUBLISHABLE_KEY" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H 'content-type: application/json' \
+  -H 'content-profile: api' \
+  -H 'accept-profile: api' \
+  --data '{"p_role":"admin"}')"
+assert_status "$ONBOARD_STATUS" 200 "organizer onboarding"
+assert_json "$SMOKE_TMP/onboard.json" \
+  "onboarding response" \
+  '.error == null and .role == "admin"'
+
 SERVICE_ROLE_BYPASS_STATUS="$(curl -sS -o "$SMOKE_TMP/service-role-bypass.json" \
   -w '%{http_code}' "$FUNCTIONS_URL/publish-event" \
   -H "apikey: $PUBLISHABLE_KEY" \

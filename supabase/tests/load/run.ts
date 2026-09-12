@@ -174,6 +174,17 @@ try {
   );
   const accessToken = session.body.access_token;
 
+  // Workspaces are provisioned during onboarding (admin role), not at signup.
+  await requestJson<{ role: string }>(
+    `${restUrl}/rpc/complete_onboarding_v1`,
+    {
+      method: "POST",
+      headers: rpcHeaders(accessToken),
+      body: JSON.stringify({ p_role: "admin" }),
+    },
+    [200],
+  );
+
   const workspaces = await requestJson<Array<{ id: string }>>(
     `${restUrl}/workspaces?select=id&owner_user_id=eq.${encodeURIComponent(userId)}`,
     { headers: organizerHeaders(accessToken) },
@@ -206,7 +217,7 @@ try {
           location_country_code: "ID",
           latitude: -6.2,
           longitude: 106.8,
-          capacity_grams: 500_000,
+          capacity_grams: 550_000,
           banner_object_path: `${workspaceId}/load/banner.jpg`,
           receiver_name: "Load Test Receiver",
           receiver_phone: "+6281234567890",
