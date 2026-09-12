@@ -59,11 +59,17 @@ iso_time() {
   local direction="$1"
   local hours="$2"
   if date -u -d '@0' '+%Y' >/dev/null 2>&1; then
-    date -u -d "$hours hours $direction" '+%Y-%m-%dT%H:%M:%SZ'
-  elif [[ "$direction" == "ago" ]]; then
-    date -u -v-"${hours}"H '+%Y-%m-%dT%H:%M:%SZ'
+    if [[ "$direction" == "ago" ]]; then
+      date -u -d "$hours hours ago" '+%Y-%m-%dT%H:%M:%SZ'
+    else
+      date -u -d "+$hours hours" '+%Y-%m-%dT%H:%M:%SZ'
+    fi
   else
-    date -u -v+"${hours}"H '+%Y-%m-%dT%H:%M:%SZ'
+    if [[ "$direction" == "ago" ]]; then
+      date -u -v-"${hours}"H '+%Y-%m-%dT%H:%M:%SZ'
+    else
+      date -u -v+"${hours}"H '+%Y-%m-%dT%H:%M:%SZ'
+    fi
   fi
 }
 
