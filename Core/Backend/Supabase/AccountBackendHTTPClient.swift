@@ -51,6 +51,7 @@ protocol AccountBackendServing: Sendable {
     func updateProfile(_ update: AccountProfileUpdate) async throws -> AccountProfileData
     func updateWorkspace(_ update: AccountWorkspaceUpdate) async throws
     func requestEmailChange(email: String) async throws -> AccountEmailChangeData
+    func deleteAccount() async throws
     func dashboard() async throws -> DonorDashboardData
     func eventDetail(id: UUID) async throws -> DonorEventDetail
     func myBookings() async throws -> [DonorBookingListItem]
@@ -63,6 +64,12 @@ protocol AccountBackendServing: Sendable {
         idempotencyKey: String
     ) async throws -> CreateBookingResult
     func cancelBooking(id: UUID, idempotencyKey: String) async throws -> CancelBookingResult
+}
+
+extension AccountBackendServing {
+    func deleteAccount() async throws {
+        throw BackendError.configuration("account deletion is unavailable")
+    }
 }
 
 struct AccountBackendHTTPClient: AccountBackendServing, Sendable {
@@ -89,15 +96,34 @@ struct AccountBackendHTTPClient: AccountBackendServing, Sendable {
     }
 
     func updateProfile(_ update: AccountProfileUpdate) async throws -> AccountProfileData {
-        try await send(action: "update_profile", body: update)
+        try await send(action: "update_profile", body: AccountProfileUpdate(
+            displayName: update.displayName,
+            phoneE164: IndonesianPhone.normalized(update.phoneE164),
+            address: update.address,
+            locationLabel: update.locationLabel,
+            latitude: update.latitude,
+            longitude: update.longitude,
+            avatarObjectPath: update.avatarObjectPath
+        ))
     }
 
     func updateWorkspace(_ update: AccountWorkspaceUpdate) async throws {
-        let _: EmptyResponse = try await send(action: "update_workspace", body: update)
+        let normalizedUpdate = AccountWorkspaceUpdate(
+            name: update.name,
+            address: update.address,
+            phoneE164: IndonesianPhone.normalized(update.phoneE164),
+            email: update.email,
+            logoObjectPath: update.logoObjectPath
+        )
+        let _: EmptyResponse = try await send(action: "update_workspace", body: normalizedUpdate)
     }
 
     func requestEmailChange(email: String) async throws -> AccountEmailChangeData {
         try await send(action: "request_email_change", body: EmailChangeRequest(email: email))
+    }
+
+    func deleteAccount() async throws {
+        let _: EmptyResponse = try await send(action: "delete_account", body: EmptyRequest())
     }
 
     func dashboard() async throws -> DonorDashboardData {
@@ -158,7 +184,12 @@ struct AccountBackendHTTPClient: AccountBackendServing, Sendable {
         let data = try await sendRaw(action: action, body: body, idempotencyKey: idempotencyKey)
         let envelope = try BackendJSON.decoder().decode(BackendEnvelope<Value>.self, from: data)
         if let error = envelope.error {
-            throw BackendError.api(code: error.code, retryable: error.retryable, fieldErrors: error.fieldErrors?.values ?? [:], requestId: envelope.requestId)
+            throw BackendError.api(
+                code: error.code,
+                retryable: error.retryable,
+                fieldErrors: error.fieldErrors?.values ?? [:],
+                requestId: envelope.requestId
+            )
         }
         guard let value = envelope.data else { throw BackendError.invalidResponse }
         return value
@@ -186,8 +217,16 @@ struct AccountBackendHTTPClient: AccountBackendServing, Sendable {
         let (data, response) = try await session.data(for: request)
         guard let response = response as? HTTPURLResponse else { throw BackendError.invalidResponse }
         guard (200 ..< 300).contains(response.statusCode) else {
-            if let envelope = try? BackendJSON.decoder().decode(BackendEnvelope<EmptyResponse>.self, from: data), let error = envelope.error {
-                throw BackendError.api(code: error.code, retryable: error.retryable, fieldErrors: error.fieldErrors?.values ?? [:], requestId: envelope.requestId)
+            if let envelope = try? BackendJSON.decoder().decode(
+                BackendEnvelope<EmptyResponse>.self,
+                from: data
+            ), let error = envelope.error {
+                throw BackendError.api(
+                    code: error.code,
+                    retryable: error.retryable,
+                    fieldErrors: error.fieldErrors?.values ?? [:],
+                    requestId: envelope.requestId
+                )
             }
             throw BackendError.invalidResponse
         }
@@ -213,4 +252,26 @@ private struct DonorEventHistoryRequest: Encodable, Sendable {
     let terminal: Bool?
     let limit: Int
     let cursor: String?
+}
+
+private enum IndonesianPhone {
+    /// Converts common Indonesian mobile-number input into the E.164 value
+    /// required by the workspace profile contract. Invalid input remains
+    /// untouched so the server can return its field-specific validation error.
+    static func normalized(_ value: String) -> String {
+        var digits = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            .filter { $0.isNumber || $0 == "+" }
+        if digits.hasPrefix("+") {
+            digits.removeFirst()
+        }
+        if digits.hasPrefix("0") {
+            digits = "62" + digits.dropFirst()
+        } else if !digits.hasPrefix("62") {
+            digits = "62" + digits
+        }
+        guard digits.range(of: "^628[1-9][0-9]{6,11}$", options: .regularExpression) != nil else {
+            return value
+        }
+        return "+" + digits
+    }
 }

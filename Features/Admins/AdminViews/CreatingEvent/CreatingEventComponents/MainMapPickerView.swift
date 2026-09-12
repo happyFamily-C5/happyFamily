@@ -231,14 +231,17 @@ struct MainMapPickerView: View {
 
     private func reverseGeocode(coordinate: CLLocationCoordinate2D) {
         let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
-        CLGeocoder().reverseGeocodeLocation(location) { placemarks, _ in
-            guard let placemark = placemarks?.first else { return }
-            Task { @MainActor in
-                confirmedLocationName = placemark.name ?? placemark.locality ?? "Titik Peta Dipilih"
-                let street = placemark.thoroughfare ?? ""
-                let city = placemark.locality ?? ""
-                let combined = [street, city].filter { !$0.isEmpty }.joined(separator: ", ")
-                confirmedAddress = combined.isEmpty ? coordinateDescription(for: coordinate) : combined
+        Task {
+            guard let request = MKReverseGeocodingRequest(location: location) else { return }
+            do {
+                let mapItems = try await request.mapItems
+                guard let item = mapItems.first else { return }
+                confirmedLocationName = item.name ?? "Titik Peta Dipilih"
+                confirmedAddress = item.address?.fullAddress.isEmpty == false
+                    ? item.address!.fullAddress
+                    : coordinateDescription(for: coordinate)
+            } catch {
+                confirmedAddress = coordinateDescription(for: coordinate)
             }
         }
     }

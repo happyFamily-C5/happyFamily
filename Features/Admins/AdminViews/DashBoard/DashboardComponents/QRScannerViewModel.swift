@@ -52,6 +52,16 @@ final class QRScannerViewModel: ObservableObject {
         cameraManager.stop()
     }
 
+    func prepareForNextScan() {
+        result = nil
+        actualWeight = 1.0
+    }
+
+    func restart() async {
+        prepareForNextScan()
+        await start()
+    }
+
     private func handleScanResult(_ value: String) {
         guard result == nil else { return }
         result = value

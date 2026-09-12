@@ -90,10 +90,6 @@ final class RecapModel {
         String(recap?.month.uniqueDonorCount ?? 0)
     }
 
-    var completedEventCountText: String {
-        "0"
-    }
-
     var averagePerDonationText: String {
         let donorCount = Int(recap?.month.uniqueDonorCount ?? 0)
         guard donorCount > 0 else { return "0" }

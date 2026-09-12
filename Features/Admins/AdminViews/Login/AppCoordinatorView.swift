@@ -18,7 +18,9 @@ struct AppCoordinatorView: View {
     @State private var bootstrapError: String?
 
     var body: some View {
-        NavigationStack {
+        @Bindable var router = router
+
+        NavigationStack(path: $router.donersPath) {
             Group {
                 switch currentScreen {
                 case .splash:
@@ -67,14 +69,17 @@ struct AppCoordinatorView: View {
                     DashboardView(
                         initialProfile: adminProfile,
                         onLogout: { logout() },
+                        onDeleteAccount: { try await deleteAccount() },
                         onSaveProfile: { profile in try await saveAdminProfile(profile) }
                     )
                 case .donorHome:
-                    HomeView(
+                    MainTabView(
+                        router: router,
                         userLocation: donorProfile?.recommendationLocationLabel ?? "Lokasi Anda"
                     )
                 }
             }
+            .donersRouter(router)
             .alert("Tidak dapat melanjutkan", isPresented: Binding(
                 get: { bootstrapError != nil },
                 set: { if !$0 { bootstrapError = nil } }
@@ -178,11 +183,23 @@ struct AppCoordinatorView: View {
             phoneE164: profile.phoneNumber, email: profile.email,
             logoObjectPath: logoObjectPath
         ))
-        if profile.email.caseInsensitiveCompare(adminProfile.email) != .orderedSame {
+        if Self.shouldRequestEmailChange(
+            currentWorkspaceEmail: adminProfile.email,
+            submittedEmail: profile.email
+        ) {
             _ = try await account.requestEmailChange(email: profile.email)
         }
         adminProfile = profile
         adminProfile.logoObjectPath = logoObjectPath
+    }
+
+    static func shouldRequestEmailChange(
+        currentWorkspaceEmail: String,
+        submittedEmail: String
+    ) -> Bool {
+        let current = currentWorkspaceEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+        let submitted = submittedEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !current.isEmpty && current.caseInsensitiveCompare(submitted) != .orderedSame
     }
 
     private func route(_ destination: AuthDestination) {
@@ -206,6 +223,7 @@ struct AppCoordinatorView: View {
     private func syncDonorRouterProfile() {
         guard let account = donorProfile else { return }
         router.onLogout = { logout() }
+        router.onDeleteAccount = { try await deleteAccount() }
         if router.donorProfile.id != account.id {
             var profile = DonorProfile(
                 fullName: account.displayName,
@@ -233,6 +251,7 @@ struct AppCoordinatorView: View {
     /// the same backend-backed edits are shown after relaunch.
     private func syncAdminRouterProfile() {
         router.onLogout = { logout() }
+        router.onDeleteAccount = { try await deleteAccount() }
         router.onSaveAdminProfile = { profile in
             try await saveAdminProfile(profile)
             router.adminProfile = adminProfile
@@ -244,11 +263,22 @@ struct AppCoordinatorView: View {
         Task {
             do {
                 try await BackendDependencies.logoutService().logout()
+                router.popToRoot()
                 currentScreen = .login
             } catch {
                 bootstrapError = "Keluar gagal. Sesi Anda tetap aktif: \(error.localizedDescription)"
             }
         }
+    }
+
+    private func deleteAccount() async throws {
+        try await BackendDependencies.accountClient().deleteAccount()
+        await BackendDependencies.clearDeletedAccountState()
+        router.popToRoot()
+        registeredAccount = nil
+        donorProfile = nil
+        adminProfile = .defaultProfile
+        currentScreen = .login
     }
 }
 

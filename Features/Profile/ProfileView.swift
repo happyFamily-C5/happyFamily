@@ -7,11 +7,15 @@ struct ProfileView: View {
 
     @Binding var profile: AdminProfile
     var onLogout: () -> Void = {}
+    var onDeleteAccount: (() async throws -> Void)?
     var onSaveProfile: ((AdminProfile) async throws -> Void)?
     @State private var isShowingEditProfile = false
     @State private var isShowingEventHistory = false
     @State private var isShowingDonationHistory = false
     @State private var isShowingLogoutConfirmation = false
+    @State private var isShowingDeleteConfirmation = false
+    @State private var isDeletingAccount = false
+    @State private var deleteAccountError: String?
 
     @State private var historyModel = AdminHistoryModel(
         historyRepository: BackendDependencies.reportRepositoryOrDefault(),
@@ -68,6 +72,15 @@ struct ProfileView: View {
                                 .buttonStyle(.plain)
                             }
                             .listRowBackground(Color(#colorLiteral(red: 0.9499571919, green: 0.9500558972, blue: 0.953115046, alpha: 1)))
+
+                            Section("Akun") {
+                                Button(role: .destructive) {
+                                    isShowingDeleteConfirmation = true
+                                } label: {
+                                    Label("Hapus Akun", systemImage: "trash")
+                                }
+                                .disabled(isDeletingAccount || onDeleteAccount == nil)
+                            }
                         }
                         .listStyle(.insetGrouped)
                         .scrollDisabled(true)
@@ -102,6 +115,32 @@ struct ProfileView: View {
             .background(Color(.systemBackground).opacity(0.96))
         }
         .navigationBarHidden(true)
+        .confirmationDialog(
+            "Hapus akun secara permanen?",
+            isPresented: $isShowingDeleteConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Hapus Akun", role: .destructive) {
+                Task { await deleteAccount() }
+            }
+            Button("Batal", role: .cancel) {}
+        } message: {
+            Text(
+                "Akun, akses workspace, dan data pribadi akan dihapus. "
+                    + "Riwayat operasional tetap disimpan tanpa akses akun. Tindakan ini tidak dapat dibatalkan."
+            )
+        }
+        .alert(
+            "Hapus akun gagal",
+            isPresented: Binding(
+                get: { deleteAccountError != nil },
+                set: { if !$0 { deleteAccountError = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(deleteAccountError ?? "Terjadi kesalahan yang tidak diketahui.")
+        }
         .fullScreenCover(isPresented: $isShowingEditProfile) {
             ProfileEditView(
                 companyName: $profile.companyName,
@@ -124,6 +163,18 @@ struct ProfileView: View {
         isShowingLogoutConfirmation = false
         onLogout()
         dismiss()
+    }
+
+    private func deleteAccount() async {
+        guard let onDeleteAccount, !isDeletingAccount else { return }
+        isDeletingAccount = true
+        defer { isDeletingAccount = false }
+        do {
+            try await onDeleteAccount()
+            dismiss()
+        } catch {
+            deleteAccountError = error.localizedDescription
+        }
     }
 }
 

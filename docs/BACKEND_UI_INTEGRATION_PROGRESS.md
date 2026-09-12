@@ -3,6 +3,24 @@
 Status per 2026-09-09. Dokumen ini mencatat implementasi aktual dan batas
 verifikasi yang masih tersisa.
 
+## Update 2026-09-10
+
+- `operations` deployed ke hosted staging sebagai versi 9 dengan JWT
+  verification tetap aktif. Action `export_report` dan `delete_donor_data`
+  dihapus dari function agar kembali selaras dengan kontrak v2.
+- `staging_account_contract.ts` run `v9-20260910054024-25044` lulus, termasuk
+  assertion isolasi `list_events` dua workspace dan race capacity.
+- Retry create draft sekarang mempertahankan event ID serta `mutation_id` yang
+  sama sampai respons final; dashboard juga reset ke halaman pertama pada
+  `CURSOR_INVALID`.
+- Dashboard memiliki loading state dan filter status; reception/tracking
+  memicu refresh daftar event dan recap. Kartu recap "Acara Selesai" dihapus
+  karena respons `operations:recap` belum menyediakan metrik tersebut.
+- Unit test iOS (68) dan test Edge Function (18) lulus; Debug simulator build
+  lulus. Full UI suite masih gagal pada locator login/create yang tidak lagi
+  cocok dengan auth UI WIP, sehingga journey UI kandidat release belum dapat
+  dinyatakan lulus.
+
 ## Selesai pada sesi ini
 
 - Mempertahankan auth WIP pengguna yang sudah ada; tidak ada reset, stash, atau

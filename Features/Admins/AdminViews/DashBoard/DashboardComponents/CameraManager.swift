@@ -33,18 +33,21 @@ final class CameraManager: NSObject {
     }
 
     func start() {
-        guard isConfigured, !session.isRunning else { return }
+        guard isConfigured else { return }
         let reference = CaptureSessionReference(value: session)
         sessionQueue.async { [reference] in
-            reference.value.startRunning()
+            if !reference.value.isRunning {
+                reference.value.startRunning()
+            }
         }
     }
 
     func stop() {
-        guard session.isRunning else { return }
         let reference = CaptureSessionReference(value: session)
         sessionQueue.async { [reference] in
-            reference.value.stopRunning()
+            if reference.value.isRunning {
+                reference.value.stopRunning()
+            }
         }
     }
 }

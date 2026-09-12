@@ -47,6 +47,9 @@ final class AppRouter {
     /// Set by the root coordinator: donor-profile logout must end the whole
     /// session, not just pop the navigation stack.
     var onLogout: (() -> Void)?
+    /// Set by the root coordinator so deletion passes through the authenticated
+    /// backend and clears the app session afterward.
+    var onDeleteAccount: (() async throws -> Void)?
     /// Backend-backed admin profile save (uploads the logo, updates the
     /// workspace, and requests the email change when needed).
     var onSaveAdminProfile: ((AdminProfile) async throws -> Void)?
@@ -148,6 +151,7 @@ extension View {
                 ProfileView(
                     profile: Bindable(router).adminProfile,
                     onLogout: { router.onLogout?() },
+                    onDeleteAccount: router.onDeleteAccount,
                     onSaveProfile: router.onSaveAdminProfile
                 )
             }
@@ -191,7 +195,8 @@ extension View {
             case .profile:
                 DonorProfileView(
                     profile: Bindable(router).donorProfile,
-                    onLogout: { router.onLogout?() }
+                    onLogout: { router.onLogout?() },
+                    onDeleteAccount: router.onDeleteAccount
                 )
             case .trackingHistory:
                 TrackingHistoryView()

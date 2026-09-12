@@ -7,10 +7,14 @@ struct DonorProfileView: View {
 
     @Binding var profile: DonorProfile
     var onLogout: () -> Void = {}
+    var onDeleteAccount: (() async throws -> Void)?
     @State private var isShowingEditProfile = false
     @State private var isShowingEventHistory = false
     @State private var isShowingDonationHistory = false
     @State private var isShowingLogoutConfirmation = false
+    @State private var isShowingDeleteConfirmation = false
+    @State private var isDeletingAccount = false
+    @State private var deleteAccountError: String?
     @State private var history = DonorHistoryModel(
         accountClient: BackendDependencies.accountClientOrDefault()
     )
@@ -66,6 +70,15 @@ struct DonorProfileView: View {
                                 .buttonStyle(.plain)
                             }
                             .listRowBackground(Color(#colorLiteral(red: 0.9499571919, green: 0.9500558972, blue: 0.953115046, alpha: 1)))
+
+                            Section("Akun") {
+                                Button(role: .destructive) {
+                                    isShowingDeleteConfirmation = true
+                                } label: {
+                                    Label("Hapus Akun", systemImage: "trash")
+                                }
+                                .disabled(isDeletingAccount || onDeleteAccount == nil)
+                            }
                         }
                         .listStyle(.insetGrouped)
                         .scrollDisabled(true)
@@ -99,6 +112,32 @@ struct DonorProfileView: View {
             .background(Color(.systemBackground).opacity(0.96))
         }
         .navigationBarHidden(true)
+        .confirmationDialog(
+            "Hapus akun secara permanen?",
+            isPresented: $isShowingDeleteConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Hapus Akun", role: .destructive) {
+                Task { await deleteAccount() }
+            }
+            Button("Batal", role: .cancel) {}
+        } message: {
+            Text(
+                "Akun dan data profil akan dihapus. Riwayat donasi tetap disimpan tanpa terhubung "
+                    + "ke akun Anda. Tindakan ini tidak dapat dibatalkan."
+            )
+        }
+        .alert(
+            "Hapus akun gagal",
+            isPresented: Binding(
+                get: { deleteAccountError != nil },
+                set: { if !$0 { deleteAccountError = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(deleteAccountError ?? "Terjadi kesalahan yang tidak diketahui.")
+        }
         .fullScreenCover(isPresented: $isShowingEditProfile) {
             DonorProfileEditView(profile: profile) { updated in
                 let account = try BackendDependencies.accountClient()
@@ -126,7 +165,7 @@ struct DonorProfileView: View {
         .task {
             async let donations: () = history.loadDonations()
             async let completed: () = history.loadCompleted()
-            await (donations, completed)
+            _ = await (donations, completed)
         }
     }
     
@@ -134,6 +173,18 @@ struct DonorProfileView: View {
         isShowingLogoutConfirmation = false
         onLogout()
         dismiss()
+    }
+
+    private func deleteAccount() async {
+        guard let onDeleteAccount, !isDeletingAccount else { return }
+        isDeletingAccount = true
+        defer { isDeletingAccount = false }
+        do {
+            try await onDeleteAccount()
+            dismiss()
+        } catch {
+            deleteAccountError = error.localizedDescription
+        }
     }
 }
 

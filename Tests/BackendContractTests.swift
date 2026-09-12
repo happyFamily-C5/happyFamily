@@ -54,6 +54,33 @@ struct DashboardRepositoryTests {
         #expect(model.errorMessage == nil)
     }
 
+    @Test @MainActor func draftRetryReusesTheOriginalMutationIdentifier() async {
+        let event = BackendAdminEvent.fixture(name: "Draf yang di-retry")
+        let repository = DraftRetryRepository()
+        let model = DashboardModel(repository: repository)
+
+        #expect(await model.createDraft(event) == false)
+        #expect(await model.createDraft(event) == true)
+
+        let mutationIds = await repository.mutationIds()
+        #expect(mutationIds.count == 2)
+        #expect(mutationIds[0] == mutationIds[1])
+    }
+
+    @Test @MainActor func invalidDashboardCursorReloadsTheFirstPage() async {
+        let stale = BackendAdminEvent.fixture(name: "Stale")
+        let fresh = BackendAdminEvent.fixture(name: "Fresh")
+        let repository = CursorResetRepository(stale: stale, fresh: fresh)
+        let model = DashboardModel(repository: repository)
+
+        await model.load()
+        await model.loadMore()
+
+        #expect(model.events == [fresh])
+        #expect(model.nextCursor == nil)
+        #expect(model.errorMessage == nil)
+    }
+
     @Test func logoutPurgesSessionCacheAfterGlobalSignOut() async throws {
         let auth = AuthSessionSpy()
         let cache = SessionCacheSpy()
@@ -215,6 +242,54 @@ private actor DraftSyncRemote: EventRepository {
     func cancelOrDelete(eventId _: UUID) async throws -> CancelEventData {
         throw URLError(.notConnectedToInternet)
     }
+}
+
+private actor DraftRetryRepository: EventRepository {
+    private var attempts = 0
+    private var ids: [UUID] = []
+
+    func mutationIds() -> [UUID] { ids }
+
+    func list(cursor _: String?) async throws -> EventPage { EventPage(events: [], cursor: nil) }
+
+    func upsertDraft(_ event: BackendAdminEvent, mutationId: UUID) async throws -> BackendAdminEvent {
+        attempts += 1
+        ids.append(mutationId)
+        if attempts == 1 { throw URLError(.timedOut) }
+        return event
+    }
+
+    func publish(eventId _: UUID) async throws -> PublishEventData { throw TestFailure.unexpectedCall }
+    func cancelOrDelete(eventId _: UUID) async throws -> CancelEventData { throw TestFailure.unexpectedCall }
+}
+
+private actor CursorResetRepository: EventRepository {
+    private let stale: BackendAdminEvent
+    private let fresh: BackendAdminEvent
+    private var calls = 0
+
+    init(stale: BackendAdminEvent, fresh: BackendAdminEvent) {
+        self.stale = stale
+        self.fresh = fresh
+    }
+
+    func list(cursor: String?) async throws -> EventPage {
+        calls += 1
+        switch (calls, cursor) {
+        case (1, nil): return EventPage(events: [stale], cursor: "expired-cursor")
+        case (2, "expired-cursor"):
+            throw BackendError.api(code: "CURSOR_INVALID", retryable: false, fieldErrors: [:], requestId: nil)
+        case (3, nil): return EventPage(events: [fresh], cursor: nil)
+        default: throw TestFailure.unexpectedCall
+        }
+    }
+
+    func upsertDraft(_: BackendAdminEvent, mutationId _: UUID) async throws -> BackendAdminEvent {
+        throw TestFailure.unexpectedCall
+    }
+
+    func publish(eventId _: UUID) async throws -> PublishEventData { throw TestFailure.unexpectedCall }
+    func cancelOrDelete(eventId _: UUID) async throws -> CancelEventData { throw TestFailure.unexpectedCall }
 }
 
 private actor AuthSessionSpy: AuthSession {

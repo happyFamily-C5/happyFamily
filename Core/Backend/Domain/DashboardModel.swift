@@ -1,6 +1,12 @@
 import Foundation
 import Observation
 
+extension Notification.Name {
+    /// Emitted after an Admin mutation changes event capacity, reception, or
+    /// tracking totals that are also rendered by the dashboard recap.
+    static let adminOperationsDidChange = Notification.Name("adminOperationsDidChange")
+}
+
 @MainActor
 @Observable
 final class DashboardModel {
@@ -19,6 +25,7 @@ final class DashboardModel {
     private let repository: any EventRepository
     private let reportRepository: (any ReportRepository)?
     private var backendBaseURL: URL?
+    private var pendingDraftMutationIds: [UUID: UUID] = [:]
 
     init(
         repository: any EventRepository,
@@ -73,6 +80,8 @@ final class DashboardModel {
             self.nextCursor = page.cursor
             errorMessage = nil
             await preloadMissingBanners()
+        } catch BackendError.api(let code, _, _, _) where code == "CURSOR_INVALID" {
+            await load()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -108,8 +117,11 @@ final class DashboardModel {
 
     @discardableResult
     func createDraft(_ event: BackendAdminEvent) async -> Bool {
+        let mutationId = pendingDraftMutationIds[event.id] ?? UUID()
+        pendingDraftMutationIds[event.id] = mutationId
         do {
-            let saved = try await repository.upsertDraft(event, mutationId: UUID())
+            let saved = try await repository.upsertDraft(event, mutationId: mutationId)
+            pendingDraftMutationIds.removeValue(forKey: event.id)
             if let index = events.firstIndex(where: { $0.id == saved.id }) {
                 events[index] = saved
             } else {

@@ -4,12 +4,14 @@ import CoreLocation
 struct DashboardView: View {
     
     private let onLogout: () -> Void
+    private let onDeleteAccount: (() async throws -> Void)?
     private let onSaveProfile: ((AdminProfile) async throws -> Void)?
     
     @Environment(AppRouter.self) var router
     
     
     @State private var searchText: String = ""
+    @State private var selectedStatus: EventStatusCode?
     @State private var adminProfile: AdminProfile
     
     // State utama untuk status apakah sudah ada event
@@ -34,10 +36,12 @@ struct DashboardView: View {
     init(
         initialProfile: AdminProfile = .defaultProfile,
         onLogout: @escaping () -> Void = {},
+        onDeleteAccount: (() async throws -> Void)? = nil,
         onSaveProfile: ((AdminProfile) async throws -> Void)? = nil
     ) {
         _adminProfile = State(initialValue: initialProfile)
         self.onLogout = onLogout
+        self.onDeleteAccount = onDeleteAccount
         self.onSaveProfile = onSaveProfile
     }
     
@@ -45,6 +49,7 @@ struct DashboardView: View {
         model.events
             .map(AdminEvent.init(backend:))
             .filter { searchText.isEmpty || $0.name.localizedCaseInsensitiveContains(searchText) }
+            .filter { selectedStatus == nil || $0.status == selectedStatus }
     }
     
     var body: some View {
@@ -52,7 +57,10 @@ struct DashboardView: View {
 
         ZStack(alignment: .bottom) {
             Group {
-                if !hasAnyEvent {
+                if model.isLoading && model.events.isEmpty {
+                    ProgressView("Memuat acara…")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if !hasAnyEvent {
                     // MARK: - 1. Empty State Murni
                     VStack {
                         HStack{
@@ -89,6 +97,22 @@ struct DashboardView: View {
                                 onLogoTapped: { isShowingProfile = true },
                                 onAddTapped: { isShowingCreateModal = true }
                             )
+
+                            Menu {
+                                Button("Semua status") { selectedStatus = nil }
+                                ForEach(EventStatusCode.allCases, id: \.self) { status in
+                                    Button(AdminEvent.statusLabel(status)) {
+                                        selectedStatus = status
+                                    }
+                                }
+                            } label: {
+                                Label(
+                                    selectedStatus.map(AdminEvent.statusLabel) ?? "Semua status",
+                                    systemImage: "line.3.horizontal.decrease.circle"
+                                )
+                                .font(.subheadline.weight(.medium))
+                            }
+                            .padding(.horizontal, 16)
                             
                             VStack(alignment: .leading, spacing: 24) {
                                 
@@ -198,10 +222,16 @@ struct DashboardView: View {
                     .scrollDismissesKeyboard(.immediately)
                 }
             }
-            .task {
+        .task {
+            await model.load()
+            await model.loadRecap()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .adminOperationsDidChange)) { _ in
+            Task {
                 await model.load()
-                await model.loadRecap()
+                await model.refreshRecap()
             }
+        }
             
             // While editing, a transparent layer over the dashboard catches
             // taps and resigns focus. It sits above the content but below the
@@ -263,6 +293,7 @@ struct DashboardView: View {
                     isShowingProfile = false
                     onLogout()
                 },
+                onDeleteAccount: onDeleteAccount,
                 onSaveProfile: onSaveProfile
             )
         }
@@ -414,6 +445,17 @@ struct AdminEvent: Identifiable {
             return startDate > Date()
         default:
             return false
+        }
+    }
+
+    static func statusLabel(_ status: EventStatusCode) -> String {
+        switch status {
+        case .draft: "Draf"
+        case .upcoming: "Akan datang"
+        case .ongoing: "Berlangsung"
+        case .completed: "Selesai"
+        case .closed: "Ditutup"
+        case .cancelled: "Dibatalkan"
         }
     }
     

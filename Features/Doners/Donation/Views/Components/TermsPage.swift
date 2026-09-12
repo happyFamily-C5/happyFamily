@@ -8,9 +8,8 @@
 import SwiftUI
 
 struct TermsPage: View {
-    @Environment(\.presentationMode) var dismiss
-    @Environment(AppRouter.self) var router
-    
+    let onAccepted: () -> Void
+
     @State var agreed = false
     
     var body: some View {
@@ -40,8 +39,7 @@ struct TermsPage: View {
             }
             
             Button{
-                router.push(to: .donationFlow)
-                dismiss.wrappedValue.dismiss()
+                onAccepted()
             }label: {
                 Text("Setuju dan Lanjutkan")
                     .foregroundStyle(Color.white)
@@ -60,6 +58,5 @@ struct TermsPage: View {
 }
 
 #Preview {
-    TermsPage()
-        .environment(AppRouter())
+    TermsPage(onAccepted: {})
 }

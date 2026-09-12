@@ -9,37 +9,28 @@ import SwiftUI
 
 struct MainTabView: View {
     @Bindable var router: AppRouter
-    @State private var selectedTab: Tab = .home
-    
-    enum Tab {
+    var userLocation = "Lokasi Anda"
+    @State private var selectedTab: DonersTab = .home
+
+    enum DonersTab: Hashable {
         case home, track
     }
-    
+
     var body: some View {
         TabView(selection: $selectedTab) {
-            NavigationStack(path: $router.donersPath) {
-                HomeView(userLocation: "Jakarta Pusat")
-                .donersRouter(router)
+            Tab("Beranda", systemImage: "house", value: .home) {
+                HomeView(userLocation: userLocation)
             }
-            .tabItem {
-                Label("Beranda", systemImage: "house")
-            }
-            .tag(Tab.home)
-            
-            NavigationStack(path: $router.donersPath) {
+
+            Tab("Lacak", systemImage: "shippingbox.fill", value: .track) {
                 TrackingHistoryView()
-                    .donersRouter(router)
             }
-            .tabItem {
-                Label("Scan", systemImage: "shippingbox.fill")
-            }
-            .tag(Tab.track)
         }
+        .environment(router)
     }
 }
 
 #Preview {
     MainTabView(router: AppRouter())
-        .environment(AppRouter())
         .environment(DonationViewModel())
 }

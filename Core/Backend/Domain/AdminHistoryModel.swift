@@ -101,6 +101,7 @@ final class AdminHistoryModel {
                 status: status
             )
             replace(status: decision.status, for: decision.bookingId)
+            NotificationCenter.default.post(name: .adminOperationsDidChange, object: nil)
             return true
         } catch BackendError.api(let code, _, _, _) where code == "INVALID_BOOKING_TRANSITION" {
             await loadDonations()

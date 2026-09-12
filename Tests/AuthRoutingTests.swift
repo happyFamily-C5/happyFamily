@@ -4,6 +4,13 @@ import Testing
 
 @Suite("Authenticated routing")
 struct AuthRoutingTests {
+    @Test func adminOnboardingDoesNotRequestSameEmailChange() {
+        #expect(!AppCoordinatorView.shouldRequestEmailChange(
+            currentWorkspaceEmail: "",
+            submittedEmail: "admin@example.invalid"
+        ))
+    }
+
     @Test func noServerRoleRequiresRoleSelection() {
         #expect(AuthRouting.destination(for: profile(role: nil)) == .roleSelection)
     }

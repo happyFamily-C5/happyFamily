@@ -4,9 +4,10 @@ import SwiftUI
 /// QR token never becomes a booking id, PII cache, or a local booking
 /// mutation in the app.
 struct ScanResultView: View {
-    @Environment(\.dismiss) private var dismiss
     @Environment(AppRouter.self) private var router
     @ObservedObject var scanner: QRScannerViewModel
+    var onRetry: () -> Void = {}
+    var onFinished: () -> Void = {}
     @State private var booking: ResolvedQRBooking?
     @State private var isResolving = true
     @State private var isSubmitting = false
@@ -22,11 +23,15 @@ struct ScanResultView: View {
             } else if isResolving {
                 ProgressView("Memverifikasi QR…")
             } else {
-                ContentUnavailableView(
-                    "QR tidak dapat diproses",
-                    systemImage: "qrcode.viewfinder",
-                    description: Text(errorMessage ?? "Coba scan lagi.")
-                )
+                VStack(spacing: 16) {
+                    ContentUnavailableView(
+                        "QR tidak dapat diproses",
+                        systemImage: "qrcode.viewfinder",
+                        description: Text(errorMessage ?? "Coba scan lagi.")
+                    )
+                    Button("Scan Ulang", action: onRetry)
+                        .buttonStyle(.borderedProminent)
+                }
             }
         }
         .task { await resolveBooking() }
@@ -145,6 +150,7 @@ struct ScanResultView: View {
                 idempotencyKey: key,
                 requestId: UUID()
             ))
+            NotificationCenter.default.post(name: .adminOperationsDidChange, object: nil)
             if decision == .accepted { showDonationSuccess = true } else { showDonationReject = true }
         } catch {
             errorMessage = error.localizedDescription
@@ -152,7 +158,7 @@ struct ScanResultView: View {
     }
 
     private func returnHome() {
-        dismiss()
+        onFinished()
         router.popToRoot()
     }
 }

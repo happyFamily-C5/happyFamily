@@ -55,9 +55,61 @@ struct OrganizerOperationsClientTests {
         #expect(json["action"] as? String == "publish_event")
         #expect(UUID(uuidString: json["event_id"] as? String ?? "") == eventId)
         #expect(
-            published.invocationURL.absoluteString ==
+            published.invocationURL?.absoluteString ==
                 "https://app.example.invalid/event/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
         )
+    }
+
+    @Test("publish validation exposes each missing event field")
+    func publishValidationExposesFieldErrors() async {
+        URLProtocolStub.requestHandler = { request in
+            let data = try JSONSerialization.data(withJSONObject: [
+                "data": NSNull(),
+                "error": [
+                    "code": "EVENT_PUBLISH_FIELDS_REQUIRED",
+                    "retryable": false,
+                    "field_errors": [
+                        "banner": "Banner acara belum diunggah.",
+                        "description": "Deskripsi acara belum diisi.",
+                    ],
+                ],
+                "request_id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+                "server_time": "2026-09-10T01:00:00Z",
+            ])
+            return try (response(for: request, status: 422), data)
+        }
+
+        await #expect {
+            _ = try await makeClient().publish(eventId: UUID())
+        } throws: { error in
+            guard case let BackendError.api(code, retryable, fieldErrors, _) = error else {
+                return false
+            }
+            return code == "EVENT_PUBLISH_FIELDS_REQUIRED"
+                && !retryable
+                && fieldErrors == [
+                    "banner": "Banner acara belum diunggah.",
+                    "description": "Deskripsi acara belum diisi.",
+                ]
+                && error.localizedDescription.contains("Banner acara belum diunggah.")
+        }
+    }
+
+    @Test("publish accepts the deployed event-only success response")
+    func publishAcceptsEventOnlySuccessResponse() async throws {
+        URLProtocolStub.requestHandler = { request in
+            let data = try JSONSerialization.data(withJSONObject: [
+                "data": eventRecordJSON(),
+                "error": NSNull(),
+                "request_id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+                "server_time": "2026-09-10T01:00:00Z",
+            ])
+            return try (response(for: request, status: 200), data)
+        }
+
+        let published = try await makeClient().publish(eventId: UUID())
+
+        #expect(published.invocationURL == nil)
     }
 
     @Test("listEvents posts the operations list action and decodes next cursor")

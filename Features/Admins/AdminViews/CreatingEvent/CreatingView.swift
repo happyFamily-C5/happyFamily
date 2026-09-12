@@ -46,6 +46,11 @@ struct CreatingView: View {
     @State private var donationCapacity: Int = 10
     @State private var selectedDonationLimit: Int = 1
     @State private var isSubmitting: Bool = false
+    @State private var isUploadingBanner: Bool = false
+    /// Stable only for an unresolved submit. The dashboard model keys the
+    /// corresponding mutation ID by this event ID, so retry replays the same
+    /// payload/mutation instead of creating another draft.
+    @State private var pendingDraftEventID: UUID?
     @State private var submitError: String?
     @State private var pendingCreatedEvent: AdminEvent?
     var body: some View {
@@ -98,7 +103,7 @@ struct CreatingView: View {
                                 .background(Color.red.opacity(0.08))
                                 .clipShape(RoundedRectangle(cornerRadius: 16))
                         }
-                        PrimaryButton(title: currentStep == totalSteps ? (isSubmitting ? "Menyimpan…" : "Buat Acara") : "Lanjut") {
+                        PrimaryButton(title: currentStep == totalSteps ? (isUploadingBanner ? "Mengunggah banner…" : isSubmitting ? "Menyimpan…" : "Buat Acara") : "Lanjut") {
                             if currentStep < totalSteps {
                                 currentStep += 1
                             } else {
@@ -139,12 +144,16 @@ struct CreatingView: View {
             return
         }
         isSubmitting = true
+        isUploadingBanner = selectedImageData != nil
         submitError = nil
-        let event = makeEvent()
+        let event = makeEvent(id: pendingDraftEventID ?? UUID())
+        pendingDraftEventID = event.id
         Task {
             let ok = await model.createDraft(event.toBackendAdminEvent())
             isSubmitting = false
+            isUploadingBanner = false
             if ok {
+                pendingDraftEventID = nil
                 // Success view tetap muncul walau offline: CachedEventRepository
                 // mengembalikan event secara optimistik dan mengantre sinkron.
                 pendingCreatedEvent = event
@@ -154,8 +163,9 @@ struct CreatingView: View {
         }
     }
 
-    private func makeEvent() -> AdminEvent {
+    private func makeEvent(id: UUID) -> AdminEvent {
         AdminEvent(
+            id: id,
             name: eventName,
             description: eventDescription,
             startDate: startDate,

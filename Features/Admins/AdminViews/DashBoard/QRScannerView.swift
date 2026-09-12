@@ -4,6 +4,7 @@ struct QRScannerView: View {
     @Environment(\.dismiss) var dismiss
     @StateObject var scanner = QRScannerViewModel()
     @State var showResult = false
+    @State private var shouldRestartAfterResult = true
     
     var body: some View {
         ZStack {
@@ -15,14 +16,24 @@ struct QRScannerView: View {
                 .foregroundStyle(.black)
                 .frame(width: 339, height: 339)
         }
-        .onChange(of: scanner.result) { _ in
-            showResult = true
-        }
-        .sheet(isPresented: $showResult, content: {
-            NavigationStack {
-                ScanResultView(scanner: scanner)
+        .onChange(of: scanner.result) { _, result in
+            if result != nil {
+                showResult = true
             }
-        })
+        }
+        .sheet(isPresented: $showResult, onDismiss: handleResultDismissal) {
+            NavigationStack {
+                ScanResultView(
+                    scanner: scanner,
+                    onRetry: { showResult = false },
+                    onFinished: {
+                        shouldRestartAfterResult = false
+                        showResult = false
+                        dismiss()
+                    }
+                )
+            }
+        }
         .task {
             await scanner.start()
         }
@@ -34,6 +45,14 @@ struct QRScannerView: View {
         } message: {
             Text(scanner.cameraAlertMessage)
         }
+    }
+
+    private func handleResultDismissal() {
+        guard shouldRestartAfterResult else {
+            shouldRestartAfterResult = true
+            return
+        }
+        Task { await scanner.restart() }
     }
 }
 

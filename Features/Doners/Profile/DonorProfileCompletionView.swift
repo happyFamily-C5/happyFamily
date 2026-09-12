@@ -39,11 +39,12 @@ struct DonorProfileCompletionView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Foto Profil (opsional)")
                         .font(.subheadline).bold()
+                    let pickerLabel = avatarData == nil ? "Pilih Foto" : "Ganti Foto"
                     PhotosPicker(
                         selection: $avatarItem,
                         matching: .images
                     ) {
-                        Text(avatarData == nil ? "Pilih Foto" : "Ganti Foto")
+                        Text(pickerLabel)
                             .font(.footnote).bold()
                             .foregroundStyle(.white)
                             .padding(.horizontal, 14)

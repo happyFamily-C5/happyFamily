@@ -110,7 +110,7 @@ serve("account", async (req, requestId) => {
       const previousAvatar = previous?.avatar_object_path ?? null;
       const profile = await rpc<Record<string, unknown>>(client, "update_user_profile_v1", {
         p_display_name: text(body, "display_name"),
-        p_phone_e164: text(body, "phone_e164"),
+        p_phone_e164: normalizeIndonesianPhone(body.phone_e164),
         p_address: text(body, "address"),
         p_location_label: text(body, "location_label"),
         p_latitude: typeof body.latitude === "number" ? body.latitude : null,
@@ -140,6 +140,48 @@ serve("account", async (req, requestId) => {
         requestId,
       );
     }
+    case "delete_account": {
+      const [{ data: profile, error: profileError }, { data: workspace, error: workspaceError }] =
+        await Promise.all([
+          service
+            .from("profiles")
+            .select("account_role, avatar_object_path")
+            .eq("id", user.id)
+            .maybeSingle<{ account_role: string | null; avatar_object_path: string | null }>(),
+          service
+            .from("workspaces")
+            .select("id, logo_object_path")
+            .eq("owner_user_id", user.id)
+            .maybeSingle<{ id: string; logo_object_path: string | null }>(),
+        ]);
+      if (profileError) throw profileError;
+      if (workspaceError) throw workspaceError;
+
+      // Revocation happens before identity deletion. The database trigger is
+      // a second line of defence for deletes performed outside this function.
+      if (workspace) {
+        const { error: disableError } = await service
+          .from("workspaces")
+          .update({ status: "disabled" })
+          .eq("id", workspace.id);
+        if (disableError) throw disableError;
+      }
+
+      const { error: deleteError } = await service.auth.admin.deleteUser(user.id);
+      if (deleteError) throw new ApiError("ACCOUNT_DELETE_FAILED", 500, false);
+
+      // Media cleanup is best-effort after the irreversible identity delete.
+      // Failed objects are later collected by the orphan cleanup job.
+      const cleanup: Promise<unknown>[] = [];
+      if (profile?.avatar_object_path) {
+        cleanup.push(service.storage.from("profile-avatars").remove([profile.avatar_object_path]));
+      }
+      if (workspace?.logo_object_path) {
+        cleanup.push(service.storage.from("workspace-logos").remove([workspace.logo_object_path]));
+      }
+      await Promise.allSettled(cleanup);
+      return success({}, requestId);
+    }
     case "update_workspace": {
       // Replacement cleanup: a new logo path removes the previous object from
       // the branding bucket after the workspace RPC commits.
@@ -152,7 +194,7 @@ serve("account", async (req, requestId) => {
       const workspace = await rpc<Record<string, unknown>>(client, "update_workspace_profile_v1", {
         p_name: text(body, "name"),
         p_address: text(body, "address"),
-        p_phone_e164: text(body, "phone_e164"),
+        p_phone_e164: normalizeIndonesianPhone(body.phone_e164),
         p_email: text(body, "email"),
         p_logo_object_path: text(body, "logo_object_path"),
       });

@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct PrivacyPoliceInstructionPage: View {
-    @State private var agreed = true
+    let onAccepted: () -> Void
     
     let slides: [OnboardingSlide] = [
         OnboardingSlide(id: 0, illustration: "carousel1", description: "Siap memberi pakaianmu kehidupan kedua?"),
@@ -17,7 +17,8 @@ struct PrivacyPoliceInstructionPage: View {
         OnboardingSlide(id: 3, illustration: "carousel4", description: "Pastikan pakaian sesuai dengan kriteria bahan yang diminta")
     ]
     
-    init() {
+    init(onAccepted: @escaping () -> Void = {}) {
+        self.onAccepted = onAccepted
         UIPageControl.appearance().currentPageIndicatorTintColor = .black
         UIPageControl.appearance().pageIndicatorTintColor = .gray.withAlphaComponent(0.3)
         UIPageControl.appearance().backgroundColor = .white
@@ -38,7 +39,7 @@ struct PrivacyPoliceInstructionPage: View {
                 }
             }
             
-            TermsPage()
+            TermsPage(onAccepted: onAccepted)
         }
         .padding(.horizontal, 20)
         .tabViewStyle(PageTabViewStyle())
@@ -48,5 +49,4 @@ struct PrivacyPoliceInstructionPage: View {
 
 #Preview {
     PrivacyPoliceInstructionPage()
-        .environment(AppRouter())
 }

@@ -1,6 +1,12 @@
-import { decrypt, sha256Hex } from "../_shared/crypto.ts";
-import { csvLine } from "../_shared/csv.ts";
+import {
+  activeEncryptionKeyVersion,
+  decrypt,
+  encrypt,
+  sha256Hex,
+} from "../_shared/crypto.ts";
+import { environment, requireEnv } from "../_shared/env.ts";
 import { ApiError, method, readJson, serve, success } from "../_shared/http.ts";
+import { opaqueToken } from "../_shared/ids.ts";
 import { adminClient, organizerSession, rpc } from "../_shared/supabase.ts";
 
 function uuid(value: unknown): string {
@@ -63,19 +69,11 @@ type QRResult = Record<string, unknown> & {
   crypto_key_version: number;
 };
 
-type ReportRow = Record<string, unknown> & {
-  donor_name_ciphertext: string;
-  donor_name_nonce: string;
-  donor_phone_ciphertext: string;
-  donor_phone_nonce: string;
+type InvocationResult = {
+  invocation_ciphertext: string;
+  invocation_nonce: string;
   crypto_key_version: number;
 };
-
-const reportHeaders = [
-  "booking_id", "event_name", "booking_time", "status",
-  "estimated_weight_grams", "actual_weight_grams", "condition",
-  "rejection_reason", "shipping_method", "donor_name", "donor_phone",
-];
 
 serve("operations", async (req, requestId) => {
   method(req, "POST");
@@ -108,14 +106,39 @@ serve("operations", async (req, requestId) => {
   }
   if (action === "publish_event") {
     const key = idempotencyKey(req);
-    return success(
-      await rpc(client, "publish_event_v2", {
-        p_event_id: uuid(body.event_id),
-        p_idempotency_key: key,
-        p_request_id: requestId,
-      }),
-      requestId,
+    const eventId = uuid(body.event_id);
+    const event = await rpc<Record<string, unknown>>(client, "publish_event_v2", {
+      p_event_id: eventId,
+      p_idempotency_key: key,
+      p_request_id: requestId,
+    });
+
+    const token = opaqueToken();
+    const keyVersion = activeEncryptionKeyVersion();
+    const protectedToken = await encrypt(token, keyVersion);
+    const invocation = await rpc<InvocationResult>(
+      adminClient(),
+      "ensure_event_invocation_v1",
+      {
+        p_actor_id: user.id,
+        p_event_id: eventId,
+        p_token_hash: await sha256Hex(token),
+        p_token_ciphertext: protectedToken.ciphertext,
+        p_token_nonce: protectedToken.nonce,
+        p_crypto_key_version: keyVersion,
+        p_environment: environment(),
+      },
     );
+    const invocationToken = await decrypt(
+      invocation.invocation_ciphertext,
+      invocation.invocation_nonce,
+      invocation.crypto_key_version,
+    );
+    const base = requireEnv("APP_CLIP_BASE_URL").replace(/\/$/, "");
+    return success({
+      event,
+      invocation_url: `${base}?event=${encodeURIComponent(invocationToken)}`,
+    }, requestId);
   }
   if (action === "workspace_profile") {
     return success(await rpc(client, "workspace_profile_v1", {}), requestId);
@@ -229,41 +252,6 @@ serve("operations", async (req, requestId) => {
       }),
       requestId,
     );
-  }
-  if (action === "export_report") {
-    const rows = await rpc<ReportRow[]>(adminClient(), "export_report_rows_v1", {
-      p_actor_id: user.id,
-      p_event_id: optionalUuid(body.event_id),
-      p_created_from: typeof body.created_from === "string" ? body.created_from : null,
-      p_created_to: typeof body.created_to === "string" ? body.created_to : null,
-    });
-    const lines = [csvLine(reportHeaders)];
-    for (const row of rows) {
-      const name = await decrypt(row.donor_name_ciphertext, row.donor_name_nonce, row.crypto_key_version);
-      const phone = await decrypt(row.donor_phone_ciphertext, row.donor_phone_nonce, row.crypto_key_version);
-      lines.push(csvLine([
-        row.public_booking_id, row.event_name, row.created_at, row.status,
-        row.estimated_weight_grams, row.actual_weight_grams, row.condition,
-        row.rejection_reason, row.shipping_method, name, phone,
-      ]));
-    }
-    return new Response(`\uFEFF${lines.join("\\r\\n")}\\r\\n`, {
-      headers: {
-        "content-type": "text/csv; charset=utf-8",
-        "content-disposition": `attachment; filename="kumpul-report-${new Date().toISOString().slice(0, 10)}.csv"`,
-        "cache-control": "no-store",
-        "x-request-id": requestId,
-      },
-    });
-  }
-  if (action === "delete_donor_data") {
-    const bookingId = uuid(body.booking_id);
-    await rpc<boolean>(adminClient(), "delete_donor_data_v1", {
-      p_actor_id: user.id,
-      p_booking_id: bookingId,
-      p_request_id: requestId,
-    });
-    return success({ deleted: true }, requestId);
   }
   throw new ApiError("INVALID_REQUEST", 400);
 });

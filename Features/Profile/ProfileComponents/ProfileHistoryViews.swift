@@ -136,7 +136,7 @@ struct ProfileDonationHistoryView: View {
         guard trackingBookingId == nil else { return }
         trackingBookingId = bookingId
         Task {
-            await model.advanceTracking(bookingId: bookingId, status: status)
+            _ = await model.advanceTracking(bookingId: bookingId, status: status)
             trackingBookingId = nil
         }
     }

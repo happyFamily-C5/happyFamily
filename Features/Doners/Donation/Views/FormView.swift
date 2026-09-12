@@ -8,8 +8,7 @@
 import SwiftUI
 
 /// Step 1 of the donation flow. Donor identity is served from the profile
-/// (the server encrypts it) and the legal versions come from the event
-/// detail, so this step collects the shipping method and the consent only.
+/// and encrypted by the server.
 struct FormView: View {
     @Environment(DonationViewModel.self) var donationVM
     @Environment(AppRouter.self) var router
@@ -30,8 +29,6 @@ struct FormView: View {
     let onNext: () -> Void
 
     var body: some View {
-        @Bindable var donationVM = donationVM
-
         VStack(alignment: .leading, spacing: 32) {
             eventHeader
 
@@ -108,8 +105,6 @@ struct FormView: View {
 
     @ViewBuilder
     private var formContent: some View {
-        @Bindable var donationVM = donationVM
-
         VStack(alignment: .leading, spacing: 24) {
             Text("Personal Information")
                 .font(Font.title.bold())
@@ -128,34 +123,16 @@ struct FormView: View {
                     .foregroundColor(.orange)
             }
 
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Metode Pengantaran")
-                    .font(.headline)
-                ForEach(ShippingMethod.allCases) { method in
-                    DropMethodCard(
-                        method: method.rawValue,
-                        description: method.description,
-                        isSelected: donationVM.selectedShippingMethod == method
-                    ) {
-                        donationVM.selectedShippingMethod = method
-                    }
-                }
-            }
-
-            Toggle(isOn: $donationVM.agreedToTerms) {
-                Text("Saya menyetujui Syarat & Ketentuan serta Kebijakan Privasi")
-                    .font(.footnote)
-            }
         }
 
         Spacer()
 
         VStack(spacing: 16) {
-            Text("Kenapa kami membutuhkan datamu ?")
-                .font(.subheadline)
-                .onTapGesture {
-                    showPrivacyPolice = true
-                }
+            Button("Kenapa kami membutuhkan datamu?") {
+                showPrivacyPolice = true
+            }
+            .font(.subheadline)
+            .buttonStyle(.plain)
 
             if let errorMessage = donationVM.errorMessage, !donationVM.isLoadingDetail {
                 Text(errorMessage)

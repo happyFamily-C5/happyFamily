@@ -130,6 +130,7 @@ Semua request memakai field `action`.
 | `update_profile` | donor/admin | lihat payload profil | profil yang diperbarui |
 | `request_email_change` | donor/admin | `email` | email sekarang, pending email, waktu request |
 | `update_workspace` | admin | lihat payload workspace | profil workspace |
+| `delete_account` | donor/admin | — | object kosong setelah identitas terhapus |
 | `dashboard` | donor | — | profil completion, event aktif/rekomendasi/trending |
 | `event_detail` | donor | `event_id` | event beserta availability donor |
 | `my_bookings` | donor | — | booking non-cancelled actor |
@@ -170,6 +171,13 @@ bucket private `profile-avatars`; mengosongkan field akan melepas avatar.
 
 Nama kantor adalah nama Pengelola. Alamat, telepon, email, dan logo bersifat
 persisten. Workspace profile harus lengkap sebelum event dapat dipublish.
+
+`delete_account` hanya menghapus identitas actor yang sedang terautentikasi;
+client tidak dapat mengirim user id milik pihak lain. Untuk donor, relasi
+booking dilepas dari akun dan profil dihapus. Untuk admin, workspace dinonaktifkan
+dan owner dilepas agar akses tercabut sementara histori operasional dan agregat
+tetap bertahan. Avatar/logo dihapus secara best-effort dan sisanya ditangani job
+orphan cleanup.
 
 ### Discovery dan booking
 

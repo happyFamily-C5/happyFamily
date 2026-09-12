@@ -59,6 +59,17 @@ enum BackendDependencies {
         )
     }
 
+    /// The server has already deleted the identity, so global sign-out may no
+    /// longer succeed. Clear only this device's session and tenant-scoped
+    /// caches after a confirmed deletion response.
+    static func clearDeletedAccountState() async {
+        if let sharedClient {
+            try? await sharedClient.auth.signOut(scope: .local)
+        }
+        await eventStore?.purge()
+        QRTokenKeychain.deleteAll()
+    }
+
     /// Non-throwing variant for view-layer default arguments: returns nil
     /// instead of throwing when backend configuration is incomplete.
     static func authSessionOrDefault(bundle: Bundle = .main) -> (any AuthSession)? {

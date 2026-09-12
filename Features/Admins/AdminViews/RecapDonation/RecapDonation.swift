@@ -35,7 +35,7 @@ struct RecapDonation: View {
                     }
                     .padding(.horizontal, 16)
 
-                    // 3. Grid 4 Kartu Statistik (Nilai dari operations:recap)
+                    // 3. Grid statistik yang seluruh nilainya tersedia dari operations:recap.
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
                         StatisticCardView(
                             title: "Donasi\nterkumpul",
@@ -51,14 +51,6 @@ struct RecapDonation: View {
                             unit: "Orang",
                             backgroundColor: Color(.systemPurple).opacity(0.15),
                             systemImageName: "person.crop.circle.fill"
-                        )
-
-                        StatisticCardView(
-                            title: "Acara\nSelesai",
-                            value: model.completedEventCountText,
-                            unit: "Event",
-                            backgroundColor: Color(.systemGreen).opacity(0.15),
-                            systemImageName: "calendar.badge.checkmark"
                         )
 
                         StatisticCardView(

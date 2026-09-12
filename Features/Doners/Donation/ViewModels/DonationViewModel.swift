@@ -8,25 +8,6 @@
 import SwiftUI
 import CoreImage.CIFilterBuiltins
 
-enum ShippingMethod: String, CaseIterable, Identifiable {
-    case direct = "Antar Langsung"
-    case ojekOnline = "Ojek Online"
-    case expedition = "Ekspedisi"
-
-    var id: String { rawValue }
-
-    var description: String {
-        switch self {
-        case .direct:
-            return "Kamu membawa langsung paketnya ke lokasi drop-point"
-        case .ojekOnline:
-            return "Kamu pesan ojek, biar driver yang antar paketnya ke lokasi drop-point"
-        case .expedition:
-            return "Kamu bawa paketnya ke ekspedisi terdekat, biar kurir yang antar paketnya ke lokasi drop-point"
-        }
-    }
-}
-
 /// Drives the donor donation flow against the authenticated account API.
 /// Donor identity comes from the profile (the server encrypts it), the event
 /// and legal versions come from `account:event_detail`, and the booking
@@ -35,7 +16,6 @@ enum ShippingMethod: String, CaseIterable, Identifiable {
 @Observable
 final class DonationViewModel {
     var agreedToTerms: Bool = false
-    var selectedShippingMethod: ShippingMethod?
     var clothingItems: [ClothingItem] = []
 
     private(set) var displayName: String = ""
@@ -118,7 +98,7 @@ final class DonationViewModel {
     // MARK: - Step validation
 
     var canProceedFromPersonalInfo: Bool {
-        isProfileComplete && selectedShippingMethod != nil && agreedToTerms
+        isProfileComplete && agreedToTerms
     }
 
     var canProceedFromCapture: Bool {
@@ -141,7 +121,10 @@ final class DonationViewModel {
             errorMessage = "Acara tidak dapat dipesan saat ini."
             return false
         }
-        guard let selectedShippingMethod, agreedToTerms else { return false }
+        guard agreedToTerms else {
+            errorMessage = "Setujui syarat dan ketentuan sebelum melanjutkan."
+            return false
+        }
         let passedItems = clothingItems.filter(\.isPassed)
         guard !passedItems.isEmpty else { return false }
 
@@ -156,7 +139,7 @@ final class DonationViewModel {
                     metadata: item.metadata
                 )
             },
-            shippingMethod: selectedShippingMethod.code,
+            shippingMethod: .direct,
             scanModelVersion: Self.scanModelVersion(from: passedItems),
             termsVersion: detail.legal.termsVersion,
             privacyVersion: detail.legal.privacyVersion
@@ -206,20 +189,9 @@ final class DonationViewModel {
 
     func resetDonationState() {
         agreedToTerms = false
-        selectedShippingMethod = nil
         clothingItems = []
         booking = nil
         errorMessage = nil
-    }
-}
-
-private extension ShippingMethod {
-    var code: ShippingMethodCode {
-        switch self {
-        case .direct: .direct
-        case .ojekOnline: .ojekOnline
-        case .expedition: .expedition
-        }
     }
 }
 

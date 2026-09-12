@@ -16,6 +16,8 @@ struct SelectedEventDetailView: View {
     @Environment(AppRouter.self) var router
     @Environment(DonationViewModel.self) var donationVM
     @State private var isStartingFlow = false
+    @State private var showPrivacyPolice = false
+    @State private var openDonationFlowAfterConsent = false
 
     var body: some View {
         VStack {
@@ -49,6 +51,16 @@ struct SelectedEventDetailView: View {
             if model.detail == nil, !model.isLoading {
                 await model.load()
             }
+        }
+        .sheet(isPresented: $showPrivacyPolice, onDismiss: openDonationFlowIfAccepted) {
+            PrivacyPoliceInstructionPage {
+                donationVM.agreedToTerms = true
+                openDonationFlowAfterConsent = true
+                showPrivacyPolice = false
+            }
+            .background(Color.white)
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
         }
     }
 
@@ -171,7 +183,7 @@ struct SelectedEventDetailView: View {
                 Task {
                     await donationVM.start(eventId: detail.event.id)
                     isStartingFlow = false
-                    router.push(to: .donationFlow)
+                    showPrivacyPolice = true
                 }
             } label: {
                 Text(isStartingFlow ? "Menyiapkan…" : "Donasikan Pakaian")
@@ -190,12 +202,18 @@ struct SelectedEventDetailView: View {
                 Text("Kamu sudah memiliki booking aktif di acara ini.")
                     .font(.caption)
                     .foregroundColor(.secondary)
-            } else if let available = model.detail?.availability.availableWeightGrams, !bookable {
+            } else if model.detail?.availability.availableWeightGrams != nil, !bookable {
                 Text("Kapasitas tersisa tidak cukup.")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
         }
+    }
+
+    private func openDonationFlowIfAccepted() {
+        guard openDonationFlowAfterConsent else { return }
+        openDonationFlowAfterConsent = false
+        router.push(to: .donationFlow)
     }
 
     private static let dateFormatter: DateFormatter = {

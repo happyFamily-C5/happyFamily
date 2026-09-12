@@ -19,22 +19,60 @@ struct StorageUploadClientTests {
         )
 
         let request = try #require(recorder.snapshot().first)
+        let expectedOwner = workspaceId.uuidString.lowercased()
         #expect(request.method == "POST")
         #expect(
             request.url?.path.hasPrefix(
-                "/storage/v1/object/workspace-logos/\(workspaceId.uuidString)/"
+                "/storage/v1/object/workspace-logos/\(expectedOwner)/"
             ) == true
         )
         #expect(request.url?.path.hasSuffix(".png") == true)
         #expect(request.authorization == "Bearer access-token")
         #expect(request.apiKey == "publishable-test-key")
         #expect(request.contentType == "image/png")
-        #expect(path.hasPrefix("\(workspaceId.uuidString)/"))
+        #expect(path.hasPrefix("\(expectedOwner)/"))
         #expect(path.hasSuffix(".png"))
     }
 
-    @Test("workspace logo rejection maps to PROFILE_MEDIA_REJECTED without retry")
-    func logoRejectionMapsToProfileMediaRejected() async {
+    @Test("uploadProfileAvatar uses the lowercase user ID required by Storage RLS")
+    func uploadAvatarUsesLowercaseOwnerPath() async throws {
+        let recorder = RequestRecorder()
+        URLProtocolStub.requestHandler = { request in
+            recorder.record(request)
+            return try (response(for: request, status: 200), Data("{}".utf8))
+        }
+        let userId = UUID(uuidString: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee")!
+
+        let path = try await makeStorageClient().uploadProfileAvatar(
+            data: Data([0xFF, 0xD8, 0xFF, 0xE1, 0x00, 0x00]),
+            userId: userId
+        )
+
+        let request = try #require(recorder.snapshot().first)
+        let expectedOwner = userId.uuidString.lowercased()
+        #expect(
+            request.url?.path.hasPrefix(
+                "/storage/v1/object/profile-avatars/\(expectedOwner)/"
+            ) == true
+        )
+        #expect(request.url?.path.hasSuffix(".jpg") == true)
+        #expect(request.contentType == "image/jpeg")
+        #expect(path.hasPrefix("\(expectedOwner)/"))
+        #expect(path.hasSuffix(".jpg"))
+    }
+
+    @Test("normalizes a JPEG with the EXIF marker as image/jpeg")
+    func jpegWithExifMarkerUsesJpegContentType() throws {
+        let (payload, contentType) = try StorageMediaClient.normalizedImage(
+            data: Data([0xFF, 0xD8, 0xFF, 0xE1, 0x00, 0x00])
+        )
+
+        #expect(payload.starts(with: [0xFF, 0xD8]))
+        #expect(contentType == "image/jpeg")
+    }
+
+    @Test("workspace logo permission rejection maps to PROFILE_MEDIA_FORBIDDEN without retry")
+    func logoPermissionRejectionMapsToProfileMediaForbidden() async {
         URLProtocolStub.requestHandler = { request in
             let data = try JSONSerialization.data(withJSONObject: [
                 "error": "new row violates row-level security policy",
@@ -51,7 +89,29 @@ struct StorageUploadClientTests {
             guard case let BackendError.api(code, retryable, _, _) = error else {
                 return false
             }
-            return code == "PROFILE_MEDIA_REJECTED" && !retryable
+            return code == "PROFILE_MEDIA_FORBIDDEN" && !retryable
+        }
+    }
+
+    @Test("workspace logo RLS denial with HTTP 400 maps to PROFILE_MEDIA_FORBIDDEN")
+    func logoRLS400MapsToProfileMediaForbidden() async {
+        URLProtocolStub.requestHandler = { request in
+            let data = try JSONSerialization.data(withJSONObject: [
+                "error": "new row violates row-level security policy",
+            ])
+            return try (response(for: request, status: 400), data)
+        }
+
+        await #expect {
+            try await makeStorageClient().uploadWorkspaceLogo(
+                data: Data([0x89, 0x50, 0x4E, 0x47, 0x01]),
+                workspaceId: UUID()
+            )
+        } throws: { error in
+            guard case let BackendError.api(code, retryable, _, _) = error else {
+                return false
+            }
+            return code == "PROFILE_MEDIA_FORBIDDEN" && !retryable
         }
     }
 }

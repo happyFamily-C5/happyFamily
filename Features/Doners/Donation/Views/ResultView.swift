@@ -74,7 +74,7 @@ struct ResultView: View {
 
                     // MARK: - Buttons
                     VStack(spacing: 12) {
-                        if let labelFile {
+                        if labelFile != nil {
                             Button {
                                 isShareSheetPresented = true
                             } label: {
@@ -143,7 +143,7 @@ struct ResultView: View {
         .navigationBarBackButtonHidden(true)
         .task {
             if donationVM.booking == nil, !donationVM.isCreatingBooking {
-                await donationVM.createBooking()
+                _ = await donationVM.createBooking()
             }
             renderLabel()
         }

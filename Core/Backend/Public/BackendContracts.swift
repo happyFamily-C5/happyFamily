@@ -87,15 +87,22 @@ enum BackendError: Error, Equatable, Sendable, LocalizedError {
     var errorDescription: String? {
         switch self {
         case let .configuration(key):
-            "Konfigurasi backend \(key) belum tersedia."
+            return "Konfigurasi backend \(key) belum tersedia."
         case .invalidResponse:
-            "Respons server tidak valid."
+            return "Respons server tidak valid."
         case .transport:
-            "Koneksi ke server gagal. Coba lagi."
+            return "Koneksi ke server gagal. Coba lagi."
         case .decoding:
-            "Data dari server tidak dapat dibaca."
-        case let .api(code, _, _, _):
-            Self.localizedMessage(for: code)
+            return "Data dari server tidak dapat dibaca."
+        case let .api(code, _, fieldErrors, _):
+            if code == "EVENT_PUBLISH_FIELDS_REQUIRED", !fieldErrors.isEmpty {
+                let details = fieldErrors
+                    .sorted { $0.key < $1.key }
+                    .map { "• \($0.value)" }
+                    .joined(separator: "\n")
+                return "Data acara yang perlu dilengkapi:\n\(details)"
+            }
+            return Self.localizedMessage(for: code)
         }
     }
 
@@ -117,8 +124,12 @@ enum BackendError: Error, Equatable, Sendable, LocalizedError {
             "Terlalu banyak percobaan. Coba lagi nanti."
         case "BOOKING_CREDENTIALS_INVALID":
             "ID booking atau nomor telepon tidak cocok."
+        case "PHONE_INVALID":
+            "Masukkan nomor WhatsApp Indonesia yang valid, misalnya 0812 3456 7890."
         case "AUTH_REQUIRED", "AUTH_INVALID":
             "Sesi login tidak valid. Silakan masuk kembali."
+        case "ACCOUNT_DELETE_FAILED":
+            "Akun belum dapat dihapus. Coba lagi atau hubungi dukungan."
         case "WORKSPACE_PROFILE_INCOMPLETE":
             "Lengkapi profil workspace sebelum melanjutkan."
         case "EVENT_PUBLISH_FIELDS_REQUIRED":
@@ -133,9 +144,13 @@ enum BackendError: Error, Equatable, Sendable, LocalizedError {
             "Acara sudah tidak dapat dibatalkan."
         case "DRAFT_HAS_BOOKINGS":
             "Draf memiliki donasi terkait dan tidak dapat dihapus."
-        case "BANNER_REJECTED", "PROFILE_MEDIA_REJECTED":
+        case "BANNER_REJECTED":
             "Upload gambar tidak diizinkan. Gunakan JPEG atau PNG."
-        case "BANNER_TOO_LARGE":
+        case "PROFILE_MEDIA_REJECTED":
+            "Upload gambar ditolak oleh penyimpanan. Gunakan JPEG atau PNG berukuran maksimal 5 MB."
+        case "PROFILE_MEDIA_FORBIDDEN":
+            "Anda tidak memiliki izin untuk mengunggah gambar ini. Muat ulang profil lalu coba lagi."
+        case "BANNER_TOO_LARGE", "PROFILE_MEDIA_TOO_LARGE":
             "Ukuran gambar melebihi 5 MB. Kompres atau pilih gambar lain."
         default:
             "Permintaan gagal (\(code))."
@@ -193,7 +208,10 @@ struct ReceptionDecisionData: Decodable, Equatable, Sendable {
 }
 
 struct PublishEventData: Decodable, Equatable, Sendable {
-    let invocationURL: URL
+    /// Older deployments return only the published event. Treat a missing URL
+    /// as a successful publish so the client can refresh server truth instead
+    /// of reporting a decoding failure after the transaction committed.
+    let invocationURL: URL?
 
     enum CodingKeys: String, CodingKey {
         case invocationURL = "invocationUrl"

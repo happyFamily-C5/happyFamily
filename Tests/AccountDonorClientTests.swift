@@ -4,6 +4,63 @@ import Testing
 
 @Suite("Account donor client", .serialized)
 struct AccountDonorClientTests {
+    @Test("deleteAccount sends the authenticated account deletion action")
+    func deleteAccountPostsDeletionAction() async throws {
+        let recorder = RequestRecorder()
+        URLProtocolStub.requestHandler = { request in
+            recorder.record(request)
+            let data = try JSONSerialization.data(withJSONObject: [
+                "data": [:],
+                "error": NSNull(),
+                "request_id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+                "server_time": "2026-09-10T01:00:00Z",
+            ])
+            return try (response(for: request, status: 200), data)
+        }
+
+        try await makeAccountClient().deleteAccount()
+
+        let request = try #require(recorder.snapshot().first)
+        #expect(request.url?.path == "/functions/v1/account")
+        #expect(request.authorization == "Bearer access-token")
+        #expect(request.jsonBody?["action"] as? String == "delete_account")
+    }
+
+    @Test("profile and workspace updates normalize Indonesian phone numbers")
+    func profileAndWorkspaceUpdatesNormalizePhones() async throws {
+        let recorder = RequestRecorder()
+        URLProtocolStub.requestHandler = { request in
+            recorder.record(request)
+            let data = try JSONSerialization.data(withJSONObject: [
+                "data": [:],
+                "error": NSNull(),
+                "request_id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+                "server_time": "2026-09-10T01:00:00Z",
+            ])
+            return try (response(for: request, status: 200), data)
+        }
+
+        try await makeAccountClient().updateWorkspace(AccountWorkspaceUpdate(
+            name: "Kantor Uji",
+            address: "Jakarta",
+            phoneE164: "0812-3456-7890",
+            email: "kantor@example.invalid",
+            logoObjectPath: ""
+        ))
+
+        let json = try #require(recorder.snapshot().first?.jsonBody)
+        #expect(json["action"] as? String == "update_workspace")
+        #expect(json["phone_e164"] as? String == "+6281234567890")
+
+        _ = try? await makeAccountClient().updateProfile(AccountProfileUpdate(
+            displayName: "Donatur Uji", phoneE164: "0812-3456-7890", address: "Jakarta",
+            locationLabel: "", latitude: nil, longitude: nil, avatarObjectPath: ""
+        ))
+        let profileJSON = try #require(recorder.snapshot().last?.jsonBody)
+        #expect(profileJSON["action"] as? String == "update_profile")
+        #expect(profileJSON["phone_e164"] as? String == "+6281234567890")
+    }
+
     @Test("createBooking posts the account action with the idempotency key")
     func createBookingPostsAccountBody() async throws {
         let recorder = RequestRecorder()
