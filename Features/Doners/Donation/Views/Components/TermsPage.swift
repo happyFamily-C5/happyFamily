@@ -8,11 +8,10 @@
 import SwiftUI
 
 struct TermsPage: View {
-    @Environment(\.presentationMode) var dismiss
-    @Environment(AppRouter.self) var router
-    
+    let onAccepted: () -> Void
+
     @State var agreed = false
-    
+
     var body: some View {
         VStack(spacing: 74) {
             VStack(alignment: .leading, spacing: 16) {
@@ -22,27 +21,29 @@ struct TermsPage: View {
                     Text("Harap baca dan setujui ketentuan berikut sebelum Kamu melanjutkan.")
                         .font(.body)
                 }
-                
-                HStack(alignment: .top, spacing: 16){
-                    Button{
+
+                HStack(alignment: .top, spacing: 16) {
+                    Button {
                         agreed.toggle()
-                    }label: {
+                    } label: {
                         Image(systemName: agreed ? "checkmark.square.fill" : "square")
                             .foregroundStyle(agreed ? .blue : .secondary)
                     }
-                    
-                    Text("Dengan melanjutkan, saya memahami bahwa pakaian yang saya serahkan dapat digunakan kembali, disalurkan, atau didaur ulang sesuai dengan kondisi dan kebutuhan pengelolaan tekstil.")
-                        .font(.subheadline)
-                        .multilineTextAlignment(.leading)
-                        .foregroundStyle(.primary)
-                    
+
+                    Text(
+                        "Dengan melanjutkan, saya memahami bahwa pakaian yang saya serahkan "
+                            + "dapat digunakan kembali, disalurkan, atau didaur ulang sesuai "
+                            + "dengan kondisi dan kebutuhan pengelolaan tekstil."
+                    )
+                    .font(.subheadline)
+                    .multilineTextAlignment(.leading)
+                    .foregroundStyle(.primary)
                 }
             }
-            
-            Button{
-                router.push(to: .donationFlow)
-                dismiss.wrappedValue.dismiss()
-            }label: {
+
+            Button {
+                onAccepted()
+            } label: {
                 Text("Setuju dan Lanjutkan")
                     .foregroundStyle(Color.white)
                     .font(.body).bold()
@@ -60,6 +61,5 @@ struct TermsPage: View {
 }
 
 #Preview {
-    TermsPage()
-        .environment(AppRouter())
+    TermsPage(onAccepted: {})
 }

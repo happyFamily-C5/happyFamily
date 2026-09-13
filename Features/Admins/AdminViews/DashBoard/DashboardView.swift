@@ -1,62 +1,78 @@
-import SwiftUI
 import CoreLocation
+import SwiftUI
 
 struct DashboardView: View {
-    
     private let onLogout: () -> Void
-    
+    private let onDeleteAccount: (() async throws -> Void)?
+    private let onSaveProfile: ((AdminProfile) async throws -> Void)?
+
     @Environment(AppRouter.self) var router
-    @Environment(AdminEventStore.self) private var eventStore
-    
-    
+
     @State private var searchText: String = ""
+    @State private var selectedStatus: EventStatusCode?
     @State private var adminProfile: AdminProfile
-    
-    // State utama untuk status apakah sudah ada event
-    @State private var hasAnyEvent: Bool = false
+
+    /// State utama untuk status apakah sudah ada event
+    /// Sumber data: cache backend (DashboardModel), bukan state lokal.
+    @State private var model = DashboardModel(
+        repository: BackendDependencies.eventRepository(),
+        backendBaseURL: BackendDependencies.backendBaseURL()
+    )
+
+    private var hasAnyEvent: Bool {
+        !model.events.isEmpty
+    }
+
     //    @State private var isRecapDataEmpty: Bool = true
-    
+
     // State untuk membuka modal CreatingView multi-step
     @State private var isShowingCreateModal: Bool = false
     @State private var isShowingRecapDonation: Bool = false
     @State private var isShowingQRScanner: Bool = false
     @State private var isShowingProfile: Bool = false
     @State private var selectedEvent: AdminEvent?
-    
-    @State private var userEvents: [AdminEvent] = []
-    
+    @State private var showShareSheet: Bool = false
     @FocusState private var isSearchFocused: Bool
-    
+
     init(
         initialProfile: AdminProfile = .defaultProfile,
-        onLogout: @escaping () -> Void = {}
+        onLogout: @escaping () -> Void = {},
+        onDeleteAccount: (() async throws -> Void)? = nil,
+        onSaveProfile: ((AdminProfile) async throws -> Void)? = nil
     ) {
         _adminProfile = State(initialValue: initialProfile)
         self.onLogout = onLogout
+        self.onDeleteAccount = onDeleteAccount
+        self.onSaveProfile = onSaveProfile
     }
-    
-    private var totalCollectedWeight: Double {
-        eventStore.events.reduce(0) { total, event in
-            total + event.collectedKg
-        }
+
+    private var displayEvents: [AdminEvent] {
+        model.events
+            .map(AdminEvent.init(backend:))
+            .filter { searchText.isEmpty || $0.name.localizedCaseInsensitiveContains(searchText) }
+            .filter { selectedStatus == nil || $0.status == selectedStatus }
     }
-    
+
     var body: some View {
         @Bindable var router = router
 
         ZStack(alignment: .bottom) {
             Group {
-                if !hasAnyEvent {
+                if model.isLoading, model.events.isEmpty {
+                    ProgressView("Memuat acara…")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if !hasAnyEvent {
                     // MARK: - 1. Empty State Murni
+
                     VStack {
-                        HStack{
+                        HStack {
                             Image("ecoTouchLogo")
                                 .resizable()
                                 .scaledToFit()
                                 .frame(width: 24)
                                 .padding(12)
                                 .background(
-                                    Color(#colorLiteral(red: 1, green: 0.9679821134, blue: 0.8170431256, alpha: 1)),in: Circle()
+                                    Color(#colorLiteral(red: 1, green: 0.9679821134, blue: 0.8170431256, alpha: 1)), in: Circle()
                                 )
                             Spacer()
                         }
@@ -64,34 +80,49 @@ struct DashboardView: View {
                         .onTapGesture {
                             router.push(to: AdminsRouter.profile)
                         }
-                        
+
                         EmptyStateViewDashboard {
                             isShowingCreateModal = true
                         }
-                        
+
                         Spacer()
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(Color(.systemBackground))
-                    
+
                 } else {
                     // MARK: - 2. Dashboard Aktif
+
                     ScrollView(showsIndicators: false) {
                         VStack(alignment: .leading, spacing: 20) {
-                            
                             HeaderNavigationView(
                                 onLogoTapped: { isShowingProfile = true },
                                 onAddTapped: { isShowingCreateModal = true }
                             )
-                            
+
+                            Menu {
+                                Button("Semua status") { selectedStatus = nil }
+                                ForEach(EventStatusCode.allCases, id: \.self) { status in
+                                    Button(AdminEvent.statusLabel(status)) {
+                                        selectedStatus = status
+                                    }
+                                }
+                            } label: {
+                                Label(
+                                    selectedStatus.map(AdminEvent.statusLabel) ?? "Semua status",
+                                    systemImage: "line.3.horizontal.decrease.circle"
+                                )
+                                .font(.subheadline.weight(.medium))
+                            }
+                            .padding(.horizontal, 16)
+
                             VStack(alignment: .leading, spacing: 24) {
-                                
                                 // A. BAGIAN EVENT BERLANGSUNG (Ongoing)
-                                let ongoingEvents = eventStore.events.filter { $0.isOngoing }
+                                let ongoingEvents = displayEvents.filter(\.isOngoing)
                                 if !ongoingEvents.isEmpty {
                                     VStack(alignment: .leading, spacing: 16) {
                                         DashboardTitleView(hasOngoingEvent: true)
-                                        
+
                                         ScrollView(.horizontal, showsIndicators: false) {
                                             HStack(spacing: 0) {
                                                 ForEach(ongoingEvents) { event in
@@ -100,8 +131,12 @@ struct DashboardView: View {
                                                         title: event.name,
                                                         date: event.formattedDateRange
                                                     ) {
-                                                        eventStore.selectedEventID = event.id
                                                         selectedEvent = event
+                                                    }
+                                                    .onAppear {
+                                                        if event.id == ongoingEvents.last?.id, model.nextCursor != nil {
+                                                            Task { await model.loadMore() }
+                                                        }
                                                     }
                                                 }
                                             }
@@ -113,17 +148,15 @@ struct DashboardView: View {
                                         DashboardTitleView(hasOngoingEvent: false)
                                     }
                                 }
-                                
+
                                 // B. BAGIAN ACARA MENDATANG (Upcoming)
-                                let upcomingEvents = eventStore.events.filter {
-                                    $0.isUpcoming
-                                }
+                                let upcomingEvents = displayEvents.filter(\.isUpcoming)
                                 if !upcomingEvents.isEmpty {
                                     VStack(alignment: .leading, spacing: 12) {
                                         SectionHeader(title: "Acara mendatang") {
                                             print("Lihat semua acara mendatang")
                                         }
-                                        
+
                                         ScrollView(.horizontal, showsIndicators: false) {
                                             HStack(spacing: 16) {
                                                 ForEach(upcomingEvents) { event in
@@ -134,13 +167,35 @@ struct DashboardView: View {
                                                     ) {
                                                         selectedEvent = event
                                                     }
+                                                    .onAppear {
+                                                        if event.id == upcomingEvents.last?.id, model.nextCursor != nil {
+                                                            Task { await model.loadMore() }
+                                                        }
+                                                    }
                                                 }
                                             }
                                             .padding(.horizontal, 16)
                                         }
                                     }
                                 }
-                                
+
+                                // Load/search failures (e.g. CURSOR_INVALID from a
+                                // stale pagination cursor) surface here instead of
+                                // silently keeping a truncated list.
+                                if let errorMessage = model.errorMessage {
+                                    VStack(spacing: 8) {
+                                        Text(errorMessage)
+                                            .font(.footnote)
+                                            .foregroundColor(.secondary)
+                                            .multilineTextAlignment(.center)
+                                        Button("Muat ulang") {
+                                            Task { await model.load() }
+                                        }
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.horizontal, 16)
+                                }
+
                                 // C. SECTION REKAP DONASI
                                 VStack(alignment: .leading, spacing: 12) {
                                     SectionHeader(
@@ -149,24 +204,34 @@ struct DashboardView: View {
                                     ) {
                                         isShowingRecapDonation = true
                                     }
-                                    
+
                                     RecapCard(
-                                        isDataEmpty: totalCollectedWeight == 0,
-                                        totalWeight:"(\(totalCollectedWeight, default: "%.3f") kg",
+                                        isDataEmpty: model.isRecapDataEmpty,
+                                        totalWeight: model.recapTotalWeightText,
                                         periodTitle: "Bulan ini"
                                     ) {
                                         isShowingRecapDonation = true
                                     }
                                 }
                             }
-                            
+
                             Spacer().frame(height: 100)
                         }
                     }
                     .scrollDismissesKeyboard(.immediately)
                 }
             }
-            
+            .task {
+                await model.load()
+                await model.loadRecap()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .adminOperationsDidChange)) { _ in
+                Task {
+                    await model.load()
+                    await model.refreshRecap()
+                }
+            }
+
             // While editing, a transparent layer over the dashboard catches
             // taps and resigns focus. It sits above the content but below the
             // search bar, so tapping the field itself still reaches the field,
@@ -178,14 +243,14 @@ struct DashboardView: View {
                     .contentShape(Rectangle())
                     .onTapGesture { isSearchFocused = false }
             }
-            
+
             // Floating Search Bar hanya muncul saat dashboard aktif
             if hasAnyEvent {
                 FloatingSearchBar(
                     searchText: $searchText,
                     isSearchFocused: $isSearchFocused,
                     onMicTapped: { print("Mic diklik!") },
-                    onQrTapped: { router.push(to: .openScanner) }
+                    onQrTapped: { isShowingQRScanner = true }
                 )
                 .padding(.bottom, 16)
             }
@@ -204,13 +269,13 @@ struct DashboardView: View {
         .fullScreenCover(isPresented: $isShowingCreateModal) {
             NavigationStack(path: $router.mapPath) {
                 CreatingView(
-                    onEventCreated: { newEvent in
-                        eventStore.events.append(newEvent)
-                        hasAnyEvent = true
+                    model: model,
+                    onEventCreated: { _ in
+                        // Model sudah berisi hasil server lewat createDraft.
                     },
-                    onViewCreatedEvent: { newEvent in
+                    onViewCreatedEvent: { local in
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                            selectedEvent = newEvent
+                            selectedEvent = displayEvents.first(where: { $0.id == local.id }) ?? local
                         }
                     }
                 )
@@ -222,38 +287,44 @@ struct DashboardView: View {
         }
         .fullScreenCover(isPresented: $isShowingProfile) {
             ProfileView(
-                events: userEvents,
                 profile: $adminProfile,
                 onLogout: {
                     isShowingProfile = false
                     onLogout()
-                }
+                },
+                onDeleteAccount: onDeleteAccount,
+                onSaveProfile: onSaveProfile
             )
         }
         .fullScreenCover(item: $selectedEvent) { event in
             EventDetailView(
                 event: event,
                 onBackTapped: { selectedEvent = nil },
-                onShareTapped: { print("Share event: \(event.name)") },
-                onEditTapped: { print("Edit event: \(event.name)") },
-                onEventUpdated: { updatedEvent in
-                    if let index = eventStore.events.firstIndex(
-                        where: { $0.id == updatedEvent.id }
-                    ) {
-                        eventStore.events[index] = updatedEvent
+                onShareTapped: {
+                    if model.publishedInvocationURL != nil {
+                        showShareSheet = true
                     }
-                    
+                },
+                onEditTapped: { print("Edit event: \(event.name)") },
+                onPublishTapped: { ev in
+                    let ok = await model.publish(ev.id)
+                    return ok ? nil : model.errorMessage
+                },
+                onEventUpdated: { updatedEvent in
+                    // Id sama = upsert; semua event pada pass ini berstatus draft.
+                    Task { _ = await model.createDraft(updatedEvent.toBackendAdminEvent()) }
                     selectedEvent = updatedEvent
                 },
                 onEventDeleted: { deletedEvent in
-                    eventStore.events.removeAll {
-                        $0.id == deletedEvent.id
-                    }
-                    
-                    hasAnyEvent = !eventStore.events.isEmpty
+                    Task { _ = await model.cancelOrDelete(deletedEvent.id) }
                     selectedEvent = nil
                 }
             )
+        }
+        .sheet(isPresented: $showShareSheet) {
+            if let url = model.publishedInvocationURL {
+                ShareSheet(items: [url])
+            }
         }
         .sheet(isPresented: $isShowingQRScanner) {
             QRScannerView()
@@ -262,6 +333,7 @@ struct DashboardView: View {
 }
 
 // MARK: - Model Pendukung untuk Logika Tanggal Event
+
 struct AdminEvent: Identifiable {
     let id: UUID
     let name: String
@@ -278,11 +350,23 @@ struct AdminEvent: Identifiable {
     let donationCriteria: [String]
     let capacityKg: Int
     var collectedKg: Double
-    
+
+    /// Lifecycle from the server (`list_events` snapshot). Draft-only events
+    /// created offline stay `.draft`; publishing flips it locally after the
+    /// server call succeeds.
+    var status: EventStatusCode = .draft
+
     /// The cover the organiser picked in CreatingView, kept as Data so the
     /// event stays a plain value type — SwiftUI's Image is not persistable.
     var bannerImageData: Data?
-    
+
+    /// Storage path of the uploaded banner, carried through edits so an
+    /// untouched banner keeps pointing at the same object server-side.
+    var bannerObjectPath: String?
+
+    /// Per-donor donation limit in kilograms (backend: grams).
+    var maxDonationPerUserKg: Int?
+
     /// The organiser's cover, falling back to the placeholder when they
     /// skipped the picker (the cover is optional in step 1).
     var bannerImage: Image {
@@ -291,7 +375,7 @@ struct AdminEvent: Identifiable {
         }
         return Image("DummyImageBanner")
     }
-    
+
     init(
         id: UUID = UUID(),
         name: String,
@@ -308,7 +392,10 @@ struct AdminEvent: Identifiable {
         donationCriteria: [String],
         capacityKg: Int,
         collectedKg: Double,
-        bannerImageData: Data?
+        status: EventStatusCode = .draft,
+        bannerImageData: Data?,
+        bannerObjectPath: String? = nil,
+        maxDonationPerUserKg: Int? = nil
     ) {
         self.id = id
         self.name = name
@@ -325,24 +412,53 @@ struct AdminEvent: Identifiable {
         self.donationCriteria = donationCriteria
         self.capacityKg = capacityKg
         self.collectedKg = collectedKg
+        self.status = status
         self.bannerImageData = bannerImageData
+        self.bannerObjectPath = bannerObjectPath
+        self.maxDonationPerUserKg = maxDonationPerUserKg
     }
-    
+
     var progress: Double {
         guard capacityKg > 0 else { return 0 }
         return min(collectedKg / Double(capacityKg), 1)
     }
-    
+
     var isOngoing: Bool {
-        let today = Date()
-        return today >= Calendar.current.startOfDay(for: startDate) && today <= Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: endDate))!
+        switch status {
+        case .ongoing:
+            return true
+        case .draft:
+            // Offline drafts keep the legacy date-based placement.
+            let today = Date()
+            return today >= Calendar.current.startOfDay(for: startDate)
+                && today <= Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: endDate))!
+        default:
+            return false
+        }
     }
-    
+
     var isUpcoming: Bool {
-        let today = Date()
-        return startDate > today
+        switch status {
+        case .upcoming:
+            true
+        case .draft:
+            startDate > Date()
+        default:
+            false
+        }
     }
-    
+
+    static func statusLabel(_ status: EventStatusCode) -> String {
+        switch status {
+        case .draft: "Draf"
+        case .upcoming: "Akan datang"
+        case .ongoing: "Berlangsung"
+        case .completed: "Selesai"
+        case .closed: "Ditutup"
+        case .cancelled: "Dibatalkan"
+        }
+    }
+
     var formattedDateRange: String {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMMM dd"
@@ -350,7 +466,7 @@ struct AdminEvent: Identifiable {
         let endStr = formatter.string(from: endDate).uppercased()
         return "\(startStr) - \(endStr)"
     }
-    
+
     var formattedTimeInfo: String {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH.mm"
@@ -359,10 +475,10 @@ struct AdminEvent: Identifiable {
 }
 
 // MARK: - Preview
+
 #Preview {
     NavigationStack {
         DashboardView()
             .environment(AppRouter())
-            .environment(AdminEventStore())
     }
 }

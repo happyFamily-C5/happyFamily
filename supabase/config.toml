@@ -422,7 +422,7 @@ enabled = true
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":80,\"commaStyle\":\"trailing\"}"
 
 [functions.resolve-event]
-enabled = false
+enabled = true
 verify_jwt = false
 import_map = "./functions/deno.json"
 # Uncomment to specify a custom file path to the entrypoint.
@@ -433,7 +433,7 @@ entrypoint = "./functions/resolve-event/index.ts"
 # static_files = [ "./functions/resolve-event/*.html" ]
 
 [functions.create-booking]
-enabled = false
+enabled = true
 verify_jwt = false
 import_map = "./functions/deno.json"
 # Uncomment to specify a custom file path to the entrypoint.
@@ -444,7 +444,7 @@ entrypoint = "./functions/create-booking/index.ts"
 # static_files = [ "./functions/create-booking/*.html" ]
 
 [functions.verify-donor-booking]
-enabled = false
+enabled = true
 verify_jwt = false
 import_map = "./functions/deno.json"
 # Uncomment to specify a custom file path to the entrypoint.
@@ -455,7 +455,7 @@ entrypoint = "./functions/verify-donor-booking/index.ts"
 # static_files = [ "./functions/verify-donor-booking/*.html" ]
 
 [functions.donor-booking-status]
-enabled = false
+enabled = true
 verify_jwt = false
 import_map = "./functions/deno.json"
 # Uncomment to specify a custom file path to the entrypoint.

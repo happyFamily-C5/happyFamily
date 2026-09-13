@@ -3,7 +3,7 @@ import SwiftUI
 struct HeaderNavigationView: View {
     var onLogoTapped: () -> Void
     var onAddTapped: () -> Void
-    
+
     var body: some View {
         HStack {
             // Tombol Logo / Profil di sebelah kiri (Diubah jadi ikon person.crop.circle.fill warna hitam)
@@ -13,9 +13,9 @@ struct HeaderNavigationView: View {
                     .foregroundColor(.primary) // Menggunakan warna utama (hitam/gelap di mode light)
             }
             .buttonStyle(PlainButtonStyle())
-            
+
             Spacer()
-            
+
             // Tombol Plus (+) di sebelah kanan
             Button(action: onAddTapped) {
                 Image(systemName: "plus")
@@ -26,6 +26,7 @@ struct HeaderNavigationView: View {
                     .clipShape(Circle())
             }
             .buttonStyle(PlainButtonStyle())
+            .accessibilityIdentifier("dashboardAddEvent")
         }
         .padding(.horizontal, 16)
         .padding(.top, 8)
@@ -33,6 +34,7 @@ struct HeaderNavigationView: View {
 }
 
 // MARK: - Preview
+
 #Preview(traits: .sizeThatFitsLayout) {
     HeaderNavigationView(
         onLogoTapped: { print("Profil diklik") },

@@ -2,7 +2,7 @@ import SwiftUI
 
 struct EditEventDeleteButton: View {
     var action: () -> Void
-    
+
     var body: some View {
         Button(action: action) {
             Text("Hapus Acara")

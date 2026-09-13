@@ -4,7 +4,7 @@ struct EventDetailHeaderView: View {
     let bannerImage: Image
     var onBackTapped: () -> Void
     var onShareTapped: () -> Void
-    
+
     var body: some View {
         ZStack(alignment: .top) {
             bannerImage
@@ -14,7 +14,7 @@ struct EventDetailHeaderView: View {
                 .frame(maxWidth: .infinity)
                 .clipShape(RoundedRectangle(cornerRadius: 18))
                 .padding(.horizontal, 16)
-            
+
             // 2. Tombol Navigasi Mengapung Tepat di Atas Gambar
             HStack {
                 Button(action: onBackTapped) {
@@ -26,9 +26,9 @@ struct EventDetailHeaderView: View {
                         .clipShape(Circle())
                         .shadow(color: Color.black.opacity(0.12), radius: 6, x: 0, y: 3)
                 }
-                
+
                 Spacer()
-                
+
                 Button(action: onShareTapped) {
                     Image(systemName: "square.and.arrow.up")
                         .font(.system(size: 16, weight: .bold))

@@ -45,9 +45,7 @@ struct IconButton: View {
         IconButton(
             systemName: "qrcode",
             accessibilityLabel: "QR Code"
-        ) {
-            print("QR tapped")
-        }
+        ) {}
 
         IconButton(
             systemName: "xmark",

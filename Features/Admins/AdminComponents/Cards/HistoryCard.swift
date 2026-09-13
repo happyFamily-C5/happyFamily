@@ -10,9 +10,9 @@ struct CompletedEventCard: View {
 
     private var goalText: String {
         if collectedWeight >= targetWeight {
-            return "\(Int(targetWeight))Kg Goal Reached"
+            "\(Int(targetWeight))Kg Goal Reached"
         } else {
-            return "\(Int(collectedWeight))Kg of \(Int(targetWeight))Kg Collected"
+            "\(Int(collectedWeight))Kg of \(Int(targetWeight))Kg Collected"
         }
     }
 
@@ -65,7 +65,6 @@ struct CompletedEventCard: View {
             radius: 8,
             y: 4
         )
-
     }
 }
 

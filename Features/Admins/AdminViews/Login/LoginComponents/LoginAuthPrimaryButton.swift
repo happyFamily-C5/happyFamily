@@ -4,7 +4,7 @@ struct LoginAuthPrimaryButton: View {
     let title: String
     var isDisabled: Bool = true
     var action: () -> Void
-    
+
     var body: some View {
         Button {
             guard !isDisabled else { return }

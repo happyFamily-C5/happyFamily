@@ -8,13 +8,12 @@
 import SwiftUI
 
 struct LocationDisclosureCard: View {
-    
-    var name : String
-    var address : String
-    var distance : Double
-    
+    var name: String
+    var address: String
+    var distance: Double
+
     @State private var isExpanded = false
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Button {
@@ -57,5 +56,9 @@ struct LocationDisclosureCard: View {
 }
 
 #Preview {
-    LocationDisclosureCard(name: "Eco Touch Office", address: "Jl. Arjuna Utara No.14D, RT.1/RW.1, Tj. Duren Sel., Kec. Grogol petamburan, Kota Jakarta Barat,, Daerah Khusus Ibukota Jakarta 11470", distance: 1.4)
+    LocationDisclosureCard(
+        name: "Eco Touch Office",
+        address: "Jl. Arjuna Utara No.14D, RT.1/RW.1, Tj. Duren Sel., Kec. Grogol petamburan, Kota Jakarta Barat,, Daerah Khusus Ibukota Jakarta 11470",
+        distance: 1.4
+    )
 }

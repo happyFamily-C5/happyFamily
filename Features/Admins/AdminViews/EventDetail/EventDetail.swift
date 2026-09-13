@@ -1,21 +1,24 @@
-import SwiftUI
 import CoreLocation
+import SwiftUI
 
 struct EventDetailView: View {
     @Environment(AppRouter.self) private var router
     @State private var event: AdminEvent
-    
+
     var onBackTapped: () -> Void
     var onShareTapped: () -> Void
     var onEditTapped: () -> Void
+    /// Publishes the event; returns nil on success or an error message.
+    var onPublishTapped: (AdminEvent) async -> String?
     var onEventUpdated: (AdminEvent) -> Void
     var onEventDeleted: (AdminEvent) -> Void
-    
+
     init(
         event: AdminEvent,
         onBackTapped: @escaping () -> Void,
         onShareTapped: @escaping () -> Void,
         onEditTapped: @escaping () -> Void,
+        onPublishTapped: @escaping (AdminEvent) async -> String? = { _ in nil },
         onEventUpdated: @escaping (AdminEvent) -> Void = { _ in },
         onEventDeleted: @escaping (AdminEvent) -> Void = { _ in }
     ) {
@@ -23,19 +26,21 @@ struct EventDetailView: View {
         self.onBackTapped = onBackTapped
         self.onShareTapped = onShareTapped
         self.onEditTapped = onEditTapped
+        self.onPublishTapped = onPublishTapped
         self.onEventUpdated = onEventUpdated
         self.onEventDeleted = onEventDeleted
     }
-    
+
     @State private var isShowingEditEvent: Bool = false
-    
+    @State private var isPublishing: Bool = false
+    @State private var publishError: String?
+
     var body: some View {
         @Bindable var router = router
 
         ZStack(alignment: .bottom) {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 16) {
-                    
                     // 1. Header Poster Atas (Banner & Tombol Navigasi)
                     EventDetailHeaderView(
                         bannerImage: event.bannerImage,
@@ -43,27 +48,27 @@ struct EventDetailView: View {
                         onShareTapped: onShareTapped
                     )
                     .padding(.top, 8)
-                    
+
                     // 2. Judul & Jadwal Acara (Digabung rapi)
                     EventHeaderSectionView(
                         title: event.name,
                         dateRangeText: event.formattedDateRange,
                         timeInfoText: event.formattedTimeInfo
                     )
-                    
+
                     Spacer().frame(height: 8)
-                    
+
                     // 3. Kartu Progress Pencapaian Donasi (250 kg)
                     DonationProgressBarView(
                         currentWeightText: "\(formattedKg(event.collectedKg)) kg",
                         targetWeightText: "Terkumpul dari \(event.capacityKg) kg",
                         progressValue: event.progress
                     )
-                    
+
                     // 4. Kriteria Donasi (Menggunakan DonationTagChip yang sudah ada)
                     VStack(alignment: .leading, spacing: 12) {
                         EventDetailSectionTitle(title: "Kriteria Donasi")
-                        
+
                         VStack(alignment: .leading, spacing: 8) {
                             ForEach(Array(criteriaRows.enumerated()), id: \.offset) { _, row in
                                 HStack(spacing: 8) {
@@ -76,11 +81,11 @@ struct EventDetailView: View {
                         }
                         .padding(.horizontal, 16)
                     }
-                    
+
                     // 5. Lokasi & Peta MapKit
                     VStack(alignment: .leading, spacing: 10) {
                         EventDetailSectionTitle(title: "Lokasi")
-                        
+
                         EventLocationCardView(
                             locationName: event.locationName,
                             address: event.locationAddress,
@@ -88,11 +93,11 @@ struct EventDetailView: View {
                             coordinate: event.coordinate
                         )
                     }
-                    
+
                     // 6. Detail Acara & Teks Panjang
                     VStack(alignment: .leading, spacing: 10) {
                         EventDetailSectionTitle(title: "Detail Acara")
-                        
+
                         Text(descriptionText)
                             .font(.system(size: 12, weight: .regular))
                             .foregroundColor(.primary)
@@ -104,23 +109,52 @@ struct EventDetailView: View {
                             .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 2)
                             .padding(.horizontal, 16)
                     }
-                    
+
                     // Spacer bawah agar konten tidak tertutup tombol mengambang
                     Spacer().frame(height: 84)
                 }
             }
-            
-            // 7. Tombol "Edit Acara" di Bagian Bawah (Menggunakan PrimaryButton milikmu)
-            VStack {
+
+            // 7. Tombol aksi di bagian bawah. Terbitkan hanya masuk akal untuk
+            // draf; event yang sudah terbit tidak menampilkan tombolnya lagi.
+            VStack(spacing: 8) {
                 PrimaryButton(title: "Edit Acara") {
                     onEditTapped()
                     isShowingEditEvent = true
+                }
+                if event.status == .draft {
+                    PrimaryButton(title: isPublishing ? "Menerbitkan…" : "Terbitkan Acara") {
+                        Task {
+                            isPublishing = true
+                            defer { isPublishing = false }
+                            if let error = await onPublishTapped(event) {
+                                publishError = error
+                            } else {
+                                event.status = .upcoming
+                            }
+                        }
+                    }
                 }
             }
             .padding(.vertical, 8)
             .background(Color(.systemBackground).opacity(0.95))
         }
         .edgesIgnoringSafeArea(.bottom)
+        .alert(
+            "Publikasi gagal",
+            isPresented: Binding(
+                get: { publishError != nil },
+                set: {
+                    if !$0 {
+                        publishError = nil
+                    }
+                }
+            )
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(publishError ?? "")
+        }
         .navigationBarHidden(true)
         .fullScreenCover(isPresented: $isShowingEditEvent) {
             NavigationStack(path: $router.mapPath) {
@@ -138,19 +172,18 @@ struct EventDetailView: View {
                 .mapPickerRouter(router)
             }
         }
-
     }
-    
+
     private var descriptionText: String {
         event.description.isEmpty ? "Tidak ada deskripsi" : event.description
     }
-    
+
     private var criteriaRows: [[String]] {
         stride(from: 0, to: event.donationCriteria.count, by: 3).map { startIndex in
-            Array(event.donationCriteria[startIndex..<min(startIndex + 3, event.donationCriteria.count)])
+            Array(event.donationCriteria[startIndex ..< min(startIndex + 3, event.donationCriteria.count)])
         }
     }
-    
+
     private func formattedKg(_ value: Double) -> String {
         value.truncatingRemainder(dividingBy: 1) == 0 ? String(Int(value)) : String(format: "%.1f", value)
     }

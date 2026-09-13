@@ -5,9 +5,9 @@
 //  Created by Muhamad Yuan Sastro Dimianta on 03/09/26.
 //
 
+import CoreLocation
 import Observation
 import SwiftUI
-import CoreLocation
 
 @Observable
 final class MapPickerSession {
@@ -39,20 +39,30 @@ final class AppRouter {
     let mapPickerSession = MapPickerSession()
     var selectedClothingItem: ClothingItem?
     var currentStep: Int = 1
+    /// Shared donation flow state. App-scope so the event detail CTA and
+    /// the flow's step views observe the same instance.
+    let donation = DonationViewModel()
     var adminProfile = AdminProfile.defaultProfile
     var donorProfile = DonorProfile.defaultProfile
-    var adminEvents: [AdminEvent] = []
-    var donorEvents: [AdminEvent] = []
+    /// Set by the root coordinator: donor-profile logout must end the whole
+    /// session, not just pop the navigation stack.
+    var onLogout: (() -> Void)?
+    /// Set by the root coordinator so deletion passes through the authenticated
+    /// backend and clears the app session afterward.
+    var onDeleteAccount: (() async throws -> Void)?
+    /// Backend-backed admin profile save (uploads the logo, updates the
+    /// workspace, and requests the email change when needed).
+    var onSaveAdminProfile: ((AdminProfile) async throws -> Void)?
 
-    func push(to destination:AdminsRouter) {
+    func push(to destination: AdminsRouter) {
         adminPath.append(destination)
     }
-    
-    func push(to destination:DonersRouter) {
+
+    func push(to destination: DonersRouter) {
         donersPath.append(destination)
     }
-    
-    func pop(){
+
+    func pop() {
         if !donersPath.isEmpty {
             donersPath.removeLast()
         }
@@ -93,25 +103,26 @@ final class AppRouter {
         mapPickerSession.confirm()
         mapPath.removeLast()
     }
-    
-    func popToRoot(){
-        if !adminPath.isEmpty{
+
+    func popToRoot() {
+        if !adminPath.isEmpty {
             adminPath.removeAll()
         }
-        
-        if !donersPath.isEmpty{
+
+        if !donersPath.isEmpty {
             donersPath.removeAll()
         }
 
         if !mapPath.isEmpty {
             mapPath.removeAll()
         }
+
+        currentStep = 1
     }
 
     func nextStep() {
         currentStep += 1
     }
-    
 }
 
 extension View {
@@ -137,17 +148,19 @@ extension View {
                 QRScannerView()
             case .profile:
                 ProfileView(
-                    events: router.adminEvents,
-                    profile: Bindable(router).adminProfile
+                    profile: Bindable(router).adminProfile,
+                    onLogout: { router.onLogout?() },
+                    onDeleteAccount: router.onDeleteAccount,
+                    onSaveProfile: router.onSaveAdminProfile
                 )
             }
         }
     }
-    
+
     func donersRouter(_ router: AppRouter) -> some View {
         self.navigationDestination(for: DonersRouter.self) { destination in
             switch destination {
-            case  .donationFlow:
+            case .donationFlow:
                 DonationFlowView()
             case .scan:
                 ClothsView { router.nextStep() }
@@ -161,13 +174,26 @@ extension View {
             case .clothDetail:
                 if let item = router.selectedClothingItem {
                     ClothDetailView(item: item)
-                } else {
-                    EmptyView()
                 }
+            case let .eventDetail(eventId):
+                SelectedEventDetailView(
+                    model: DonorEventDetailModel(
+                        eventId: eventId,
+                        accountClient: BackendDependencies.accountClientOrDefault(),
+                        backendBaseURL: BackendDependencies.backendBaseURL()
+                    )
+                )
+            case .myBookings:
+                MyBookingsView()
+            case let .bookingDetail(bookingId):
+                DonorBookingDetailView(bookingId: bookingId)
+            case .history:
+                DonorHistoryView()
             case .profile:
                 DonorProfileView(
-                    events: router.donorEvents,
-                    profile: Bindable(router).donorProfile
+                    profile: Bindable(router).donorProfile,
+                    onLogout: { router.onLogout?() },
+                    onDeleteAccount: router.onDeleteAccount
                 )
             case .trackingHistory:
                 TrackingHistoryView()

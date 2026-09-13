@@ -2,31 +2,30 @@ import SwiftUI
 
 @MainActor
 struct OperationalScheduleCardView: View {
-    
     @Binding var selectedPreset: String
     @Binding var activeDays: [Bool] // M, S, S, R, K, J, S
-    
+
     // Jam operasional & State untuk membuka wheel picker
     @Binding var startTime: Date
     @Binding var endTime: Date
-    @State private var activeTimePicker: ActiveTimeField? = nil
-    
+    @State private var activeTimePicker: ActiveTimeField?
+
     enum ActiveTimeField {
         case start, end
     }
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            
             // MARK: - Bagian Hari Operasional
+
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     Text("Hari Operasional")
                         .font(.system(size: 15, weight: .regular))
                         .foregroundColor(.primary)
-                    
+
                     Spacer()
-                    
+
                     Menu {
                         Button("Hari Kerja") {
                             selectedPreset = "Hari Kerja"
@@ -51,14 +50,14 @@ struct OperationalScheduleCardView: View {
                         }
                     }
                 }
-                
+
                 // Indikator Hari yang bisa diklik manual per lingkaran (M, S, S, R, K, J, S)
                 HStack(spacing: 0) {
                     let dayLabels = ["M", "S", "S", "R", "K", "J", "S"]
-                    
-                    ForEach(0..<7, id: \.self) { index in
+
+                    ForEach(0 ..< 7, id: \.self) { index in
                         let isActive = activeDays[index]
-                        
+
                         Button(action: {
                             activeDays[index].toggle()
                             selectedPreset = "Hari Kustom"
@@ -75,7 +74,7 @@ struct OperationalScheduleCardView: View {
                                 )
                         }
                         .buttonStyle(PlainButtonStyle())
-                        
+
                         if index < 6 {
                             Spacer()
                         }
@@ -87,15 +86,15 @@ struct OperationalScheduleCardView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color(.systemGray6))
             .cornerRadius(20)
-            
+
             // MARK: - Bagian Jam Operasional (Gaya Alarm iOS / Wheel Picker)
+
             VStack(alignment: .leading, spacing: 12) {
                 Text("Jam Operasional")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(.primary)
-                
+
                 VStack(alignment: .leading, spacing: 0) {
-                    
                     // Baris Mulai
                     Button(action: {
                         withAnimation(.snappy) {
@@ -106,9 +105,9 @@ struct OperationalScheduleCardView: View {
                             Label("Mulai", systemImage: "clock")
                                 .font(.system(size: 15, weight: .regular))
                                 .foregroundColor(.primary)
-                            
+
                             Spacer()
-                            
+
                             Text(startTime, format: .dateTime.hour().minute())
                                 .font(.system(size: 15, weight: .semibold))
                                 .foregroundColor(.primary)
@@ -120,27 +119,27 @@ struct OperationalScheduleCardView: View {
                         .padding(16)
                     }
                     .buttonStyle(PlainButtonStyle())
-                    
+
                     // Wheel Picker untuk Mulai
                     if activeTimePicker == .start {
                         DatePicker(
                             "",
                             selection: startTimeBinding,
-                            in: Date.distantPast...endTime,
+                            in: Date.distantPast ... endTime,
                             displayedComponents: [.hourAndMinute]
                         )
-                            .datePickerStyle(.wheel)
-                            .labelsHidden()
-                            .frame(maxWidth: .infinity)
-                            .transition(.opacity.combined(with: .move(edge: .top)))
-                        
+                        .datePickerStyle(.wheel)
+                        .labelsHidden()
+                        .frame(maxWidth: .infinity)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+
                         Divider()
                             .padding(.horizontal, 16)
                     } else {
                         Divider()
                             .padding(.horizontal, 16)
                     }
-                    
+
                     // Baris Selesai
                     Button(action: {
                         withAnimation(.snappy) {
@@ -151,9 +150,9 @@ struct OperationalScheduleCardView: View {
                             Label("Selesai", systemImage: "clock.fill")
                                 .font(.system(size: 15, weight: .regular))
                                 .foregroundColor(.primary)
-                            
+
                             Spacer()
-                            
+
                             Text(endTime, format: .dateTime.hour().minute())
                                 .font(.system(size: 15, weight: .semibold))
                                 .foregroundColor(.primary)
@@ -165,19 +164,19 @@ struct OperationalScheduleCardView: View {
                         .padding(16)
                     }
                     .buttonStyle(PlainButtonStyle())
-                    
+
                     // Wheel Picker untuk Selesai
                     if activeTimePicker == .end {
                         DatePicker(
                             "",
                             selection: endTimeBinding,
-                            in: startTime...Date.distantFuture,
+                            in: startTime ... Date.distantFuture,
                             displayedComponents: [.hourAndMinute]
                         )
-                            .datePickerStyle(.wheel)
-                            .labelsHidden()
-                            .frame(maxWidth: .infinity)
-                            .transition(.opacity.combined(with: .move(edge: .top)))
+                        .datePickerStyle(.wheel)
+                        .labelsHidden()
+                        .frame(maxWidth: .infinity)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -187,7 +186,7 @@ struct OperationalScheduleCardView: View {
         }
         // Padding horizontal dihapus dari sini agar mengikuti lebar penuh dari parent container Step 2
     }
-    
+
     private var startTimeBinding: Binding<Date> {
         Binding(
             get: { startTime },
@@ -196,7 +195,7 @@ struct OperationalScheduleCardView: View {
             }
         )
     }
-    
+
     private var endTimeBinding: Binding<Date> {
         Binding(
             get: { endTime },
@@ -208,12 +207,13 @@ struct OperationalScheduleCardView: View {
 }
 
 // MARK: - Preview
+
 #Preview(traits: .sizeThatFitsLayout) {
     @Previewable @State var preset = "Akhir Pekan"
     @Previewable @State var days = [true, false, false, false, false, false, true]
     @Previewable @State var start = Date()
     @Previewable @State var end = Date()
-    
+
     return OperationalScheduleCardView(
         selectedPreset: $preset,
         activeDays: $days,

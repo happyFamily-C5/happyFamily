@@ -6,19 +6,19 @@ struct FloatingSearchBar: View {
     @FocusState.Binding var isSearchFocused: Bool
     var onMicTapped: () -> Void
     var onQrTapped: () -> Void
-    
+
     var body: some View {
         HStack(spacing: 12) {
             // Kotak Search + Ikon Kaca Pembesar & Mic
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(.secondary)
-                
+
                 TextField("Search", text: $searchText)
                     .font(.system(size: 15))
                     .focused($isSearchFocused)
                     .submitLabel(.search)
-                
+
                 Button(action: onMicTapped) {
                     Image(systemName: "mic.fill")
                         .foregroundColor(.secondary)
@@ -28,8 +28,7 @@ struct FloatingSearchBar: View {
             .padding(.vertical, 12)
             .background(Color(.systemGray6))
             .clipShape(RoundedRectangle(cornerRadius: 30))
-            
-          
+
             Button(action: onQrTapped) {
                 Image(systemName: "qrcode")
                     .font(.system(size: 18, weight: .medium))
@@ -43,22 +42,22 @@ struct FloatingSearchBar: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
         .background(
-           
             Color(.systemBackground).opacity(0.8)
         )
     }
 }
 
 // MARK: - Preview
+
 #Preview(traits: .sizeThatFitsLayout) {
-    @Previewable @State var text: String = ""
+    @Previewable @State var text = ""
     @Previewable @FocusState var focused: Bool
 
     FloatingSearchBar(
         searchText: $text,
         isSearchFocused: $focused,
         onMicTapped: { print("Mic diklik!") },
-        onQrTapped: { print("QR diklik!") }
+        onQrTapped: {}
     )
     .padding()
 }

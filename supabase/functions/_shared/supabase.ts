@@ -37,6 +37,26 @@ export async function rpc<T>(
   params: Record<string, unknown>,
 ): Promise<T> {
   const { data, error } = await client.schema("api").rpc(name, params);
-  if (error) throw error;
+  if (error) {
+    // The publish RPC puts its field-specific validation map in PostgreSQL's
+    // exception detail. Preserve it in the public envelope instead of
+    // flattening it to the generic error code.
+    if (error.message.includes("EVENT_PUBLISH_FIELDS_REQUIRED") && error.details) {
+      try {
+        const fieldErrors: unknown = JSON.parse(error.details);
+        if (fieldErrors && !Array.isArray(fieldErrors) && typeof fieldErrors === "object") {
+          throw new ApiError(
+            "EVENT_PUBLISH_FIELDS_REQUIRED",
+            422,
+            false,
+            fieldErrors as Record<string, string>,
+          );
+        }
+      } catch (parseError) {
+        if (parseError instanceof ApiError) throw parseError;
+      }
+    }
+    throw error;
+  }
   return data as T;
 }

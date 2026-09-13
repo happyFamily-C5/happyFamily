@@ -15,13 +15,12 @@ struct CancelBookingSheet: View {
                     .font(.title)
                     .bold()
 
-            Text("Setelah dibatalkan, kamu perlu membuat pemesanan baru jika ingin melanjutkan kembali.")
-                .font(.body)
-            
+                Text("Setelah dibatalkan, kamu perlu membuat pemesanan baru jika ingin melanjutkan kembali.")
+                    .font(.body)
 
-            Text("Tindakan ini tidak dapat dibatalkan")
-                .font(.footnote)
-                .foregroundStyle(.red)
+                Text("Tindakan ini tidak dapat dibatalkan")
+                    .font(.footnote)
+                    .foregroundStyle(.red)
             }
 
             Spacer()

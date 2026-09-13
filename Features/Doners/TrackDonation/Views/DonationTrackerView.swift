@@ -1,5 +1,5 @@
 //
-//  DonationTracker.swift
+//  DonationTrackerView.swift
 //  happyFamily
 //
 //  Created by Muhamad Yuan Sastro Dimianta on 09/09/26.
@@ -9,26 +9,26 @@ import SwiftUI
 
 struct DonationTrackerView: View {
     @Environment(\.dismiss) private var dismiss
-    
+
     let status: DonationTrackingStatus
-    
+
     @State private var showCancelSheet = false
-    
+
     var body: some View {
         ZStack {
             Color(.systemGroupedBackground)
                 .ignoresSafeArea()
-            
+
             VStack {
                 ScrollView {
                     VStack(spacing: 32) {
                         bookingCard
-                        
+
                         statusCard
                     }
                 }
                 .scrollIndicators(.hidden)
-                
+
                 if status == .readyToDeliver {
                     Button {
                         showCancelSheet = true
@@ -62,38 +62,35 @@ struct DonationTrackerView: View {
 }
 
 private extension DonationTrackerView {
-    
     var bookingCard: some View {
         ZStack(alignment: .topTrailing) {
             Image("qrFrame")
                 .resizable()
                 .scaledToFit()
-            
+
             VStack(spacing: 24) {
                 Image(uiImage: generateQRCode(from: "SS-76329"))
                     .interpolation(.none)
                     .resizable()
                     .scaledToFit()
                     .frame(width: 214)
-                
-                
+
                 Text("Tunjukkan Kode QR ke Pengelola")
                     .font(.footnote)
-                
+
                 Spacer()
-                
-                
+
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Nomor Booking")
                             .font(.body)
-                        
+
                         Text("SS-76329")
                             .font(.largeTitle).bold()
                     }
-                    
+
                     Spacer()
-                    
+
                     Button {
                         UIPasteboard.general.string = "SS-76329"
                     } label: {
@@ -111,7 +108,7 @@ private extension DonationTrackerView {
             }
             .padding(20)
             .padding(.top, 16)
-            
+
             Button {
                 // Share QR
             } label: {
@@ -131,16 +128,15 @@ private extension DonationTrackerView {
         }
         .frame(width: 320)
     }
-    
+
     var statusCard: some View {
         VStack(alignment: .leading, spacing: 24) {
-            
             HStack {
                 Text("Status Pelacakan")
                     .font(.headline)
-                
+
                 Spacer()
-                
+
                 if status == .completed {
                     Text("Selesai")
                         .font(.caption)
@@ -156,9 +152,8 @@ private extension DonationTrackerView {
             }
             .padding(.top, 20)
             .padding(.horizontal, 20)
-            
+
             timeline
-            
         }
         .padding(16)
         .background(.white)
@@ -166,10 +161,9 @@ private extension DonationTrackerView {
             RoundedRectangle(cornerRadius: 36)
         )
     }
-    
+
     var timeline: some View {
         VStack(spacing: 16) {
-            
             timelineRow(
                 date: "9 Sept\n04.00 pm",
                 title: "Segera Antarkan",
@@ -177,7 +171,7 @@ private extension DonationTrackerView {
                 state: stateFor(.readyToDeliver),
                 isLast: false
             )
-            
+
             timelineRow(
                 date: "01.00 pm",
                 title: "Diterima",
@@ -185,7 +179,7 @@ private extension DonationTrackerView {
                 state: stateFor(.received),
                 isLast: false
             )
-            
+
             timelineRow(
                 date: "10.00 am",
                 title: "Diproses",
@@ -193,7 +187,7 @@ private extension DonationTrackerView {
                 state: stateFor(.processed),
                 isLast: false
             )
-            
+
             timelineRow(
                 date: "8 Sept\n08.00 am",
                 title: "Telah di Daur Ulang",
@@ -205,49 +199,47 @@ private extension DonationTrackerView {
         .padding(.bottom, 20)
         .padding(.horizontal, 20)
     }
-    
+
     enum TimelineState {
         case active
         case inactive
         case completed
     }
-    
+
     func stateFor(
         _ item: DonationTrackingStatus
     ) -> TimelineState {
-        
         switch status {
-            
         case .readyToDeliver:
             return item == .readyToDeliver
-            ? .active
-            : .inactive
-            
+                ? .active
+                : .inactive
+
         case .received:
             if item == .received {
                 return .active
             }
-            
+
             return item == .readyToDeliver
-            ? .completed
-            : .inactive
-            
+                ? .completed
+                : .inactive
+
         case .processed:
             if item == .processed {
                 return .active
             }
-            
+
             if item == .readyToDeliver || item == .received {
                 return .completed
             }
-            
+
             return .inactive
-            
+
         case .completed:
             return .completed
         }
     }
-    
+
     func timelineRow(
         date: String,
         title: String,
@@ -255,9 +247,7 @@ private extension DonationTrackerView {
         state: TimelineState,
         isLast: Bool
     ) -> some View {
-
         HStack(alignment: .top, spacing: 12) {
-
             // MARK: - Date
 
             Text(date)
@@ -273,8 +263,8 @@ private extension DonationTrackerView {
                 )
 
             // MARK: - Timeline
-            VStack(spacing: 0) {
 
+            VStack(spacing: 0) {
                 Circle()
                     .fill(
                         state == .active
@@ -320,7 +310,6 @@ private extension DonationTrackerView {
             // MARK: - Content
 
             VStack(alignment: .leading, spacing: 4) {
-
                 Text(title)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(
@@ -371,9 +360,6 @@ private extension DonationTrackerView {
         )
     }
 }
-
-
-
 
 #Preview {
     NavigationStack {

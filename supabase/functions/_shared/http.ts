@@ -119,6 +119,7 @@ export function mapUnknownError(error: unknown): ApiError {
     BOOKING_NOT_PROCESSABLE: [409, false],
     INVALID_BOOKING_TRANSITION: [409, false],
     ROLE_IMMUTABLE: [409, false],
+    ACCOUNT_DELETE_FAILED: [500, false],
     EVENT_PUBLISH_FIELDS_REQUIRED: [422, false],
     WORKSPACE_PROFILE_INCOMPLETE: [422, false],
     PROFILE_INCOMPLETE: [422, false],

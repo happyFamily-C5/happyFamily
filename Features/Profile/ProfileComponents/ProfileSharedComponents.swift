@@ -2,7 +2,7 @@ import SwiftUI
 
 struct ProfileTopBar: View {
     var onCloseTapped: () -> Void
-    
+
     var body: some View {
         HStack {
             Button(action: onCloseTapped) {
@@ -14,7 +14,7 @@ struct ProfileTopBar: View {
                     .clipShape(Circle())
             }
             .buttonStyle(PlainButtonStyle())
-            
+
             Spacer()
         }
         .padding(.horizontal, 16)
@@ -26,7 +26,7 @@ struct ProfileBackBar: View {
     var showsSave: Bool = false
     var onBackTapped: () -> Void
     var onSaveTapped: () -> Void = {}
-    
+
     var body: some View {
         HStack {
             Button(action: onBackTapped) {
@@ -38,9 +38,9 @@ struct ProfileBackBar: View {
                     .clipShape(Circle())
             }
             .buttonStyle(PlainButtonStyle())
-            
+
             Spacer()
-            
+
             if showsSave {
                 Button(action: onSaveTapped) {
                     Image(systemName: "checkmark")
@@ -61,16 +61,16 @@ struct ProfileBackBar: View {
 struct ProfileMenuRow: View {
     let title: String
     var onTap: () -> Void
-    
+
     var body: some View {
         Button(action: onTap) {
             HStack {
                 Text(title)
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.primary)
-                
+
                 Spacer()
-                
+
                 Image(systemName: "chevron.right")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(.secondary)
@@ -84,7 +84,7 @@ struct ProfileMenuRow: View {
 
 struct ProfileSectionTitle: View {
     let title: String
-    
+
     var body: some View {
         Text(title)
             .font(.title2).bold()
@@ -98,7 +98,7 @@ struct ProfileTextInput: View {
     var minHeight: CGFloat = 48
     var isMultiline = false
     var keyboardType: UIKeyboardType = .default
-    
+
     var body: some View {
         Group {
             if isMultiline {

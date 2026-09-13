@@ -1,6 +1,6 @@
-import SwiftUI
-import MapKit
 import CoreLocation
+import MapKit
+import SwiftUI
 
 @MainActor
 struct LocationPickerView: View {

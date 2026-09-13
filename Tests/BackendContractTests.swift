@@ -4,22 +4,6 @@ import Testing
 
 @Suite("Backend contracts")
 struct BackendContractTests {
-    @Test("Invocation parser accepts every supported query name", arguments: [
-        "event", "invocation", "token",
-    ])
-    func invocationParserAcceptsSupportedQueryName(_ name: String) throws {
-        let token = String(repeating: "a", count: 43)
-        let url = try #require(URL(string: "https://example.invalid/invoke?\(name)=\(token)"))
-        #expect(try InvocationParser.parse(url) == EventInvocation(token: token))
-    }
-
-    @Test func invocationParserRejectsShortTokens() throws {
-        let url = try #require(URL(string: "https://example.invalid/invoke?event=short"))
-        #expect(throws: BackendError.invalidInvocationURL) {
-            try InvocationParser.parse(url)
-        }
-    }
-
     @Test func environmentLoadsStagingValues() throws {
         let environment = try BackendEnvironment.load(values: [
             "KumpulBackendURL": "https://staging.example.invalid",
@@ -49,36 +33,51 @@ struct BackendContractTests {
           "privacy_url": "https://example.invalid/privacy"
         }
         """.utf8)
-        let legal = try BackendJSON.decoder().decode(PublicLegalDTO.self, from: data)
+        let legal = try BackendJSON.decoder().decode(DonorLegalData.self, from: data)
         #expect(legal.termsURL.absoluteString == "https://example.invalid/terms")
         #expect(legal.privacyURL.absoluteString == "https://example.invalid/privacy")
-    }
-
-    @Test @MainActor func fullAppInvocationResolvesSharedURLContract() async throws {
-        let event = PublicEventDTO.fixture()
-        let model = FullAppInvocationModel(client: PublicBackendStub(event: event))
-        let token = String(repeating: "a", count: 43)
-        let url = try #require(URL(string: "https://example.invalid/invoke?event=\(token)"))
-
-        await model.handle(url)
-
-        #expect(model.event == event)
-        #expect(model.errorMessage == nil)
     }
 }
 
 @Suite("Dashboard repository seam")
 struct DashboardRepositoryTests {
     @Test @MainActor func dashboardLoadsAndCreatesThroughRepository() async {
-        let existing = AdminEvent.fixture(name: "Existing", version: 1)
-        let created = AdminEvent.fixture(name: "Created", version: 1)
+        let existing = BackendAdminEvent.fixture(name: "Existing", version: 1)
+        let created = BackendAdminEvent.fixture(name: "Created", version: 1)
         let repository = MockEventRepository(initial: [existing], saved: created)
         let model = DashboardModel(repository: repository)
 
         await model.load()
         #expect(model.events == [existing])
-        await model.createDraft(AdminEvent.fixture(name: "Draft"))
+        await model.createDraft(BackendAdminEvent.fixture(name: "Draft"))
         #expect(model.events == [existing, created])
+        #expect(model.errorMessage == nil)
+    }
+
+    @Test @MainActor func draftRetryReusesTheOriginalMutationIdentifier() async {
+        let event = BackendAdminEvent.fixture(name: "Draf yang di-retry")
+        let repository = DraftRetryRepository()
+        let model = DashboardModel(repository: repository)
+
+        #expect(await model.createDraft(event) == false)
+        #expect(await model.createDraft(event) == true)
+
+        let mutationIds = await repository.mutationIds()
+        #expect(mutationIds.count == 2)
+        #expect(mutationIds[0] == mutationIds[1])
+    }
+
+    @Test @MainActor func invalidDashboardCursorReloadsTheFirstPage() async {
+        let stale = BackendAdminEvent.fixture(name: "Stale")
+        let fresh = BackendAdminEvent.fixture(name: "Fresh")
+        let repository = CursorResetRepository(stale: stale, fresh: fresh)
+        let model = DashboardModel(repository: repository)
+
+        await model.load()
+        await model.loadMore()
+
+        #expect(model.events == [fresh])
+        #expect(model.nextCursor == nil)
         #expect(model.errorMessage == nil)
     }
 
@@ -88,6 +87,24 @@ struct DashboardRepositoryTests {
         try await LogoutService(auth: auth, cache: cache).logout()
         #expect(await auth.signedOut())
         #expect(await cache.wasPurged())
+    }
+
+    @Test func logoutPurgesQRTokensOnlyAfterSignOutSucceeds() async throws {
+        let auth = AuthSessionSpy()
+        let cache = SessionCacheSpy()
+        let qr = QRPurgeSpy()
+        try await LogoutService(auth: auth, cache: cache, qrPurge: { await qr.markPurged() }).logout()
+        #expect(await qr.wasPurged())
+
+        let failingAuth = AuthSessionSpy(shouldFail: true)
+        let failingPurge = QRPurgeSpy()
+        do {
+            try await LogoutService(auth: failingAuth, cache: cache, qrPurge: { await failingPurge.markPurged() }).logout()
+            Issue.record("expected sign-out failure")
+        } catch {
+            #expect(await failingAuth.signedOut() == false)
+        }
+        #expect(await failingPurge.wasPurged() == false)
     }
 }
 
@@ -101,7 +118,7 @@ struct OfflineDraftSynchronizationTests {
         let remote = DraftSyncRemote()
         let repository = CachedEventRepository(remote: remote, store: store) { ownerUserId }
 
-        let initial = AdminEvent.fixture(name: "Draf offline")
+        let initial = BackendAdminEvent.fixture(name: "Draf offline")
         let firstResult = try await repository.upsertDraft(initial, mutationId: firstMutationId)
         #expect(firstResult == initial)
 
@@ -128,8 +145,8 @@ struct OfflineDraftSynchronizationTests {
         let ownerA = try #require(UUID(uuidString: "10000000-0000-4000-8000-00000000000a"))
         let ownerB = try #require(UUID(uuidString: "10000000-0000-4000-8000-00000000000b"))
         let store = try SwiftDataEventStore.make(isStoredInMemoryOnly: true)
-        let eventA = AdminEvent.fixture(name: "Tenant A")
-        let eventB = AdminEvent.fixture(name: "Tenant B")
+        let eventA = BackendAdminEvent.fixture(name: "Tenant A")
+        let eventB = BackendAdminEvent.fixture(name: "Tenant B")
 
         try await store.cacheRemoteEvents([eventA], cursor: "cursor-a", ownerUserId: ownerA)
         try await store.cacheRemoteEvents([eventB], cursor: "cursor-b", ownerUserId: ownerB)
@@ -168,10 +185,10 @@ private enum TestFailure: Error {
 }
 
 private actor MockEventRepository: EventRepository {
-    private let initial: [AdminEvent]
-    private let saved: AdminEvent
+    private let initial: [BackendAdminEvent]
+    private let saved: BackendAdminEvent
 
-    init(initial: [AdminEvent], saved: AdminEvent) {
+    init(initial: [BackendAdminEvent], saved: BackendAdminEvent) {
         self.initial = initial
         self.saved = saved
     }
@@ -180,7 +197,7 @@ private actor MockEventRepository: EventRepository {
         EventPage(events: initial, cursor: "opaque-cursor")
     }
 
-    func upsertDraft(_: AdminEvent, mutationId _: UUID) async throws -> AdminEvent {
+    func upsertDraft(_: BackendAdminEvent, mutationId _: UUID) async throws -> BackendAdminEvent {
         saved
     }
 
@@ -188,21 +205,17 @@ private actor MockEventRepository: EventRepository {
         throw TestFailure.unexpectedCall
     }
 
-    func terminate(
-        eventId _: UUID,
-        status _: EventStatusCode,
-        reason _: String?
-    ) async throws -> AdminEvent {
+    func cancelOrDelete(eventId _: UUID) async throws -> CancelEventData {
         throw TestFailure.unexpectedCall
     }
 }
 
 private actor DraftSyncRemote: EventRepository {
     private var online = false
-    private var savedEvent: AdminEvent?
+    private var savedEvent: BackendAdminEvent?
     private var mutationIds: [UUID] = []
 
-    func goOnline(savedEvent: AdminEvent) {
+    func goOnline(savedEvent: BackendAdminEvent) {
         online = true
         self.savedEvent = savedEvent
     }
@@ -216,7 +229,7 @@ private actor DraftSyncRemote: EventRepository {
         return EventPage(events: [], cursor: "server-cursor")
     }
 
-    func upsertDraft(_ event: AdminEvent, mutationId: UUID) async throws -> AdminEvent {
+    func upsertDraft(_ event: BackendAdminEvent, mutationId: UUID) async throws -> BackendAdminEvent {
         mutationIds.append(mutationId)
         guard online else { throw URLError(.notConnectedToInternet) }
         return savedEvent ?? event
@@ -226,17 +239,82 @@ private actor DraftSyncRemote: EventRepository {
         throw URLError(.notConnectedToInternet)
     }
 
-    func terminate(
-        eventId _: UUID,
-        status _: EventStatusCode,
-        reason _: String?
-    ) async throws -> AdminEvent {
+    func cancelOrDelete(eventId _: UUID) async throws -> CancelEventData {
         throw URLError(.notConnectedToInternet)
+    }
+}
+
+private actor DraftRetryRepository: EventRepository {
+    private var attempts = 0
+    private var ids: [UUID] = []
+
+    func mutationIds() -> [UUID] {
+        ids
+    }
+
+    func list(cursor _: String?) async throws -> EventPage {
+        EventPage(events: [], cursor: nil)
+    }
+
+    func upsertDraft(_ event: BackendAdminEvent, mutationId: UUID) async throws -> BackendAdminEvent {
+        attempts += 1
+        ids.append(mutationId)
+        if attempts == 1 {
+            throw URLError(.timedOut)
+        }
+        return event
+    }
+
+    func publish(eventId _: UUID) async throws -> PublishEventData {
+        throw TestFailure.unexpectedCall
+    }
+
+    func cancelOrDelete(eventId _: UUID) async throws -> CancelEventData {
+        throw TestFailure.unexpectedCall
+    }
+}
+
+private actor CursorResetRepository: EventRepository {
+    private let stale: BackendAdminEvent
+    private let fresh: BackendAdminEvent
+    private var calls = 0
+
+    init(stale: BackendAdminEvent, fresh: BackendAdminEvent) {
+        self.stale = stale
+        self.fresh = fresh
+    }
+
+    func list(cursor: String?) async throws -> EventPage {
+        calls += 1
+        switch (calls, cursor) {
+        case (1, nil): return EventPage(events: [stale], cursor: "expired-cursor")
+        case (2, "expired-cursor"):
+            throw BackendError.api(code: "CURSOR_INVALID", retryable: false, fieldErrors: [:], requestId: nil)
+        case (3, nil): return EventPage(events: [fresh], cursor: nil)
+        default: throw TestFailure.unexpectedCall
+        }
+    }
+
+    func upsertDraft(_: BackendAdminEvent, mutationId _: UUID) async throws -> BackendAdminEvent {
+        throw TestFailure.unexpectedCall
+    }
+
+    func publish(eventId _: UUID) async throws -> PublishEventData {
+        throw TestFailure.unexpectedCall
+    }
+
+    func cancelOrDelete(eventId _: UUID) async throws -> CancelEventData {
+        throw TestFailure.unexpectedCall
     }
 }
 
 private actor AuthSessionSpy: AuthSession {
     private var didSignOut = false
+    private let shouldFail: Bool
+
+    init(shouldFail: Bool = false) {
+        self.shouldFail = shouldFail
+    }
 
     func current() async throws -> AuthUserSession {
         throw TestFailure.unexpectedCall
@@ -255,11 +333,26 @@ private actor AuthSessionSpy: AuthSession {
     }
 
     func signOut() async throws {
+        if shouldFail {
+            throw BackendError.invalidResponse
+        }
         didSignOut = true
     }
 
     func signedOut() -> Bool {
         didSignOut
+    }
+}
+
+private actor QRPurgeSpy {
+    private var purged = false
+
+    func markPurged() {
+        purged = true
+    }
+
+    func wasPurged() -> Bool {
+        purged
     }
 }
 
@@ -274,80 +367,15 @@ private actor SessionCacheSpy: SessionCache {
     }
 }
 
-private struct PublicBackendStub: PublicBackendServing {
-    let event: PublicEventDTO
-
-    func resolveEvent(invocationToken _: String) async throws -> ResolveEventData {
-        ResolveEventData(
-            event: event,
-            legal: PublicLegalDTO(
-                termsVersion: "terms-v1",
-                termsURL: URL(string: "https://example.invalid/terms")!,
-                privacyVersion: "privacy-v1",
-                privacyURL: URL(string: "https://example.invalid/privacy")!
-            ),
-            serverTime: Date(timeIntervalSince1970: 1_800_000_000),
-            cacheMaxAgeSeconds: 60
-        )
-    }
-
-    func createBooking(
-        _: CreateBookingRequest,
-        idempotencyKey _: String
-    ) async throws -> CreateBookingData {
-        throw TestFailure.unexpectedCall
-    }
-
-    func verifyDonor(bookingId _: String, phone _: String) async throws -> DonorVerificationData {
-        throw TestFailure.unexpectedCall
-    }
-
-    func donorBookingStatus(accessToken _: String) async throws -> DonorBookingStatusData {
-        throw TestFailure.unexpectedCall
-    }
-}
-
-private extension AdminEvent {
-    static func fixture(name: String, version: Int64 = 0) -> AdminEvent {
-        AdminEvent(
+private extension BackendAdminEvent {
+    static func fixture(name: String, version: Int64 = 0) -> BackendAdminEvent {
+        BackendAdminEvent(
             name: name,
             startDate: Date(timeIntervalSince1970: 1_800_000_000),
             endDate: Date(timeIntervalSince1970: 1_800_003_600),
             capacityKg: 100,
             collectedKg: 0,
             version: version
-        )
-    }
-}
-
-private extension PublicEventDTO {
-    static func fixture() -> PublicEventDTO {
-        PublicEventDTO(
-            id: UUID(uuidString: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee")!,
-            name: "Event Test",
-            description: "Description",
-            status: .ongoing,
-            availability: .available,
-            startAt: Date(timeIntervalSince1970: 1_800_000_000),
-            endAt: Date(timeIntervalSince1970: 1_800_003_600),
-            timezoneName: "Asia/Jakarta",
-            operationalDays: [1, 2, 3],
-            opensAtLocal: "08:00:00",
-            closesAtLocal: "17:00:00",
-            locationName: "Jakarta",
-            locationAddress: "Jl. Test",
-            latitude: -6.2,
-            longitude: 106.8,
-            capacityGrams: 100_000,
-            receivedWeightGrams: 1000,
-            bannerObjectPath: "workspace/event/banner.jpg",
-            receiverName: "Receiver",
-            receiverPhone: "+6281234567890",
-            receiverAddress: "Jl. Receiver",
-            criteria: [.cotton],
-            version: 2,
-            schemaVersion: 1,
-            capturedAt: Date(timeIntervalSince1970: 1_800_000_100)
         )
     }
 }

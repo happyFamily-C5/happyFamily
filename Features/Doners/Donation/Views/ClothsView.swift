@@ -1,5 +1,5 @@
 //
-//  ScanView.swift
+//  ClothsView.swift
 //  happyFamily
 //
 //  Created by Muhamad Yuan Sastro Dimianta on 27/08/26.
@@ -8,19 +8,18 @@
 import SwiftUI
 
 struct ClothsView: View {
-    
     @Environment(AppRouter.self) var router
     @Environment(DonationViewModel.self) var donationVM
-    
+
     @State var showGuide = false
-    
+
     let onNext: () -> Void
-    
+
     let columns = [
         GridItem(.flexible(), spacing: 16),
-        GridItem(.flexible(), spacing: 16)
+        GridItem(.flexible(), spacing: 16),
     ]
-    
+
     var body: some View {
         if donationVM.clothingItems.isEmpty {
             VStack {
@@ -28,7 +27,7 @@ struct ClothsView: View {
                 Image("image 1")
                     .resizable()
                     .scaledToFit()
-                
+
                 Button {
 //                    router.push(to: .openCamera)
                     showGuide = true
@@ -43,7 +42,7 @@ struct ClothsView: View {
                 .clipShape(Capsule())
                 .padding(.horizontal, 20)
                 .padding(.bottom, 12)
-                
+
                 Spacer()
             }
             .padding(20)
@@ -56,23 +55,22 @@ struct ClothsView: View {
             .navigationBarBackButtonHidden(true)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button{
+                    Button {
                         if router.currentStep > 1 {
                             router.currentStep -= 1
                         }
-                    }label: {
+                    } label: {
                         Image(systemName: "chevron.left")
                     }
                 }
             }
-        }
-        else{
+        } else {
             VStack(alignment: .leading, spacing: 28) {
                 Text("Tambahkan Foto Pakaian yang Kamu Donasikan")
                     .font(.title).bold()
-                
+
                 MaxDonationCard(maxCapacity: 5)
-                
+
                 ScrollView {
                     VStack(spacing: 24) {
                         LazyVGrid(columns: columns, spacing: 16) {
@@ -81,18 +79,17 @@ struct ClothsView: View {
                                     router.openClothDetail(for: item)
                                 }
                             }
-                            
                         }
                         AddClothingCard {
                             router.push(to: .openCamera)
                         }
                     }
                 }
-                
-                Button{
+
+                Button {
                     onNext()
                     //                router.push(to: .scan)
-                }label: {
+                } label: {
                     Text("Lanjut")
                         .padding()
                         .padding(.horizontal, 30)
@@ -107,11 +104,11 @@ struct ClothsView: View {
             .navigationBarBackButtonHidden(true)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button{
+                    Button {
                         if router.currentStep > 1 {
                             router.currentStep -= 1
                         }
-                    }label: {
+                    } label: {
                         Image(systemName: "chevron.left")
                     }
                 }
@@ -122,7 +119,7 @@ struct ClothsView: View {
 
 #Preview {
     NavigationStack {
-        ClothsView{}
+        ClothsView {}
             .environment(AppRouter())
             .environment(DonationViewModel())
     }

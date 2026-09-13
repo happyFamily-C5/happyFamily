@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(73);
+select plan(75);
 
 create or replace function pg_temp.make_event(
   p_id uuid,
@@ -118,13 +118,30 @@ select is(
   2::bigint,
   'signup creates one profile for each organizer'
 );
+
+-- Workspaces are provisioned during onboarding (admin role), not at signup.
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', true);
+select is(
+  api.complete_onboarding_v1('admin') ->> 'role',
+  'admin',
+  'organizer one onboards as admin'
+);
+select set_config('request.jwt.claim.sub', '22222222-2222-4222-8222-222222222222', true);
+select is(
+  api.complete_onboarding_v1('admin') ->> 'role',
+  'admin',
+  'organizer two onboards as admin'
+);
+reset role;
+
 select is(
   (select count(*) from public.workspaces where owner_user_id in (
     '11111111-1111-4111-8111-111111111111',
     '22222222-2222-4222-8222-222222222222'
   )),
   2::bigint,
-  'signup creates one workspace for each organizer'
+  'onboarding creates one workspace for each organizer'
 );
 select is(
   (select count(distinct owner_user_id) from public.workspaces where owner_user_id in (
@@ -658,7 +675,7 @@ insert into public.bookings (
   'aaaaaaaa-aaaa-4aaa-8aaa-000000000013',
   (select id from public.workspaces where owner_user_id = '11111111-1111-4111-8111-111111111111'),
   'encrypted-old-name', 'old-name-nonce', 'encrypted-old-phone', 'old-phone-nonce',
-  repeat('o', 64), 700, 1, 'direct', 'test-model-v1', 'accepted', 'accepted',
+  repeat('o', 64), 700, 1, 'direct', 'test-model-v1', 'recycled', 'recycled',
   '{"schema_version":1,"name":"Retained aggregate event"}'::jsonb,
   repeat('z', 64), 'encrypted-old-qr', 'old-qr-nonce',
   'local-v1', 'local-v1', now() - interval '40 days', now() - interval '35 days',

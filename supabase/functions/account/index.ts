@@ -6,7 +6,9 @@ import {
   hmacHex,
   sha256Hex,
 } from "../_shared/crypto.ts";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { opaqueToken, publicBookingId } from "../_shared/ids.ts";
+import { environment } from "../_shared/env.ts";
 import { normalizeIndonesianPhone } from "../_shared/phone.ts";
 import { ApiError, method, readJson, serve, success } from "../_shared/http.ts";
 import { adminClient, organizerSession, rpc } from "../_shared/supabase.ts";
@@ -53,6 +55,31 @@ type BookingResult = {
   crypto_key_version: number;
   idempotent_replay: boolean;
 };
+type LegalDocument = {
+  document_type: "terms" | "privacy";
+  version_identifier: string;
+  public_url: string;
+};
+
+async function eventLegalMetadata(client: SupabaseClient) {
+  const { data, error } = await client
+    .from("legal_document_versions")
+    .select("document_type, version_identifier, public_url")
+    .eq("environment", environment())
+    .eq("is_active", true)
+    .in("document_type", ["terms", "privacy"])
+    .returns<LegalDocument[]>();
+  if (error) throw error;
+  const terms = data?.find((document) => document.document_type === "terms");
+  const privacy = data?.find((document) => document.document_type === "privacy");
+  if (!terms || !privacy) throw new ApiError("SERVER_MISCONFIGURED", 500, false);
+  return {
+    terms_version: terms.version_identifier,
+    terms_url: terms.public_url,
+    privacy_version: privacy.version_identifier,
+    privacy_url: privacy.public_url,
+  };
+}
 
 // Authenticated account API. The platform verifies the bearer JWT before this
 // handler runs; organizerSession additionally resolves the user and forwards
@@ -83,7 +110,7 @@ serve("account", async (req, requestId) => {
       const previousAvatar = previous?.avatar_object_path ?? null;
       const profile = await rpc<Record<string, unknown>>(client, "update_user_profile_v1", {
         p_display_name: text(body, "display_name"),
-        p_phone_e164: text(body, "phone_e164"),
+        p_phone_e164: normalizeIndonesianPhone(body.phone_e164),
         p_address: text(body, "address"),
         p_location_label: text(body, "location_label"),
         p_latitude: typeof body.latitude === "number" ? body.latitude : null,
@@ -113,6 +140,48 @@ serve("account", async (req, requestId) => {
         requestId,
       );
     }
+    case "delete_account": {
+      const [{ data: profile, error: profileError }, { data: workspace, error: workspaceError }] =
+        await Promise.all([
+          service
+            .from("profiles")
+            .select("account_role, avatar_object_path")
+            .eq("id", user.id)
+            .maybeSingle<{ account_role: string | null; avatar_object_path: string | null }>(),
+          service
+            .from("workspaces")
+            .select("id, logo_object_path")
+            .eq("owner_user_id", user.id)
+            .maybeSingle<{ id: string; logo_object_path: string | null }>(),
+        ]);
+      if (profileError) throw profileError;
+      if (workspaceError) throw workspaceError;
+
+      // Revocation happens before identity deletion. The database trigger is
+      // a second line of defence for deletes performed outside this function.
+      if (workspace) {
+        const { error: disableError } = await service
+          .from("workspaces")
+          .update({ status: "disabled" })
+          .eq("id", workspace.id);
+        if (disableError) throw disableError;
+      }
+
+      const { error: deleteError } = await service.auth.admin.deleteUser(user.id);
+      if (deleteError) throw new ApiError("ACCOUNT_DELETE_FAILED", 500, false);
+
+      // Media cleanup is best-effort after the irreversible identity delete.
+      // Failed objects are later collected by the orphan cleanup job.
+      const cleanup: Promise<unknown>[] = [];
+      if (profile?.avatar_object_path) {
+        cleanup.push(service.storage.from("profile-avatars").remove([profile.avatar_object_path]));
+      }
+      if (workspace?.logo_object_path) {
+        cleanup.push(service.storage.from("workspace-logos").remove([workspace.logo_object_path]));
+      }
+      await Promise.allSettled(cleanup);
+      return success({}, requestId);
+    }
     case "update_workspace": {
       // Replacement cleanup: a new logo path removes the previous object from
       // the branding bucket after the workspace RPC commits.
@@ -125,7 +194,7 @@ serve("account", async (req, requestId) => {
       const workspace = await rpc<Record<string, unknown>>(client, "update_workspace_profile_v1", {
         p_name: text(body, "name"),
         p_address: text(body, "address"),
-        p_phone_e164: text(body, "phone_e164"),
+        p_phone_e164: normalizeIndonesianPhone(body.phone_e164),
         p_email: text(body, "email"),
         p_logo_object_path: text(body, "logo_object_path"),
       });
@@ -142,11 +211,14 @@ serve("account", async (req, requestId) => {
     }
     case "dashboard":
       return success(await rpc(client, "user_dashboard_v1", {}), requestId);
-    case "event_detail":
-      return success(
-        await rpc(client, "event_detail_v2", { p_event_id: uuid(body, "event_id") }),
-        requestId,
+    case "event_detail": {
+      const detail = await rpc<Record<string, unknown>>(
+        client,
+        "event_detail_v2",
+        { p_event_id: uuid(body, "event_id") },
       );
+      return success({ ...detail, legal: await eventLegalMetadata(client) }, requestId);
+    }
     case "my_bookings":
       return success(await rpc(client, "my_bookings_v1", {}), requestId);
     case "booking_detail": {

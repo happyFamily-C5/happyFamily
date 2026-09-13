@@ -7,147 +7,52 @@
 
 import SwiftUI
 
+/// Step 1 of the donation flow. Donor identity is served from the profile
+/// and encrypted by the server.
 struct FormView: View {
     @Environment(DonationViewModel.self) var donationVM
     @Environment(AppRouter.self) var router
-    @State var showNameError = false
-    @State var showPhoneError = false
     @State var showPrivacyPolice = false
     @State var leaveProcess = false
-    
-    
+
     /// Phone uses a number pad, which has no Return key — without an explicit
     /// dismissal that keyboard can never be closed. Tapping anywhere off a
     /// field clears focus, and the keyboard toolbar gives a visible way out.
     @FocusState private var focusedField: Field?
-    
+
     private enum Field {
         case name
         case phone
     }
-    
+
     let onNext: () -> Void
-    
+
     var body: some View {
-        @Bindable var donationVM = donationVM
-        
-        VStack(alignment: .leading, spacing: 64) {
-            VStack(spacing: 16){
-                HStack(spacing: 16){
-                    Image("Image 2")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: 80)
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-                    
-                    VStack(alignment: .leading, spacing: 4){
-                        Text("Ecoday | Drop Your Unused Shirt")
-                            .font(.title2).bold()
-                        Text("EcoTouch Indonesia")
-                            .font(.headline)
-                        
+        VStack(alignment: .leading, spacing: 32) {
+            eventHeader
+
+            if donationVM.detail == nil, donationVM.isLoadingDetail {
+                VStack {
+                    ProgressView("Memuat acara…")
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if donationVM.detail == nil, let errorMessage = donationVM.errorMessage {
+                VStack(spacing: 12) {
+                    Text(errorMessage)
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                    Button("Coba lagi") {
+                        Task { await donationVM.retryLoadingEvent() }
                     }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                formContent
             }
-            VStack(alignment: .leading, spacing: 24) {
-                Text("Personal Information")
-                    .font(Font.title.bold())
-                
-                VStack(alignment: .leading, spacing: 32){
-                    VStack(alignment: .leading, spacing:4) {
-                        TextField("Nama", text: $donationVM.name)
-                            .focused($focusedField, equals: .name)
-                            .submitLabel(.next)
-                            .onSubmit { focusedField = .phone }
-                            .padding(16)
-                            .background(Color.gray.opacity(0.2), in: RoundedRectangle(cornerRadius: 30))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 30)
-                                    .stroke(
-                                        showNameError ? Color.red : Color.red.opacity(0.0)
-                                    )
-                            )
-                        if showNameError {
-                            Text("*Name is required")
-                                .font(.caption2)
-                                .foregroundColor(.red)
-                        }
-                    }
-                    
-                    VStack(alignment: .leading, spacing:4) {
-                        TextField("Nomor Telepon", text: $donationVM.phone)
-                            .keyboardType(.numberPad)
-                            .focused($focusedField, equals: .phone)
-                            .padding(16)
-                            .background(Color.gray.opacity(0.2), in: RoundedRectangle(cornerRadius: 30))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 30)
-                                    .stroke(
-                                        showPhoneError ? Color.red : Color.red.opacity(0.0)
-                                    )
-                            )
-                        if showPhoneError {
-                            Text("*Phone number is required")
-                                .font(.caption2)
-                                .foregroundColor(.red)
-                        }
-                    }
-                }
-                
-            }
-            Spacer()
-            
-            VStack(spacing: 16) {
-                Text("Kenapa kami membutuhkan datamu ?")
-                    .font(.subheadline)
-                    .onTapGesture {
-                        showPrivacyPolice = true
-                    }
-                
-                Button{
-                    focusedField = nil
-                    if donationVM.name.isEmpty {
-                        showNameError = true
-                    } else {
-                        showNameError = false
-                    }
-                    if donationVM.phone.isEmpty {
-                        showPhoneError = true
-                    } else {
-                        showPhoneError = false
-                    }
-                    if !donationVM.name.isEmpty && !donationVM.phone.isEmpty {
-                        onNext()
-                    }
-                }label: {
-                    Text("Lanjut")
-                        .padding()
-                        .padding(.horizontal, 30)
-                        .foregroundStyle(Color.white)
-                        .frame(maxWidth: .infinity)
-                        .background(
-                            AppColor.primaryCyan,
-                            in: RoundedRectangle(cornerRadius: 30)
-                        )
-                }
-            }
-            
         }
-        // Fill the step's area so the empty space around the fields is tappable,
-        // then treat a tap on that space as "dismiss the keyboard".
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .contentShape(Rectangle())
-        .onTapGesture { focusedField = nil }
-        .onChange(of: donationVM.name) { _, newValue in
-            if !newValue.isEmpty {
-                showNameError = false
-            }
-        }
-        .onChange(of: donationVM.phone) { _, newValue in
-            if !newValue.isEmpty {
-                showPhoneError = false
-            }
-        }
         .sheet(isPresented: $showPrivacyPolice) {
             PrivacyPolicyView()
                 .presentationDragIndicator(.visible)
@@ -161,21 +66,117 @@ struct FormView: View {
         .navigationBarBackButtonHidden(true)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                Button{
+                Button {
                     leaveProcess = true
-                }label: {
+                } label: {
                     Image(systemName: "chevron.left")
                 }
             }
         }
     }
+
+    private var eventHeader: some View {
+        HStack(spacing: 16) {
+            Group {
+                if let bannerURL = donationVM.bannerURL() {
+                    AsyncImage(url: bannerURL) { image in
+                        image.resizable().scaledToFill()
+                    } placeholder: {
+                        Image("Image 2").resizable().scaledToFill()
+                    }
+                } else {
+                    Image("Image 2")
+                        .resizable()
+                        .scaledToFit()
+                }
+            }
+            .frame(height: 80)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(donationVM.detail?.event.name ?? "Memuat acara…")
+                    .font(.title2).bold()
+                Text(donationVM.detail?.event.organizationName ?? "")
+                    .font(.headline)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var formContent: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            Text("Personal Information")
+                .font(Font.title.bold())
+
+            if donationVM.isProfileComplete {
+                VStack(alignment: .leading, spacing: 16) {
+                    profileRow(label: "Nama", value: donationVM.displayName)
+                    profileRow(label: "Nomor Telepon", value: donationVM.phoneE164)
+                    Text("Data diambil dari profilmu dan dikirim terenkripsi oleh server.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            } else {
+                Text("Profil belum lengkap. Lengkapi nama dan nomor teleponmu sebelum berdonasi.")
+                    .font(.footnote)
+                    .foregroundColor(.orange)
+            }
+        }
+
+        Spacer()
+
+        VStack(spacing: 16) {
+            Button("Kenapa kami membutuhkan datamu?") {
+                showPrivacyPolice = true
+            }
+            .font(.subheadline)
+            .buttonStyle(.plain)
+
+            if let errorMessage = donationVM.errorMessage, !donationVM.isLoadingDetail {
+                Text(errorMessage)
+                    .font(.caption2)
+                    .foregroundColor(.red)
+                    .multilineTextAlignment(.center)
+            }
+
+            Button {
+                if donationVM.canProceedFromPersonalInfo {
+                    onNext()
+                }
+            } label: {
+                Text("Lanjut")
+                    .padding()
+                    .padding(.horizontal, 30)
+                    .foregroundStyle(Color.white)
+                    .frame(maxWidth: .infinity)
+                    .background(
+                        donationVM.canProceedFromPersonalInfo
+                            ? AppColor.primaryCyan
+                            : Color.gray.opacity(0.4),
+                        in: RoundedRectangle(cornerRadius: 30)
+                    )
+            }
+        }
+    }
+
+    private func profileRow(label: String, value: String) -> some View {
+        HStack {
+            Text(label)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+            Spacer()
+            Text(value.isEmpty ? "-" : value)
+                .font(.body).bold()
+        }
+        .padding(16)
+        .background(Color.gray.opacity(0.2), in: RoundedRectangle(cornerRadius: 30))
+    }
 }
 
 #Preview {
     NavigationStack {
-        FormView{}
+        FormView {}
             .environment(AppRouter())
             .environment(DonationViewModel())
     }
-    
 }

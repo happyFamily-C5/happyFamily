@@ -1,6 +1,6 @@
 import Foundation
 
-struct AdminEvent: Codable, Identifiable, Equatable, Sendable {
+struct BackendAdminEvent: Codable, Identifiable, Equatable, Sendable {
     let id: UUID
     var name: String
     var description: String?
@@ -20,6 +20,7 @@ struct AdminEvent: Codable, Identifiable, Equatable, Sendable {
     var latitude: Double?
     var longitude: Double?
     var criteria: [EventCriterionCode]
+    var maxDonationPerUserKg: Int?
     var receiverName: String?
     var receiverPhone: String?
     var receiverAddress: String?
@@ -45,6 +46,7 @@ struct AdminEvent: Codable, Identifiable, Equatable, Sendable {
         latitude: Double? = nil,
         longitude: Double? = nil,
         criteria: [EventCriterionCode] = [],
+        maxDonationPerUserKg: Int? = nil,
         receiverName: String? = nil,
         receiverPhone: String? = nil,
         receiverAddress: String? = nil,
@@ -69,6 +71,7 @@ struct AdminEvent: Codable, Identifiable, Equatable, Sendable {
         self.latitude = latitude
         self.longitude = longitude
         self.criteria = criteria
+        self.maxDonationPerUserKg = maxDonationPerUserKg
         self.receiverName = receiverName
         self.receiverPhone = receiverPhone
         self.receiverAddress = receiverAddress
