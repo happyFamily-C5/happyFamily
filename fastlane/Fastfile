@@ -90,9 +90,9 @@ platform :ios do
 
     profile_path = File.join(Dir.tmpdir, "happyfamily-appstore.mobileprovision")
     File.binwrite(profile_path, Base64.decode64(profile_b64))
-    profile_plist = sh("security cms -D -i #{profile_path.shellescape}")
+    profile_plist = sh("security cms -D -i #{profile_path.shellescape}", log: false)
     uuid = profile_plist[/UUID<\/key>\s*<string>([A-Fa-f0-9-]+)<\/string>/, 1]
-    profile_name = profile_plist[/Name<\/key>\s*<string>([^<]+)<\/string>/, 1]
+    profile_name = profile_plist[/<key>Name<\/key>\s*<string>([^<]+)<\/string>/, 1]
     UI.user_error!("PROVISIONING_PROFILE_BASE64 is not a valid .mobileprovision") if uuid.to_s.empty?
     UI.user_error!("PROVISIONING_PROFILE_BASE64 must contain the profile named 'happyFamily App Store Associated Domains 2026-09-01', but found '#{profile_name}'.") unless profile_name == "happyFamily App Store Associated Domains 2026-09-01"
 
