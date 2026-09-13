@@ -28,9 +28,7 @@ struct ForYouCard: View {
                 Text(name)
                     .font(.caption)
                     .foregroundStyle(Color.secondary)
-                Text(title)
-                    .font(.body).bold()
-                    .lineLimit(2)
+                titleContent
                 HStack(spacing: 8) {
                     Image(systemName: "calendar.circle.fill")
                         .font(.system(size: 11))
@@ -50,6 +48,24 @@ struct ForYouCard: View {
                         .lineLimit(1)
                 }
             }
+        }
+    }
+
+    /// Reserves the card's two-line title height for both loading and loaded states.
+    /// The guide uses the system body font, so it follows Dynamic Type naturally.
+    private var titleContent: some View {
+        ZStack(alignment: .topLeading) {
+            Text(verbatim: "Title\nTitle")
+                .font(.body)
+                .bold()
+                .lineLimit(2)
+                .hidden()
+                .accessibilityHidden(true)
+
+            Text(title)
+                .font(.body)
+                .bold()
+                .lineLimit(2)
         }
     }
 
