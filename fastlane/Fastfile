@@ -1,6 +1,9 @@
 # Fastfile configuration for happyFamily iOS Project
 # Architecture: XcodeGen + SwiftUI + Multiple Configs (Debug, Staging, Release)
 
+require "base64"
+require "fileutils"
+require "securerandom"
 require "shellwords"
 
 default_platform(:ios)
@@ -38,6 +41,65 @@ platform :ios do
       "-authenticationKeyID #{Shellwords.escape(key_id)}",
       "-authenticationKeyIssuerID #{Shellwords.escape(issuer_id)}"
     ].join(" ")
+  end
+
+  # GitHub-hosted runners have no signing identities, and the Release
+  # configuration signs manually with the pinned "happyFamily App Store
+  # Associated Domains" profile. The workflow passes the Apple Distribution
+  # certificate (.p12) and that profile as base64 secrets; decode them and
+  # import into a fresh keychain so manual signing can find them.
+  def import_ci_signing_assets
+    cert_b64 = ENV["APPLE_CERTIFICATE_BASE64"].to_s
+    cert_password = ENV["APPLE_CERTIFICATE_PASSWORD"].to_s
+    profile_b64 = ENV["PROVISIONING_PROFILE_BASE64"].to_s
+
+    if cert_b64.empty?
+      UI.user_error!("No signing certificate available. Set the APPLE_CERTIFICATE_BASE64 secret to the Apple Distribution .p12 for team K39QVFTK2A (and APPLE_CERTIFICATE_PASSWORD to its export password).")
+    end
+    if cert_password.empty?
+      UI.user_error!("No signing certificate password available. Set the APPLE_CERTIFICATE_PASSWORD secret to the password used when exporting the Apple Distribution .p12.")
+    end
+    if profile_b64.empty?
+      UI.user_error!("No provisioning profile available. Set the PROVISIONING_PROFILE_BASE64 secret to the 'happyFamily App Store Associated Domains 2026-09-01' profile from the Developer portal.")
+    end
+
+    keychain_name = "happyfamily-ci.keychain"
+    keychain_path = File.expand_path("~/Library/Keychains/#{keychain_name}-db")
+    keychain_password = ENV["KEYCHAIN_PASSWORD"].to_s.empty? ? SecureRandom.base64(24) : ENV["KEYCHAIN_PASSWORD"]
+
+    # `security create-keychain` adds `-db`, so use the base name above to
+    # create exactly ~/Library/Keychains/happyfamily-ci.keychain-db.
+    delete_keychain(keychain_path: keychain_path) if File.exist?(keychain_path)
+
+    create_keychain(
+      name: keychain_name,
+      password: keychain_password,
+      default_keychain: true,
+      unlock: true,
+      timeout: 0
+    )
+
+    cert_path = File.join(Dir.tmpdir, "happyfamily-distribution.p12")
+    File.binwrite(cert_path, Base64.decode64(cert_b64))
+    import_certificate(
+      certificate_path: cert_path,
+      certificate_password: cert_password,
+      keychain_name: keychain_name,
+      keychain_password: keychain_password
+    )
+
+    profile_path = File.join(Dir.tmpdir, "happyfamily-appstore.mobileprovision")
+    File.binwrite(profile_path, Base64.decode64(profile_b64))
+    profile_plist = sh("security cms -D -i #{profile_path.shellescape}")
+    uuid = profile_plist[/UUID<\/key>\s*<string>([A-Fa-f0-9-]+)<\/string>/, 1]
+    profile_name = profile_plist[/Name<\/key>\s*<string>([^<]+)<\/string>/, 1]
+    UI.user_error!("PROVISIONING_PROFILE_BASE64 is not a valid .mobileprovision") if uuid.to_s.empty?
+    UI.user_error!("PROVISIONING_PROFILE_BASE64 must contain the profile named 'happyFamily App Store Associated Domains 2026-09-01', but found '#{profile_name}'.") unless profile_name == "happyFamily App Store Associated Domains 2026-09-01"
+
+    profiles_dir = File.expand_path("~/Library/MobileDevice/Provisioning Profiles")
+    FileUtils.mkdir_p(profiles_dir)
+    FileUtils.cp(profile_path, File.join(profiles_dir, "#{uuid}.mobileprovision"))
+    UI.success("Installed provisioning profile '#{profile_name}' (#{uuid})")
   end
 
   # ----------------------------------------------------------------------
@@ -127,6 +189,7 @@ platform :ios do
   # ----------------------------------------------------------------------
   desc "Build and upload Beta build to TestFlight"
   lane :beta do |options|
+    import_ci_signing_assets
     api_key = load_api_key
     build_number = options[:build_number]
     signing_xcargs = automatic_signing_xcargs
@@ -155,6 +218,7 @@ platform :ios do
 
   desc "Build and upload Staging build to TestFlight"
   lane :staging_beta do |options|
+    import_ci_signing_assets
     api_key = load_api_key
     build_number = options[:build_number]
     signing_xcargs = automatic_signing_xcargs
