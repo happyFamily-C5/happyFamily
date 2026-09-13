@@ -15,12 +15,12 @@ struct DownloadedLabelNotification: View {
                     Image(systemName: "seal.fill")
                         .font(.system(size: 20))
                         .foregroundStyle(AppColor.primaryCyan)
-                    
+
                     Image(systemName: "checkmark")
                         .font(.system(size: 12, weight: .bold))
                         .foregroundColor(.white)
                 }
-                
+
                 Text("Label telah di unduh ke galeri.")
                     .font(.subheadline)
             }

@@ -9,6 +9,7 @@ struct Main: App {
             ContentView()
 //            MainTabView(router: router)
                 .environment(router)
+                .environment(router.donation)
         }
     }
 }

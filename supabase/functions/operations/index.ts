@@ -1,6 +1,8 @@
-import { decrypt, sha256Hex } from "../_shared/crypto.ts";
+import { activeEncryptionKeyVersion, decrypt, encrypt, sha256Hex } from "../_shared/crypto.ts";
+import { environment, requireEnv } from "../_shared/env.ts";
 import { ApiError, method, readJson, serve, success } from "../_shared/http.ts";
-import { organizerSession, rpc } from "../_shared/supabase.ts";
+import { opaqueToken } from "../_shared/ids.ts";
+import { adminClient, organizerSession, rpc } from "../_shared/supabase.ts";
 
 function uuid(value: unknown): string {
   if (
@@ -21,9 +23,7 @@ function optionalInt(
   key: string,
 ): number | null {
   const value = body[key];
-  return typeof value === "number" && Number.isInteger(value) && value > 0
-    ? value
-    : null;
+  return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : null;
 }
 
 function optionalCursor(
@@ -62,11 +62,27 @@ type QRResult = Record<string, unknown> & {
   crypto_key_version: number;
 };
 
+type InvocationResult = {
+  invocation_ciphertext: string;
+  invocation_nonce: string;
+  crypto_key_version: number;
+};
+
 serve("operations", async (req, requestId) => {
   method(req, "POST");
   const body = await readJson(req);
-  const { client } = await organizerSession(req);
+  const { user, client } = await organizerSession(req);
   const action = typeof body.action === "string" ? body.action : "";
+  if (action === "list_events") {
+    const page = await rpc<{ items: unknown[]; cursor: string | null }>(client, "list_events_v2", {
+      p_cursor: optionalCursor(body, "cursor"),
+      p_limit: optionalInt(body, "limit") ?? 50,
+    });
+    return success(
+      { items: page.items, next_cursor: page.cursor },
+      requestId,
+    );
+  }
   if (action === "upsert_event_draft") {
     const payload = body.payload;
     if (!payload || Array.isArray(payload) || typeof payload !== "object") {
@@ -83,14 +99,39 @@ serve("operations", async (req, requestId) => {
   }
   if (action === "publish_event") {
     const key = idempotencyKey(req);
-    return success(
-      await rpc(client, "publish_event_v2", {
-        p_event_id: uuid(body.event_id),
-        p_idempotency_key: key,
-        p_request_id: requestId,
-      }),
-      requestId,
+    const eventId = uuid(body.event_id);
+    const event = await rpc<Record<string, unknown>>(client, "publish_event_v2", {
+      p_event_id: eventId,
+      p_idempotency_key: key,
+      p_request_id: requestId,
+    });
+
+    const token = opaqueToken();
+    const keyVersion = activeEncryptionKeyVersion();
+    const protectedToken = await encrypt(token, keyVersion);
+    const invocation = await rpc<InvocationResult>(
+      adminClient(),
+      "ensure_event_invocation_v1",
+      {
+        p_actor_id: user.id,
+        p_event_id: eventId,
+        p_token_hash: await sha256Hex(token),
+        p_token_ciphertext: protectedToken.ciphertext,
+        p_token_nonce: protectedToken.nonce,
+        p_crypto_key_version: keyVersion,
+        p_environment: environment(),
+      },
     );
+    const invocationToken = await decrypt(
+      invocation.invocation_ciphertext,
+      invocation.invocation_nonce,
+      invocation.crypto_key_version,
+    );
+    const base = requireEnv("APP_CLIP_BASE_URL").replace(/\/$/, "");
+    return success({
+      event,
+      invocation_url: `${base}?event=${encodeURIComponent(invocationToken)}`,
+    }, requestId);
   }
   if (action === "workspace_profile") {
     return success(await rpc(client, "workspace_profile_v1", {}), requestId);
@@ -180,9 +221,7 @@ serve("operations", async (req, requestId) => {
       await rpc(client, "decide_reception_v2", {
         p_booking_id: uuid(body.booking_id),
         p_decision: decision,
-        p_actual_weight_grams: decision === "accepted"
-          ? body.actual_weight_grams
-          : null,
+        p_actual_weight_grams: decision === "accepted" ? body.actual_weight_grams : null,
         p_idempotency_key: key,
         p_request_id: requestId,
       }),

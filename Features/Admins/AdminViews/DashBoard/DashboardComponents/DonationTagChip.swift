@@ -5,14 +5,14 @@ struct DonationTagChip: View {
     let isSelected: Bool
     var isCompact: Bool = false
     var action: () -> Void
-    
+
     var body: some View {
         Button(action: action) {
             HStack(spacing: 6) {
                 // Berubah otomatis: icon "+" saat belum dipilih, dan "checkmark" saat dipilih
                 Image(systemName: isSelected ? "checkmark" : "plus")
                     .font(.system(size: isCompact ? 12 : 12, weight: .bold))
-                
+
                 Text(title)
                     .font(.system(size: isCompact ? 14 : 14, weight: .medium))
             }
@@ -27,12 +27,13 @@ struct DonationTagChip: View {
 }
 
 // MARK: - Preview
+
 #Preview(traits: .sizeThatFitsLayout) {
     HStack(spacing: 12) {
         DonationTagChip(title: "Katun", isSelected: false) {
             print("Chip belum dipilih diklik")
         }
-        
+
         DonationTagChip(title: "Sutra", isSelected: true) {
             print("Chip terpilih diklik")
         }

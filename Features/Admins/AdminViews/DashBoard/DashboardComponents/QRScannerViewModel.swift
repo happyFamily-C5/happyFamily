@@ -8,11 +8,11 @@ final class QRScannerViewModel: ObservableObject {
     @Published private(set) var result: String?
     @Published var showCameraAlert = false
     @Published private(set) var cameraAlertMessage = ""
-    
+
     @Published var actualWeight = 1.0
-    
+
     let actualWeightOpt: [Double] = stride(from: 1.0, through: 5.0, by: 0.1).map {
-        (round($0 * 10) / 10)
+        round($0 * 10) / 10
     }
 
     var session: AVCaptureSession {
@@ -50,6 +50,16 @@ final class QRScannerViewModel: ObservableObject {
 
     func stop() {
         cameraManager.stop()
+    }
+
+    func prepareForNextScan() {
+        result = nil
+        actualWeight = 1.0
+    }
+
+    func restart() async {
+        prepareForNextScan()
+        await start()
     }
 
     private func handleScanResult(_ value: String) {

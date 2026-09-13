@@ -1,5 +1,5 @@
-import SwiftUI
 import MapKit
+import SwiftUI
 
 struct LocationSearchModalView: View {
     @Binding var cameraPosition: MapCameraPosition

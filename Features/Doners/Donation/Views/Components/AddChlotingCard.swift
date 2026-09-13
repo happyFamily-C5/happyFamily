@@ -10,19 +10,19 @@ import SwiftUI
 struct AddClothingCard: View {
     @Environment(AppRouter.self) var router
     var onTap: () -> Void
-    
+
     var body: some View {
         HStack(spacing: 24) {
-            VStack(alignment: .leading , spacing: 4){
+            VStack(alignment: .leading, spacing: 4) {
                 Text("Tambahkan pakaian lagi ?")
                     .font(.body).bold()
                 Text("tambahkan lebih banyak pakaian untuk selamatkan lingkungan.")
                     .font(.caption)
             }
-            
-            Button{
+
+            Button {
                 router.push(to: .openCamera)
-            }label: {
+            } label: {
                 Text("Tambah")
                     .foregroundStyle(Color.white)
                     .font(.footnote).bold()
@@ -39,7 +39,7 @@ struct AddClothingCard: View {
             Color.white, in:
             RoundedRectangle(cornerRadius: 16)
         )
-        .overlay{
+        .overlay {
             RoundedRectangle(cornerRadius: 16)
                 .stroke(AppColor.primaryCyan, lineWidth: 2)
         }
@@ -47,6 +47,6 @@ struct AddClothingCard: View {
 }
 
 #Preview {
-    AddClothingCard{}
+    AddClothingCard {}
         .environment(AppRouter())
 }

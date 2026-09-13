@@ -2,11 +2,11 @@ import SwiftUI
 
 struct LoginSplashView: View {
     var onAnimationCompleted: () -> Void
-    
+
     @State private var logoScale: CGFloat = 0.82
     @State private var logoOpacity: Double = 0
     @State private var backgroundOpacity: Double = 0.65
-    
+
     var body: some View {
         ZStack {
             AppLogoHeaderView(imageSize: 112)
@@ -20,7 +20,7 @@ struct LoginSplashView: View {
                 logoOpacity = 1
                 backgroundOpacity = 1
             }
-            
+
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
                 withAnimation(.easeInOut(duration: 0.35)) {
                     onAnimationCompleted()

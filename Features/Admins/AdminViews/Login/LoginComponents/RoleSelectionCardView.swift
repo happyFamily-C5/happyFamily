@@ -4,12 +4,12 @@ struct RoleSelectionView: View {
     @State private var selectedRole: Role = .pengelola
     var onContinueTapped: (String) -> Void
     var onBackTapped: () -> Void
-    
+
     enum Role: String {
         case pengelola = "Pengelola"
         case donatur = "Donatur"
     }
-    
+
     var body: some View {
         VStack(spacing: 24) {
             Spacer()
@@ -19,7 +19,7 @@ struct RoleSelectionView: View {
                     .multilineTextAlignment(.center)
                     .foregroundColor(AppColor.primaryCyan)
             }
-            
+
             HStack(spacing: 16) {
                 RoleCard(
                     title: "Pengelola",
@@ -31,9 +31,9 @@ struct RoleSelectionView: View {
                         selectedRole = .pengelola
                     }
                 }
-                
+
                 Spacer()
-                
+
                 RoleCard(
                     title: "Donatur",
                     imageName: "donatur",
@@ -46,7 +46,7 @@ struct RoleSelectionView: View {
                 }
             }
             .padding(.top, 12)
-            
+
             Text("Untuk memberikan pengalaman yang sesuai, kami perlu mengetahui peran Anda.")
                 .font(.callout)
                 .multilineTextAlignment(.center)
@@ -55,8 +55,7 @@ struct RoleSelectionView: View {
                 onContinueTapped(selectedRole.rawValue)
             }
         }
-        
-        
+
         .padding(.horizontal, 20)
         .navigationBarHidden(true)
     }
@@ -68,7 +67,7 @@ private struct RoleCard: View {
     let backgroundColor: Color
     let isSelected: Bool
     let onTap: () -> Void
-    
+
     var body: some View {
         Button(action: onTap) {
             VStack(spacing: 12) {
@@ -76,7 +75,7 @@ private struct RoleCard: View {
                     Text(title)
                         .font(.title3).bold()
                         .foregroundColor(isSelected ? AppColor.primaryCyan : .primary)
-                    
+
                     if isSelected {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 16))
@@ -84,7 +83,7 @@ private struct RoleCard: View {
                             .transition(.scale.combined(with: .opacity))
                     }
                 }
-                
+
                 ZStack(alignment: .bottom) {
                     RoundedRectangle(cornerRadius: 24)
                         .fill(backgroundColor)
@@ -96,7 +95,7 @@ private struct RoleCard: View {
                                     lineWidth: 3
                                 )
                         )
-                    
+
                     Image(imageName)
                         .resizable()
                         .scaledToFit()

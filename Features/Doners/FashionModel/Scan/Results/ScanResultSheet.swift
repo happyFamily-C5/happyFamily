@@ -163,13 +163,13 @@ struct ScanResultSheet: View {
     }
 }
 
-//#Preview("Checking") {
+// #Preview("Checking") {
 //    ScanResultSheet(outcome: .checking)
-//}
+// }
 
-//#Preview("Berhasil") {
+// #Preview("Berhasil") {
 //    ScanResultSheet(outcome: .success)
-//}
+// }
 
 #Preview("Butuh Diproses") {
     ScanResultSheet(outcome: .needsProcessing(accessories: ["Kancing", "Tag", "Resleting"]))

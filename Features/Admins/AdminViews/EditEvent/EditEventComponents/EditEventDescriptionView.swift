@@ -4,10 +4,10 @@ import UIKit
 struct EditEventDescriptionView: View {
     @Environment(\.dismiss) private var dismiss
     @FocusState private var isDescriptionFocused: Bool
-    
+
     @Binding var eventDescription: String
     var onSaveTapped: () -> Void = {}
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             EditEventHeaderView(
@@ -17,13 +17,13 @@ struct EditEventDescriptionView: View {
                     dismiss()
                 }
             )
-            
+
             VStack(alignment: .leading, spacing: 16) {
                 Text("Edit Deskripsi\nAcara")
                     .font(.system(size: 24, weight: .bold))
                     .foregroundColor(.primary)
                     .padding(.horizontal, 20)
-                
+
                 ZStack(alignment: .topLeading) {
                     TextEditor(text: $eventDescription)
                         .focused($isDescriptionFocused)
@@ -32,7 +32,7 @@ struct EditEventDescriptionView: View {
                         .padding(10)
                         .scrollContentBackground(.hidden)
                         .background(Color.clear)
-                    
+
                     if eventDescription.isEmpty {
                         Text("Tuliskan deskripsi acara...")
                             .font(.system(size: 13))

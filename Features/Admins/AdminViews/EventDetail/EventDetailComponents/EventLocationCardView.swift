@@ -1,12 +1,12 @@
-import SwiftUI
 import MapKit
+import SwiftUI
 
 struct EventLocationCardView: View {
     let locationName: String
     let address: String
     let distanceText: String // Contoh: "1.4 km"
     let coordinate: CLLocationCoordinate2D?
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             // Baris Atas: Nama Lokasi & Jarak
@@ -15,22 +15,22 @@ struct EventLocationCardView: View {
                     Text(locationName)
                         .font(.system(size: 15, weight: .bold))
                         .foregroundColor(.primary)
-                    
+
                     Text(address)
                         .font(.system(size: 12, weight: .regular))
                         .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                
+
                 Spacer()
-                
+
                 if !distanceText.isEmpty {
                     Text(distanceText)
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(.primary)
                 }
             }
-            
+
             // Peta Statis MapKit Native
             Map(initialPosition: .region(MKCoordinateRegion(
                 center: coordinate ?? CLLocationCoordinate2D(latitude: -6.1754, longitude: 106.8272),

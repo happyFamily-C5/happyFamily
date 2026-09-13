@@ -1,17 +1,17 @@
-import SwiftUI
-import PhotosUI
-import MapKit
 import CoreLocation
+import MapKit
+import PhotosUI
+import SwiftUI
 
 struct EditEventView: View {
     @Environment(AppRouter.self) private var router
     @Environment(\.dismiss) private var dismiss
-    
+
     let originalEvent: AdminEvent
     var onSave: (AdminEvent) -> Void
     var onDelete: () -> Void = {}
     var onCancel: () -> Void = {}
-    
+
     @State private var eventName: String
     @State private var eventDescription: String
     @State private var isPhotoPickerPresented = false
@@ -33,35 +33,30 @@ struct EditEventView: View {
     @State private var isShowingCancelSheet = false
     @State private var isShowingCancelSuccess = false
     @State private var shouldCommitLocationOnDismiss = false
-    
-    private let availableCategories: [String] = [
-        "Katun", "Linen", "Rayon", "Wol",
-        "Tencel", "Sutra", "Tidak Elastis",
-        "Denim", "Tidak berenda",
-        "Poliester"
-    ]
+
+    private let availableCategories: [String] = EventCriterionCode.uiLabels
     private let capacityOptions = Array(stride(from: 10, through: 100, by: 10)) + [200, 300, 400, 500]
-    
+
     private var selectedCriteria: [String] {
         availableCategories.filter { selectedCategories.contains($0) }
     }
-    
+
     private var formattedDateRange: String {
         "\(formattedDate(startDate)) - \(formattedDate(endDate))"
     }
-    
+
     private var formattedTimeInfo: String {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH.mm"
         return "\(operationalMode) | \(formatter.string(from: startTime)) - \(formatter.string(from: endTime))"
     }
-    
+
     private var criteriaRows: [[String]] {
         stride(from: 0, to: selectedCriteria.count, by: 3).map { startIndex in
-            Array(selectedCriteria[startIndex..<min(startIndex + 3, selectedCriteria.count)])
+            Array(selectedCriteria[startIndex ..< min(startIndex + 3, selectedCriteria.count)])
         }
     }
-    
+
     private var updatedEvent: AdminEvent {
         AdminEvent(
             id: originalEvent.id,
@@ -79,16 +74,19 @@ struct EditEventView: View {
             donationCriteria: selectedCriteria,
             capacityKg: donationCapacity,
             collectedKg: originalEvent.collectedKg,
-            bannerImageData: selectedImageData
+            status: originalEvent.status,
+            bannerImageData: selectedImageData,
+            bannerObjectPath: originalEvent.bannerObjectPath,
+            maxDonationPerUserKg: originalEvent.maxDonationPerUserKg
         )
     }
-    
+
     private var hasLocationChanges: Bool {
         (selectedLocationName ?? "") != originalEvent.locationName ||
-        (selectedLocationAddress ?? "") != originalEvent.locationAddress ||
-        !coordinatesMatch(selectedCoordinate, originalEvent.coordinate)
+            (selectedLocationAddress ?? "") != originalEvent.locationAddress ||
+            !coordinatesMatch(selectedCoordinate, originalEvent.coordinate)
     }
-    
+
     init(
         event: AdminEvent,
         onSave: @escaping (AdminEvent) -> Void,
@@ -116,7 +114,7 @@ struct EditEventView: View {
         _donationCapacity = State(initialValue: event.capacityKg)
         _activeEditor = State(initialValue: nil)
     }
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             EditEventHeaderView(
@@ -124,37 +122,37 @@ struct EditEventView: View {
                 onSaveTapped: saveAndDismiss,
                 showsSaveButton: false
             )
-            
+
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 12) {
                     EditEventBannerSection(
                         selectedImageData: selectedImageData,
                         onTap: { isPhotoPickerPresented = true }
                     )
-                    
+
                     Spacer().frame(height: 12)
-                    
+
                     EditEventInformationSection(
                         eventName: eventName,
                         formattedDateRange: formattedDateRange,
                         formattedTimeInfo: formattedTimeInfo,
                         onTap: { activeEditor = .generalInfo }
                     )
-                    
+
                     Spacer().frame(height: 8)
-                    
+
                     EditEventCapacitySection(
                         donationCapacity: $donationCapacity,
                         isPickerOpen: $isCapacityPickerOpen,
                         capacityOptions: capacityOptions
                     )
-                    
+
                     EditEventCriteriaSection(
                         selectedCriteria: selectedCriteria,
                         criteriaRows: criteriaRows,
                         onTap: { activeEditor = .criteria }
                     )
-                    
+
                     EditEventLocationSection(
                         selectedLocationName: selectedLocationName,
                         selectedLocationAddress: selectedLocationAddress,
@@ -168,12 +166,12 @@ struct EditEventView: View {
                             )
                         }
                     )
-                    
+
                     EditEventDescriptionSection(
                         eventDescription: eventDescription,
                         onTap: { activeEditor = .description }
                     )
-                    
+
                     Spacer().frame(height: 84)
                 }
                 .padding(.top, 10)
@@ -219,7 +217,7 @@ struct EditEventView: View {
             commitLocationIfNeeded()
         }
     }
-    
+
     @ViewBuilder
     private func editorView(for editor: EditEventEditor) -> some View {
         switch editor {
@@ -249,38 +247,38 @@ struct EditEventView: View {
             )
         }
     }
-    
+
     private func cancelEdit() {
         onCancel()
         dismiss()
     }
-    
+
     private func saveAndDismiss() {
         commitChanges()
         dismiss()
     }
-    
+
     private func commitChanges() {
         guard !selectedCategories.isEmpty else { return }
         onSave(updatedEvent)
     }
-    
+
     private func commitLocationIfNeeded() {
         guard shouldCommitLocationOnDismiss else { return }
         shouldCommitLocationOnDismiss = false
-        
+
         if hasLocationChanges {
             commitChanges()
         }
     }
-    
+
     private func showCancelSuccess() {
         isShowingCancelSheet = false
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
             isShowingCancelSuccess = true
         }
     }
-    
+
     private func loadSelectedImage(_ oldItem: PhotosPickerItem?, _ newItem: PhotosPickerItem?) {
         Task {
             if let data = try? await newItem?.loadTransferable(type: Data.self) {
@@ -291,36 +289,36 @@ struct EditEventView: View {
             }
         }
     }
-    
+
     private func commitCapacityChange(_ oldCapacity: Int, _ newCapacity: Int) {
         guard oldCapacity != newCapacity else { return }
         commitChanges()
     }
-    
+
     private func clampEndTime(_ oldStart: Date, _ newStart: Date) {
         if endTime < newStart {
             endTime = newStart
         }
     }
-    
+
     private func clampStartTime(_ oldEnd: Date, _ newEnd: Date) {
         if newEnd < startTime {
             startTime = newEnd
         }
     }
-    
+
     private func formattedDate(_ date: Date) -> String {
         date.formatted(.dateTime.day().month(.abbreviated).year())
     }
-    
+
     private func coordinatesMatch(_ lhs: CLLocationCoordinate2D?, _ rhs: CLLocationCoordinate2D?) -> Bool {
         switch (lhs, rhs) {
         case (nil, nil):
-            return true
+            true
         case let (lhs?, rhs?):
-            return lhs.latitude == rhs.latitude && lhs.longitude == rhs.longitude
+            lhs.latitude == rhs.latitude && lhs.longitude == rhs.longitude
         default:
-            return false
+            false
         }
     }
 }

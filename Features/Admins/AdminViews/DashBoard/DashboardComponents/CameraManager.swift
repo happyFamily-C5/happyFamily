@@ -13,7 +13,8 @@ final class CameraManager: NSObject {
     func configure() -> Bool {
         guard !isConfigured else { return true }
         guard let device = AVCaptureDevice.default(for: .video),
-              let input = try? AVCaptureDeviceInput(device: device) else {
+              let input = try? AVCaptureDeviceInput(device: device)
+        else {
             return false
         }
 
@@ -33,18 +34,21 @@ final class CameraManager: NSObject {
     }
 
     func start() {
-        guard isConfigured, !session.isRunning else { return }
+        guard isConfigured else { return }
         let reference = CaptureSessionReference(value: session)
         sessionQueue.async { [reference] in
-            reference.value.startRunning()
+            if !reference.value.isRunning {
+                reference.value.startRunning()
+            }
         }
     }
 
     func stop() {
-        guard session.isRunning else { return }
         let reference = CaptureSessionReference(value: session)
         sessionQueue.async { [reference] in
-            reference.value.stopRunning()
+            if reference.value.isRunning {
+                reference.value.stopRunning()
+            }
         }
     }
 }
@@ -58,7 +62,8 @@ extension CameraManager: AVCaptureMetadataOutputObjectsDelegate {
         guard let code = metadataObjects
             .compactMap({ $0 as? AVMetadataMachineReadableCodeObject })
             .first(where: { $0.type == .qr }),
-              let value = code.stringValue else {
+            let value = code.stringValue
+        else {
             return
         }
 

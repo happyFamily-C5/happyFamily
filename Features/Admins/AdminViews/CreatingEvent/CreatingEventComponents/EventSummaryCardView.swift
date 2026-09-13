@@ -1,5 +1,5 @@
-import SwiftUI
 import MapKit
+import SwiftUI
 
 struct EventSummaryCardView: View {
     let eventName: String
@@ -8,7 +8,7 @@ struct EventSummaryCardView: View {
     let locationAddress: String
     let dateRangeString: String
     let coordinate: CLLocationCoordinate2D?
-    
+
     var body: some View {
         VStack(spacing: 20) {
             // Informasi Teks Detail Acara
@@ -17,30 +17,30 @@ struct EventSummaryCardView: View {
                     .font(.system(size: 18, weight: .bold))
                     .foregroundColor(.primary)
                     .multilineTextAlignment(.center)
-                
+
                 Text(eventDescription)
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
-                
+
                 Spacer().frame(height: 8)
-                
+
                 Text(locationName)
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(.primary)
-                
+
                 Text(locationAddress)
                     .font(.system(size: 13, weight: .regular))
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
-                
+
                 Spacer().frame(height: 8)
-                
+
                 Text(dateRangeString)
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(.primary)
             }
-            
+
             // Pratinjau Peta (MapKit Statis)
             Map(initialPosition: .region(MKCoordinateRegion(
                 center: coordinate ?? CLLocationCoordinate2D(latitude: -6.1754, longitude: 106.8272),

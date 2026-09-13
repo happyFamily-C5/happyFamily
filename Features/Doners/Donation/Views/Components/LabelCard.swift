@@ -8,23 +8,21 @@
 import SwiftUI
 
 struct LabelCard: View {
-    
     var senderName: String
     var receiverName: String
     var receiverPhone: String
     var receiverAddress: String
     var qrContent: String
-    
-    
+
     var body: some View {
         ZStack {
             ZStack {
                 Image("labelCard")
                     .resizable()
                     .scaledToFit()
-                
+
                 VStack(alignment: .leading, spacing: 48) {
-                    VStack(alignment: .leading, spacing: 4){
+                    VStack(alignment: .leading, spacing: 4) {
                         Image("kumpulLogo")
                             .resizable()
                             .scaledToFit()
@@ -34,15 +32,13 @@ struct LabelCard: View {
                             .font(.caption).bold()
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    
-                    
-                    
-                    HStack(alignment: .top, spacing: 28){
+
+                    HStack(alignment: .top, spacing: 28) {
                         Image(uiImage: generateQRCode(from: qrContent))
                             .interpolation(.none)
                             .resizable()
                             .frame(width: 95, height: 95)
-                        
+
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Pengirim:")
                                 .font(.footnote)
@@ -53,7 +49,7 @@ struct LabelCard: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    
+
                     VStack(alignment: .leading, spacing: 4) {
                         VStack(alignment: .leading) {
                             Text("Penerima:")

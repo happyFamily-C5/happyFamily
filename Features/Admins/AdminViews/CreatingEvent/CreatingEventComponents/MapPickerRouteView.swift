@@ -1,5 +1,5 @@
-import SwiftUI
 import CoreLocation
+import SwiftUI
 
 struct MapPickerRouteView: View {
     let session: MapPickerSession

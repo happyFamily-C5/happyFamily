@@ -3,7 +3,7 @@ import SwiftUI
 struct PrimaryButton: View {
     let title: String
     var action: () -> Void
-    
+
     var body: some View {
         Button(action: action) {
             Text(title)
@@ -23,7 +23,7 @@ struct PrimaryButton: View {
         PrimaryButton(title: "Mulai Membuat Event") {
             print("Tombol diklik!")
         }
-        
+
         PrimaryButton(title: "Lanjut") {
             print("Tombol lanjut diklik!")
         }

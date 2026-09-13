@@ -11,14 +11,14 @@ struct ScanView: View {
     @StateObject private var viewModel = ScanViewModel()
     @Environment(\.dismiss) private var dismiss
     @Environment(DonationViewModel.self) var donationVM
-    
+
     private static let clothingFrameImage = UIImage.bundled("clothing_frame")
-    
+
     var body: some View {
         ZStack {
             stage
                 .ignoresSafeArea()
-            
+
             if viewModel.outcome != nil {
                 ClothingScanResultView(
                     photo: viewModel.capturedImage,
@@ -37,8 +37,8 @@ struct ScanView: View {
                 ScanResultSheet(outcome: outcome) { primaryAction(for: outcome) }
                     .presentationDetents([.height(Self.resultDetent), .large])
                     .presentationDragIndicator(.visible)
-                // Keeps the close button behind the sheet tappable at the
-                // resting detent; without this the backdrop is inert.
+                    // Keeps the close button behind the sheet tappable at the
+                    // resting detent; without this the backdrop is inert.
                     .presentationBackgroundInteraction(
                         .enabled(upThrough: .height(Self.resultDetent))
                     )
@@ -47,37 +47,39 @@ struct ScanView: View {
             }
         }
     }
-    
+
     /// Tall enough for a finished result, short enough to leave the photo visible.
     private static let resultDetent: CGFloat = 430
-    
+
     /// Swiping the sheet away means "try again", the same as the close button.
     private var isShowingResult: Binding<Bool> {
         Binding(
             get: { viewModel.outcome != nil },
             set: { presented in
-                if !presented { viewModel.retake() }
+                if !presented {
+                    viewModel.retake()
+                }
             }
         )
     }
-    
+
     /// "Simpan" has nowhere to save to yet, so it just leaves the scanner.
     private func primaryAction(for outcome: ScanResultSheet.Outcome) {
         switch outcome {
         case .success:
             if let image = viewModel.capturedImage {
-                    donationVM.clothingItems.append(
-                        ClothingItem(
-                            image: image,
-                            isPassed: true,
-                            scannerModelVersion: viewModel.scannerModelVersion,
-                            metadata: viewModel.safeResultMetadata
-                        )
+                donationVM.clothingItems.append(
+                    ClothingItem(
+                        image: image,
+                        isPassed: true,
+                        scannerModelVersion: viewModel.scannerModelVersion,
+                        metadata: viewModel.safeResultMetadata
                     )
-                    print("✅ Append berhasil, total item:", donationVM.clothingItems.count)
-                } else {
-                    print("❌ capturedImage nil, gak ada yang di-append")
-                }
+                )
+                print("✅ Append berhasil, total item:", donationVM.clothingItems.count)
+            } else {
+                print("❌ capturedImage nil, gak ada yang di-append")
+            }
             dismiss()
         case .needsProcessing, .multipleGarments:
             viewModel.retake()
@@ -85,7 +87,7 @@ struct ScanView: View {
             break
         }
     }
-    
+
     private var stage: some View {
         ZStack {
             if let image = viewModel.capturedImage {
@@ -93,7 +95,7 @@ struct ScanView: View {
             } else {
                 CameraPreview(session: viewModel.camera.session)
             }
-            
+
             // Only until the shutter returns — after that the sheet does the waiting.
             if viewModel.phase == .analyzing, viewModel.capturedImage == nil {
                 ProgressView().tint(.white).scaleEffect(1.4)
@@ -102,23 +104,23 @@ struct ScanView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .clipped()
     }
-    
+
     private var cameraOverlay: some View {
         VStack(spacing: 0) {
             topBar
-            
+
             Spacer(minLength: 0)
-            
+
             if viewModel.phase == .aiming {
                 ClothingFrameOverlay(image: Self.clothingFrameImage)
             }
-            
+
             Spacer(minLength: 0)
-            
+
             bottomPanel
         }
     }
-    
+
     private var topBar: some View {
         HStack {
             CircleIconButton(systemImage: "chevron.left") { dismiss() }
@@ -130,7 +132,7 @@ struct ScanView: View {
         .padding(.horizontal, 16)
         .padding(.top, 8)
     }
-    
+
     private var bottomPanel: some View {
         VStack(spacing: 16) {
             ScanHintView(viewModel: viewModel)
@@ -150,5 +152,5 @@ struct ScanView: View {
 }
 
 #Preview { ScanView()
-        .environment(DonationViewModel())
+    .environment(DonationViewModel())
 }

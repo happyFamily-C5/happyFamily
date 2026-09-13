@@ -12,7 +12,7 @@ final class AuthViewModel {
     var isSignUpMode: Bool = false
     private(set) var isSubmitting: Bool = false
     var errorMessage: String?
-    /// Shown after a successful sign-up that awaits e-mail confirmation.
+    /// Optional success state shown without interrupting a usable session.
     var infoMessage: String?
 
     private let authSession: (any AuthSession)?
@@ -41,7 +41,7 @@ final class AuthViewModel {
 
     var passwordPrompt: String? {
         guard isSignUpMode else { return nil }
-        return isPasswordValid ? nil : "*Minimal 12 karakter, kombinasi huruf besar, kecil, dan angka"
+        return isPasswordValid ? nil : "*Minimal 12 karakter, kombinasi huruf besar, kecil, angka, dan simbol"
     }
 
     var isEmailValid: Bool {
@@ -49,11 +49,14 @@ final class AuthViewModel {
         return value.contains("@") && value.dropFirst(value.firstIndex(of: "@")?.utf16Offset(in: value) ?? 0).contains(".")
     }
 
+    /// Contract §2: password must be 12+ characters with lowercase, uppercase,
+    /// number, and symbol classes.
     var isPasswordValid: Bool {
         password.count >= 12
             && password.contains(where: \.isLowercase)
             && password.contains(where: \.isUppercase)
             && password.contains(where: \.isNumber)
+            && password.contains(where: { !$0.isLetter && !$0.isNumber })
     }
 
     func submit() async -> Bool {
@@ -65,7 +68,7 @@ final class AuthViewModel {
             errorMessage = "Periksa kembali email dan kata sandi."
             return false
         }
-        if isSignUpMode && !isPasswordValid {
+        if isSignUpMode, !isPasswordValid {
             errorMessage = "Periksa kembali email dan kata sandi."
             return false
         }
@@ -77,14 +80,35 @@ final class AuthViewModel {
         do {
             if isSignUpMode {
                 try await authSession.signUp(email: trimmedEmail, password: password)
-                // Hosted projects require e-mail confirmation before the
-                // session becomes usable; surface that instead of entering.
-                infoMessage = "Akun berhasil dibuat. Buka tautan konfirmasi di emailmu, lalu masuk."
+                _ = try await authSession.current()
+                infoMessage = "Akun berhasil dibuat."
                 isSignUpMode = false
-                return false
+                return true
             }
             _ = try await authSession.signIn(email: trimmedEmail, password: password)
             errorMessage = nil
+            return true
+        } catch {
+            errorMessage = Self.authErrorMessage(error)
+            return false
+        }
+    }
+
+    /// Sign in with Apple per contract §2: SIWA is active for Pengelola and
+    /// signs in an existing user or provisions a new one server-side.
+    /// `idToken` is the Apple identity token; `nonce` is the raw nonce whose
+    /// SHA-256 hash was sent to Apple in the authorization request.
+    func submitApple(idToken: String, nonce: String) async -> Bool {
+        guard let authSession else {
+            errorMessage = "Konfigurasi backend belum lengkap."
+            return false
+        }
+        isSubmitting = true
+        defer { isSubmitting = false }
+        errorMessage = nil
+        infoMessage = nil
+        do {
+            _ = try await authSession.signInWithApple(idToken: idToken, nonce: nonce)
             return true
         } catch {
             errorMessage = Self.authErrorMessage(error)
@@ -105,19 +129,18 @@ final class AuthViewModel {
         if lowered.contains("already") && lowered.contains("registered") {
             return "Email sudah terdaftar. Silakan masuk."
         }
+        if lowered.contains("email_not_confirmed") || lowered.contains("email not confirmed") {
+            return "Konfirmasi email terlebih dahulu sebelum masuk."
+        }
+        if lowered.contains("weak_password") || lowered.contains("weak password") {
+            return "Kata sandi minimal 12 karakter dengan huruf besar, kecil, angka, dan simbol."
+        }
         if lowered.contains("rate limit") || lowered.contains("over_email_send_rate_limit") {
             return "Terlalu banyak percobaan. Tunggu beberapa menit lalu coba lagi."
         }
         if lowered.contains("network") || lowered.contains("connect") {
-            if isLocalBackend {
-                return "Backend lokal (127.0.0.1) tidak dapat dijangkau dari perangkat fisik. Jalankan scheme \"happyFamily Staging\" untuk uji di iPhone."
-            }
             return "Koneksi ke server gagal. Periksa jaringan lalu coba lagi."
         }
         return message
-    }
-
-    private static var isLocalBackend: Bool {
-        (try? BackendEnvironment.load())?.deployment == .local
     }
 }

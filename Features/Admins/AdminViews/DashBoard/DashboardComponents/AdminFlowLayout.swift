@@ -8,7 +8,7 @@ struct AdminFlowLayout: Layout {
         var currentX: CGFloat = 0
         var currentY: CGFloat = 0
         var lineHeight: CGFloat = 0
-        
+
         for subview in subviews {
             let subviewSize = subview.sizeThatFits(.unspecified)
             if currentX + subviewSize.width > containerWidth, currentX > 0 {

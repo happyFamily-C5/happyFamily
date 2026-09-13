@@ -17,7 +17,7 @@ enum EventCacheSchemaV1: VersionedSchema {
         var sortDate: Date
         var refreshedAt: Date
 
-        init(ownerUserId: UUID, event: AdminEvent, payload: Data) {
+        init(ownerUserId: UUID, event: BackendAdminEvent, payload: Data) {
             scopedId = Self.scopedId(ownerUserId: ownerUserId, eventId: event.id)
             self.ownerUserId = ownerUserId
             eventId = event.id
@@ -42,7 +42,7 @@ enum EventCacheSchemaV1: VersionedSchema {
         @Attribute(.externalStorage) var bannerImageData: Data?
         var enqueuedAt: Date
 
-        init(ownerUserId: UUID, event: AdminEvent, mutationId: UUID, payload: Data) {
+        init(ownerUserId: UUID, event: BackendAdminEvent, mutationId: UUID, payload: Data) {
             scopedId = CachedEvent.scopedId(ownerUserId: ownerUserId, eventId: event.id)
             self.ownerUserId = ownerUserId
             eventId = event.id
@@ -93,7 +93,7 @@ actor SwiftDataEventStore: EventLocalStore {
         return SwiftDataEventStore(modelContainer: container)
     }
 
-    func cachedEvents(ownerUserId: UUID) throws -> [AdminEvent] {
+    func cachedEvents(ownerUserId: UUID) throws -> [BackendAdminEvent] {
         let descriptor = FetchDescriptor<EventCacheSchemaV1.CachedEvent>(
             predicate: #Predicate { $0.ownerUserId == ownerUserId },
             sortBy: [SortDescriptor(\.sortDate)]
@@ -108,7 +108,7 @@ actor SwiftDataEventStore: EventLocalStore {
     }
 
     func cacheRemoteEvents(
-        _ events: [AdminEvent],
+        _ events: [BackendAdminEvent],
         cursor: String?,
         ownerUserId: UUID
     ) throws {
@@ -130,7 +130,7 @@ actor SwiftDataEventStore: EventLocalStore {
     }
 
     func enqueueDraft(
-        _ event: AdminEvent,
+        _ event: BackendAdminEvent,
         mutationId: UUID,
         ownerUserId: UUID
     ) throws {
@@ -169,7 +169,7 @@ actor SwiftDataEventStore: EventLocalStore {
     }
 
     func markDraftSynced(
-        _ event: AdminEvent,
+        _ event: BackendAdminEvent,
         mutationId: UUID,
         ownerUserId: UUID
     ) throws {
@@ -197,6 +197,24 @@ actor SwiftDataEventStore: EventLocalStore {
         try modelContext.save()
     }
 
+    func deleteEvent(eventId: UUID, ownerUserId: UUID) throws {
+        let scopedId = EventCacheSchemaV1.CachedEvent.scopedId(
+            ownerUserId: ownerUserId,
+            eventId: eventId
+        )
+        var cachedDescriptor = FetchDescriptor<EventCacheSchemaV1.CachedEvent>(
+            predicate: #Predicate { $0.scopedId == scopedId }
+        )
+        cachedDescriptor.fetchLimit = 1
+        if let cached = try modelContext.fetch(cachedDescriptor).first {
+            modelContext.delete(cached)
+        }
+        if let pending = try pendingDraft(ownerUserId: ownerUserId, eventId: eventId) {
+            modelContext.delete(pending)
+        }
+        try modelContext.save()
+    }
+
     func purge() {
         do {
             for record in try modelContext.fetch(FetchDescriptor<EventCacheSchemaV1.CachedEvent>()) {
@@ -216,7 +234,7 @@ actor SwiftDataEventStore: EventLocalStore {
     }
 
     private func upsertCachedEvent(
-        _ event: AdminEvent,
+        _ event: BackendAdminEvent,
         ownerUserId: UUID,
         payload suppliedPayload: Data? = nil
     ) throws {
@@ -275,14 +293,14 @@ actor SwiftDataEventStore: EventLocalStore {
 }
 
 private enum EventCacheCodec {
-    static func encode(_ event: AdminEvent) throws -> Data {
+    static func encode(_ event: BackendAdminEvent) throws -> Data {
         var event = event
         event.bannerImageData = nil
         return try JSONEncoder().encode(event)
     }
 
-    static func decode(_ payload: Data, bannerImageData: Data?) throws -> AdminEvent {
-        var event = try JSONDecoder().decode(AdminEvent.self, from: payload)
+    static func decode(_ payload: Data, bannerImageData: Data?) throws -> BackendAdminEvent {
+        var event = try JSONDecoder().decode(BackendAdminEvent.self, from: payload)
         event.bannerImageData = bannerImageData
         return event
     }

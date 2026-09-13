@@ -237,12 +237,14 @@ async function main() {
     );
   }
 
-  const [admin, donorA, donorB] = await Promise.all([
+  const [admin, adminOther, donorA, donorB] = await Promise.all([
     signup("admin"),
+    signup("admin-other"),
     signup("donor-a"),
     signup("donor-b"),
   ]);
   await account(admin, { action: "complete_onboarding", role: "admin" });
+  await account(adminOther, { action: "complete_onboarding", role: "admin" });
   await Promise.all([
     account(donorA, { action: "complete_onboarding", role: "donor" }),
     account(donorB, { action: "complete_onboarding", role: "donor" }),
@@ -259,6 +261,14 @@ async function main() {
   );
   const workspaceId = workspace.id;
   invariant(typeof workspaceId === "string", "workspace id missing");
+  await account(adminOther, {
+    action: "update_workspace",
+    name: `E2E Other Workspace ${runId}`,
+    address: "Jakarta",
+    phone_e164: "+628111111114",
+    email: `workspace-other-${runId}@example.invalid`,
+    logo_object_path: "",
+  });
 
   // Storage RLS: each donor is isolated; only the active workspace admin may write its branding path.
   await storageUpload(
@@ -306,12 +316,41 @@ async function main() {
 
   const bannerPath = await banner(admin);
   const eventId = await draftAndPublish(admin, bannerPath, 2_000, "primary");
+  const foreignEventId = await draftAndPublish(
+    adminOther,
+    await banner(adminOther),
+    2_000,
+    "other-workspace",
+  );
+  const eventPage = data(await operations(admin, { action: "list_events", limit: 100 }));
+  invariant(
+    Array.isArray(eventPage.items) && eventPage.items.some((event) =>
+      typeof event === "object" && event !== null && (event as { id?: unknown }).id === eventId
+    ),
+    "operations list_events did not return the published event",
+  );
+  invariant(
+    Array.isArray(eventPage.items) && !eventPage.items.some((event) =>
+      typeof event === "object" && event !== null &&
+        (event as { id?: unknown }).id === foreignEventId
+    ),
+    "operations list_events leaked another workspace event",
+  );
+  invariant(
+    "next_cursor" in eventPage,
+    "operations list_events did not return next_cursor",
+  );
   const detailBefore = data(
     await account(donorA, { action: "event_detail", event_id: eventId }),
   );
   invariant(
     (detailBefore.availability as { bookable?: boolean }).bookable === true,
     "fresh event is not bookable",
+  );
+  const legal = detailBefore.legal as { terms_version?: unknown; privacy_version?: unknown };
+  invariant(
+    typeof legal.terms_version === "string" && typeof legal.privacy_version === "string",
+    "event detail legal metadata is incomplete",
   );
   const bookingKey = `booking-${runId}-primary`;
   const created = data(

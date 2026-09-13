@@ -1,5 +1,5 @@
 //
-//  AcceptedEventView.swift
+//  AcceptDonationView.swift
 //  happyFamily
 //
 //  Created by Muhamad Yuan Sastro Dimianta on 06/09/26.
@@ -11,27 +11,27 @@ struct AcceptDonationView: View {
     @Environment(\ .dismiss) private var dismiss
     @Environment(AppRouter.self) var router
     var onReturnHome: () -> Void
-    
+
     var body: some View {
-        VStack{
+        VStack {
             Spacer()
-            VStack(spacing: 8){
+            VStack(spacing: 8) {
                 Image("Acc")
                     .resizable()
                     .scaledToFit()
                     .frame(width: 152)
-                
+
                 Text("Berhasil !")
                     .font(.title).bold()
             }
             Text("Donasi telah diterima")
-            
+
             Spacer()
-            
-            Button{
+
+            Button {
                 dismiss()
                 router.popToRoot()
-            }label: {
+            } label: {
                 Text("Kembali ke beranda")
                     .fontWeight(.bold)
                     .foregroundStyle(Color.white)

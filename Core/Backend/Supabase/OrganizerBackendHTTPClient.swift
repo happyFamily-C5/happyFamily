@@ -1,11 +1,51 @@
 import Foundation
 
 protocol OrganizerEdgeServing: Sendable {
+    func listEvents(cursor: String?) async throws -> EventListResponse
+    func workspaceProfile() async throws -> WorkspaceProfileData
     func uploadEventBanner(data: Data, contentType: String) async throws -> BannerUploadData
+    func upsertEventDraft(eventId: UUID?, mutationId: UUID, payload: EventDraftPayload) async throws -> EventRecordDTO
+    func cancelOrDeleteEvent(eventId: UUID) async throws -> CancelEventData
     func publish(eventId: UUID) async throws -> PublishEventData
     func resolveQR(token: String) async throws -> ResolvedQRBooking
-    func exportCSV(filter: ReportFilter) async throws -> Data
-    func deleteDonorData(bookingId: UUID) async throws
+    func decideReception(_ input: ReceptionDecisionInput) async throws -> ReceptionDecisionData
+    func advanceTracking(bookingId: UUID, status: BookingStatusCode) async throws -> ReceptionDecisionData
+    func recap(eventId: UUID?) async throws -> AdminRecapData
+    func donationHistory(eventId: UUID?, cursor: String?) async throws -> HistoryPage
+    func eventHistory(eventId: UUID?, cursor: String?) async throws -> HistoryPage
+}
+
+extension OrganizerEdgeServing {
+    func listEvents(cursor _: String?) async throws -> EventListResponse {
+        throw BackendError.configuration("operations list_events is unavailable")
+    }
+
+    func decideReception(_: ReceptionDecisionInput) async throws -> ReceptionDecisionData {
+        throw BackendError.configuration("operations decide_reception is unavailable")
+    }
+
+    func advanceTracking(bookingId _: UUID, status _: BookingStatusCode) async throws -> ReceptionDecisionData {
+        throw BackendError.configuration("operations advance_tracking is unavailable")
+    }
+
+    func recap(eventId _: UUID?) async throws -> AdminRecapData {
+        throw BackendError.configuration("operations recap is unavailable")
+    }
+}
+
+struct EventListResponse: Decodable, Sendable, Equatable {
+    let items: [EventRecordDTO]
+    let nextCursor: String?
+}
+
+struct WorkspaceProfileData: Decodable, Sendable, Equatable {
+    let id: UUID
+    let name: String
+    let officeAddress: String?
+    let officePhoneE164: String?
+    let officeEmail: String?
+    let publishable: Bool
+    let logoObjectPath: String?
 }
 
 struct OrganizerBackendHTTPClient: OrganizerEdgeServing, Sendable {
@@ -32,7 +72,7 @@ struct OrganizerBackendHTTPClient: OrganizerEdgeServing, Sendable {
         body.append(data)
         body.appendUTF8("\r\n--\(boundary)--\r\n")
 
-        var request = try await makeBaseRequest("upload-event-banner", method: "POST")
+        var request = try await makeBaseRequest("admin-banner", method: "POST")
         request.setValue(
             "multipart/form-data; boundary=\(boundary)",
             forHTTPHeaderField: "Content-Type"
@@ -41,39 +81,97 @@ struct OrganizerBackendHTTPClient: OrganizerEdgeServing, Sendable {
         return try await decodeEnvelope(executeRaw(request))
     }
 
+    func listEvents(cursor: String?) async throws -> EventListResponse {
+        try await send(
+            "operations",
+            method: "POST",
+            body: ListEventsRequest(cursor: cursor),
+            idempotencyKey: nil
+        )
+    }
+
+    func workspaceProfile() async throws -> WorkspaceProfileData {
+        try await send("operations", method: "POST", body: WorkspaceProfileRequest(), idempotencyKey: nil)
+    }
+
+    func upsertEventDraft(
+        eventId: UUID?,
+        mutationId: UUID,
+        payload: EventDraftPayload
+    ) async throws -> EventRecordDTO {
+        try await send(
+            "operations",
+            method: "POST",
+            body: UpsertEventDraftRequest(
+                eventId: eventId,
+                mutationId: mutationId,
+                payload: payload
+            ),
+            idempotencyKey: nil
+        )
+    }
+
+    /// The server decides between deleting a draft and cancelling a live
+    /// event. The deterministic key scopes retries to this admin + event, so
+    /// a replayed cancel returns the stored decision instead of erroring.
+    func cancelOrDeleteEvent(eventId: UUID) async throws -> CancelEventData {
+        try await send(
+            "operations",
+            method: "POST",
+            body: CancelOrDeleteEventRequest(eventId: eventId),
+            idempotencyKey: "cancel-delete-\(eventId.uuidString)"
+        )
+    }
+
     func publish(eventId: UUID) async throws -> PublishEventData {
         try await send(
-            "publish-event",
+            "operations",
             method: "POST",
-            body: PublishRequest(eventId: eventId),
-            idempotencyKey: nil
+            body: PublishEventRequest(eventId: eventId),
+            idempotencyKey: "publish-event-\(eventId.uuidString)"
         )
     }
 
     func resolveQR(token: String) async throws -> ResolvedQRBooking {
         try await send(
-            "resolve-qr",
+            "operations",
             method: "POST",
             body: ResolveQRRequest(qrToken: token),
             idempotencyKey: nil
         )
     }
 
-    func exportCSV(filter: ReportFilter) async throws -> Data {
-        let request = try await makeRequest(
-            "export-report",
-            method: "POST",
-            body: ExportReportRequest(filter: filter),
-            idempotencyKey: nil
+    func decideReception(_ input: ReceptionDecisionInput) async throws -> ReceptionDecisionData {
+        try await send(
+            "operations", method: "POST", body: DecideReceptionRequest(input: input),
+            idempotencyKey: input.idempotencyKey
         )
-        return try await executeRaw(request)
     }
 
-    func deleteDonorData(bookingId: UUID) async throws {
-        let _: DeletedData = try await send(
-            "delete-donor-data",
-            method: "DELETE",
-            body: DeleteDonorDataRequest(bookingId: bookingId),
+    func advanceTracking(bookingId: UUID, status: BookingStatusCode) async throws -> ReceptionDecisionData {
+        guard status == .processed || status == .recycled else {
+            throw BackendError.configuration("Invalid admin tracking destination")
+        }
+        return try await send(
+            "operations", method: "POST", body: AdvanceTrackingRequest(bookingId: bookingId, status: status),
+            idempotencyKey: "advance-tracking-\(bookingId.uuidString)-\(status.rawValue)"
+        )
+    }
+
+    func recap(eventId: UUID?) async throws -> AdminRecapData {
+        try await send("operations", method: "POST", body: RecapRequest(eventId: eventId), idempotencyKey: nil)
+    }
+
+    func donationHistory(eventId: UUID?, cursor: String?) async throws -> HistoryPage {
+        try await send(
+            "operations", method: "POST", body: DonationHistoryRequest(eventId: eventId, cursor: cursor),
+            idempotencyKey: nil
+        )
+    }
+
+    func eventHistory(eventId: UUID?, cursor: String?) async throws -> HistoryPage {
+        try await send(
+            "operations", method: "POST", body: EventHistoryRequest(eventId: eventId, cursor: cursor),
             idempotencyKey: nil
         )
     }
@@ -185,32 +283,75 @@ struct OrganizerBackendHTTPClient: OrganizerEdgeServing, Sendable {
     }
 }
 
-private struct PublishRequest: Encodable, Sendable {
+private struct PublishEventRequest: Encodable, Sendable {
+    let action = "publish_event"
+    let eventId: UUID
+}
+
+private struct ListEventsRequest: Encodable, Sendable {
+    let action = "list_events"
+    let limit = 100
+    let cursor: String?
+}
+
+private struct WorkspaceProfileRequest: Encodable, Sendable {
+    let action = "workspace_profile"
+}
+
+private struct UpsertEventDraftRequest: Encodable, Sendable {
+    let action = "upsert_event_draft"
+    let eventId: UUID?
+    let mutationId: UUID
+    let payload: EventDraftPayload
+}
+
+private struct CancelOrDeleteEventRequest: Encodable, Sendable {
+    let action = "cancel_or_delete_event"
     let eventId: UUID
 }
 
 private struct ResolveQRRequest: Encodable, Sendable {
+    let action = "resolve_qr"
     let qrToken: String
 }
 
-private struct ExportReportRequest: Encodable, Sendable {
-    let eventId: UUID?
-    let createdFrom: Date?
-    let createdTo: Date?
+private struct DecideReceptionRequest: Encodable, Sendable {
+    let action = "decide_reception"
+    let bookingId: UUID
+    let decision: ReceptionDecisionCode
+    let actualWeightGrams: Int64?
 
-    init(filter: ReportFilter) {
-        eventId = filter.eventId
-        createdFrom = filter.createdFrom
-        createdTo = filter.createdTo
+    init(input: ReceptionDecisionInput) {
+        bookingId = input.bookingId
+        decision = input.decision
+        actualWeightGrams = input.decision == .accepted ? input.actualWeightGrams : nil
     }
 }
 
-private struct DeleteDonorDataRequest: Encodable, Sendable {
+private struct AdvanceTrackingRequest: Encodable, Sendable {
+    let action = "advance_tracking"
     let bookingId: UUID
+    let status: BookingStatusCode
 }
 
-private struct DeletedData: Decodable, Sendable {
-    let deleted: Bool
+private struct RecapRequest: Encodable, Sendable {
+    let action = "recap"
+    let eventId: UUID?
+    let days = 31
+}
+
+private struct DonationHistoryRequest: Encodable, Sendable {
+    let action = "donation_history"
+    let eventId: UUID?
+    let limit = 20
+    let cursor: String?
+}
+
+private struct EventHistoryRequest: Encodable, Sendable {
+    let action = "event_history"
+    let eventId: UUID?
+    let limit = 20
+    let cursor: String?
 }
 
 private struct EmptyData: Decodable, Sendable {}

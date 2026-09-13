@@ -1,5 +1,5 @@
 //
-//  AcceptedEventView.swift
+//  RejectedDonationView.swift
 //  happyFamily
 //
 //  Created by Muhamad Yuan Sastro Dimianta on 06/09/26.
@@ -8,31 +8,30 @@
 import SwiftUI
 
 struct RejectedDonationView: View {
-    
     @Environment(\ .dismiss) private var dismiss
     @Environment(AppRouter.self) var router
     var onReturnHome: () -> Void
-    
+
     var body: some View {
-        VStack{
+        VStack {
             Spacer()
-            VStack(spacing: 8){
+            VStack(spacing: 8) {
                 Image("reject")
                     .resizable()
                     .scaledToFit()
                     .frame(width: 88)
-                
-                Text("Berhasil !")
+
+                Text("Donasi Ditolak")
                     .font(.title).bold()
             }
-            Text("Donasi telah diterima")
-            
+            Text("Donasi telah ditolak")
+
             Spacer()
-            
-            Button{
+
+            Button {
                 dismiss()
                 router.popToRoot()
-            }label: {
+            } label: {
                 Text("Kembali ke beranda")
                     .fontWeight(.bold)
                     .foregroundStyle(Color.white)

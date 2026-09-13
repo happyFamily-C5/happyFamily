@@ -6,10 +6,7 @@ import {
   sha256Hex,
   verifyDonorToken,
 } from "../_shared/crypto.ts";
-import {
-  MAX_BANNER_BYTES,
-  validateBannerImage,
-} from "../_shared/banner-image.ts";
+import { MAX_BANNER_BYTES, validateBannerImage } from "../_shared/banner-image.ts";
 import { selectOrphans } from "../_shared/profile-media.ts";
 import { csvCell, csvLine } from "../_shared/csv.ts";
 import { publicBookingEnabled } from "../_shared/env.ts";
@@ -27,9 +24,7 @@ function assert(
 function assertEquals(actual: unknown, expected: unknown): void {
   if (JSON.stringify(actual) !== JSON.stringify(expected)) {
     throw new Error(
-      `expected ${JSON.stringify(expected)}, received ${
-        JSON.stringify(actual)
-      }`,
+      `expected ${JSON.stringify(expected)}, received ${JSON.stringify(actual)}`,
     );
   }
 }

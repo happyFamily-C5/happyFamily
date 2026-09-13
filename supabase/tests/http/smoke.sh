@@ -59,11 +59,17 @@ iso_time() {
   local direction="$1"
   local hours="$2"
   if date -u -d '@0' '+%Y' >/dev/null 2>&1; then
-    date -u -d "$hours hours $direction" '+%Y-%m-%dT%H:%M:%SZ'
-  elif [[ "$direction" == "ago" ]]; then
-    date -u -v-"${hours}"H '+%Y-%m-%dT%H:%M:%SZ'
+    if [[ "$direction" == "ago" ]]; then
+      date -u -d "$hours hours ago" '+%Y-%m-%dT%H:%M:%SZ'
+    else
+      date -u -d "+$hours hours" '+%Y-%m-%dT%H:%M:%SZ'
+    fi
   else
-    date -u -v+"${hours}"H '+%Y-%m-%dT%H:%M:%SZ'
+    if [[ "$direction" == "ago" ]]; then
+      date -u -v-"${hours}"H '+%Y-%m-%dT%H:%M:%SZ'
+    else
+      date -u -v+"${hours}"H '+%Y-%m-%dT%H:%M:%SZ'
+    fi
   fi
 }
 
@@ -89,6 +95,20 @@ LOGIN_STATUS="$(curl -sS -o "$SMOKE_TMP/session.json" -w '%{http_code}' \
     '{email:$email,password:$password}')")"
 assert_status "$LOGIN_STATUS" 200 "organizer login"
 ACCESS_TOKEN="$(jq -r '.access_token' "$SMOKE_TMP/session.json")"
+
+# Workspaces are provisioned during onboarding (admin role), not at signup.
+ONBOARD_STATUS="$(curl -sS -o "$SMOKE_TMP/onboard.json" -w '%{http_code}' \
+  "$REST_URL/rpc/complete_onboarding_v1" \
+  -H "apikey: $PUBLISHABLE_KEY" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H 'content-type: application/json' \
+  -H 'content-profile: api' \
+  -H 'accept-profile: api' \
+  --data '{"p_role":"admin"}')"
+assert_status "$ONBOARD_STATUS" 200 "organizer onboarding"
+assert_json "$SMOKE_TMP/onboard.json" \
+  "onboarding response" \
+  '.error == null and .role == "admin"'
 
 SERVICE_ROLE_BYPASS_STATUS="$(curl -sS -o "$SMOKE_TMP/service-role-bypass.json" \
   -w '%{http_code}' "$FUNCTIONS_URL/publish-event" \
@@ -246,12 +266,19 @@ assert_json "$SMOKE_TMP/photo.json" "photo payload error" \
 
 jq -nc --arg value "$(head -c 33000 /dev/zero | tr '\0' x)" \
   '{oversized:$value}' >"$SMOKE_TMP/oversized.json"
-OVERSIZED_STATUS="$(curl -sS -o "$SMOKE_TMP/oversized-response.json" -w '%{http_code}' \
-  "$FUNCTIONS_URL/create-booking" \
-  -H "apikey: $PUBLISHABLE_KEY" \
-  -H "idempotency-key: oversized-$SUFFIX" \
-  -H 'content-type: application/json' \
-  --data-binary "@$SMOKE_TMP/oversized.json")"
+OVERSIZED_STATUS=""
+for _attempt in 1 2 3; do
+  OVERSIZED_STATUS="$(curl -sS -o "$SMOKE_TMP/oversized-response.json" -w '%{http_code}' \
+    "$FUNCTIONS_URL/create-booking" \
+    -H "apikey: $PUBLISHABLE_KEY" \
+    -H "idempotency-key: oversized-$SUFFIX" \
+    -H 'content-type: application/json' \
+    --data-binary "@$SMOKE_TMP/oversized.json")"
+  # Cold edge isolates on slow CI runners can trip the gateway timeout;
+  # retry on transient 5xx before evaluating the boundary assertion.
+  [[ "$OVERSIZED_STATUS" =~ ^5 ]] || break
+  sleep 2
+done
 assert_status "$OVERSIZED_STATUS" 413 "oversized booking payload"
 assert_json "$SMOKE_TMP/oversized-response.json" "oversized payload error" \
   '.error.code == "PAYLOAD_TOO_LARGE"'

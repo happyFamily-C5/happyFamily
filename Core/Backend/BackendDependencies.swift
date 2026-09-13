@@ -54,8 +54,20 @@ enum BackendDependencies {
     static func logoutService(bundle: Bundle = .main) throws -> LogoutService {
         try LogoutService(
             auth: authSession(bundle: bundle),
-            cache: eventStore ?? EmptySessionCache()
+            cache: eventStore ?? EmptySessionCache(),
+            qrPurge: { QRTokenKeychain.deleteAll() }
         )
+    }
+
+    /// The server has already deleted the identity, so global sign-out may no
+    /// longer succeed. Clear only this device's session and tenant-scoped
+    /// caches after a confirmed deletion response.
+    static func clearDeletedAccountState() async {
+        if let sharedClient {
+            try? await sharedClient.auth.signOut(scope: .local)
+        }
+        await eventStore?.purge()
+        QRTokenKeychain.deleteAll()
     }
 
     /// Non-throwing variant for view-layer default arguments: returns nil
@@ -64,28 +76,66 @@ enum BackendDependencies {
         try? authSession(bundle: bundle)
     }
 
+    /// Non-throwing variant for view-layer default arguments: returns nil
+    /// instead of throwing when backend configuration is incomplete.
+    static func backendBaseURL(bundle: Bundle = .main) -> URL? {
+        (try? BackendEnvironment.load(bundle: bundle))?.baseURL
+    }
+
     static func receptionRepository(bundle: Bundle = .main) throws -> any ReceptionRepository {
         let environment = try BackendEnvironment.load(bundle: bundle)
         let client = makeClient(environment: environment)
         return SupabaseReceptionRepository(
-            client: client,
             edge: makeOrganizerEdge(environment: environment, client: client)
         )
+    }
+
+    static func accountClient(bundle: Bundle = .main) throws -> any AccountBackendServing {
+        let environment = try BackendEnvironment.load(bundle: bundle)
+        let client = makeClient(environment: environment)
+        return AccountBackendHTTPClient(environment: environment) {
+            try await client.auth.session.accessToken
+        }
+    }
+
+    static func organizerClient(bundle: Bundle = .main) throws -> any OrganizerEdgeServing {
+        let environment = try BackendEnvironment.load(bundle: bundle)
+        let client = makeClient(environment: environment)
+        return makeOrganizerEdge(environment: environment, client: client)
     }
 
     static func reportRepository(bundle: Bundle = .main) throws -> any ReportRepository {
         let environment = try BackendEnvironment.load(bundle: bundle)
         let client = makeClient(environment: environment)
         return SupabaseReportRepository(
-            client: client,
             edge: makeOrganizerEdge(environment: environment, client: client)
         )
     }
 
     /// Non-throwing variant for view-layer default arguments: returns nil
     /// instead of crashing when backend configuration is incomplete.
+    static func accountClientOrDefault(bundle: Bundle = .main) -> (any AccountBackendServing)? {
+        try? accountClient(bundle: bundle)
+    }
+
+    /// Non-throwing variant for view-layer default arguments: returns nil
+    /// instead of crashing when backend configuration is incomplete.
     static func reportRepositoryOrDefault(bundle: Bundle = .main) -> (any ReportRepository)? {
         try? reportRepository(bundle: bundle)
+    }
+
+    static func storageMediaClient(bundle: Bundle = .main) throws -> StorageMediaClient {
+        let environment = try BackendEnvironment.load(bundle: bundle)
+        let client = makeClient(environment: environment)
+        return StorageMediaClient(environment: environment) {
+            try await client.auth.session.accessToken
+        }
+    }
+
+    /// Non-throwing variant for cosmetic media access: logo fetches may
+    /// return nil without failing bootstrap.
+    static func storageMediaClientOrDefault(bundle: Bundle = .main) -> StorageMediaClient? {
+        try? storageMediaClient(bundle: bundle)
     }
 
     private static func makeOrganizerEdge(
@@ -110,7 +160,7 @@ private struct UnavailableEventRepository: EventRepository {
         throw error
     }
 
-    func upsertDraft(_: AdminEvent, mutationId _: UUID) async throws -> AdminEvent {
+    func upsertDraft(_: BackendAdminEvent, mutationId _: UUID) async throws -> BackendAdminEvent {
         throw error
     }
 
@@ -118,11 +168,7 @@ private struct UnavailableEventRepository: EventRepository {
         throw error
     }
 
-    func terminate(
-        eventId _: UUID,
-        status _: EventStatusCode,
-        reason _: String?
-    ) async throws -> AdminEvent {
+    func cancelOrDelete(eventId _: UUID) async throws -> CancelEventData {
         throw error
     }
 }

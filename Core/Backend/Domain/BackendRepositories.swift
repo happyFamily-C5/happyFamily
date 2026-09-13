@@ -1,7 +1,7 @@
 import Foundation
 
 struct EventPage: Sendable, Equatable {
-    let events: [AdminEvent]
+    let events: [BackendAdminEvent]
     let cursor: String?
 }
 
@@ -21,32 +21,32 @@ struct BannerUploadData: Decodable, Sendable, Equatable {
 
 protocol EventRepository: Sendable {
     func list(cursor: String?) async throws -> EventPage
-    func upsertDraft(_ event: AdminEvent, mutationId: UUID) async throws -> AdminEvent
+    func upsertDraft(_ event: BackendAdminEvent, mutationId: UUID) async throws -> BackendAdminEvent
     func publish(eventId: UUID) async throws -> PublishEventData
-    func terminate(eventId: UUID, status: EventStatusCode, reason: String?) async throws -> AdminEvent
+    func cancelOrDelete(eventId: UUID) async throws -> CancelEventData
 }
 
 struct PendingDraftSync: Sendable, Equatable {
-    let event: AdminEvent
+    let event: BackendAdminEvent
     let mutationId: UUID
 }
 
 protocol EventLocalStore: SessionCache, Sendable {
-    func cachedEvents(ownerUserId: UUID) async throws -> [AdminEvent]
+    func cachedEvents(ownerUserId: UUID) async throws -> [BackendAdminEvent]
     func cursor(ownerUserId: UUID) async throws -> String?
     func cacheRemoteEvents(
-        _ events: [AdminEvent],
+        _ events: [BackendAdminEvent],
         cursor: String?,
         ownerUserId: UUID
     ) async throws
     func enqueueDraft(
-        _ event: AdminEvent,
+        _ event: BackendAdminEvent,
         mutationId: UUID,
         ownerUserId: UUID
     ) async throws
     func pendingDrafts(ownerUserId: UUID) async throws -> [PendingDraftSync]
     func markDraftSynced(
-        _ event: AdminEvent,
+        _ event: BackendAdminEvent,
         mutationId: UUID,
         ownerUserId: UUID
     ) async throws
@@ -55,6 +55,8 @@ protocol EventLocalStore: SessionCache, Sendable {
         mutationId: UUID,
         ownerUserId: UUID
     ) async throws
+    /// Removes a deleted event's cached row and any queued draft for it.
+    func deleteEvent(eventId: UUID, ownerUserId: UUID) async throws
 }
 
 struct AuthUserSession: Sendable, Equatable {
@@ -78,10 +80,14 @@ protocol SessionCache: Sendable {
 struct LogoutService: Sendable {
     let auth: any AuthSession
     let cache: any SessionCache
+    /// Best-effort purge of secure storage rows (donor QR tokens). Runs only
+    /// after a successful global sign-out so a failed logout keeps tokens.
+    var qrPurge: (@Sendable () async -> Void)?
 
     func logout() async throws {
         try await auth.signOut()
         await cache.purge()
+        await qrPurge?()
     }
 }
 
@@ -123,16 +129,11 @@ struct ReceptionDecisionInput: Encodable, Sendable {
 protocol ReceptionRepository: Sendable {
     func resolveQR(token: String) async throws -> ResolvedQRBooking
     func decide(_ input: ReceptionDecisionInput) async throws -> ReceptionDecisionData
-}
-
-struct ReportFilter: Sendable, Equatable {
-    let eventId: UUID?
-    let createdFrom: Date?
-    let createdTo: Date?
+    func advanceTracking(bookingId: UUID, status: BookingStatusCode) async throws -> ReceptionDecisionData
 }
 
 protocol ReportRepository: Sendable {
-    func recap(eventId: UUID?) async throws -> RecapData
-    func exportCSV(filter: ReportFilter) async throws -> Data
-    func deleteDonorData(bookingId: UUID) async throws
+    func recap(eventId: UUID?) async throws -> AdminRecapData
+    func donationHistory(eventId: UUID?, cursor: String?) async throws -> HistoryPage
+    func eventHistory(eventId: UUID?, cursor: String?) async throws -> HistoryPage
 }

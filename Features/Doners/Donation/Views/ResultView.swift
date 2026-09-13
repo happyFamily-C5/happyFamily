@@ -7,83 +7,108 @@
 
 import SwiftUI
 
+/// Step 3 of the donation flow: submits the booking on entry (idempotent),
+/// renders the shipping label from the server's event snapshot, and shows
+/// the QR from the durable opaque token. QR data is never logged.
 struct ResultView: View {
     @Environment(DonationViewModel.self) var donationVM
     @Environment(\.displayScale) private var displayScale
-    
+
     /// The rendered label, written to a temporary file so the share sheet can
     /// hand it to Files / AirDrop / Print. An App Clip cannot write to Photos,
     /// so the share sheet is the only route out of the clip for this image.
     @State private var labelFile: URL?
     @State private var isShareSheetPresented = false
-    
-    let onNext: () -> Void
     @State var showNotification = false
     @State var showGuide = false
-    
+
     var body: some View {
         ZStack {
-            VStack(spacing: 16) {
-                
+            VStack(spacing: 32) {
                 // MARK: - Badge Icon
+
                 VStack(spacing: 8) {
                     ZStack {
                         Image(systemName: "seal.fill")
                             .font(.system(size: 60))
                             .foregroundStyle(AppColor.primaryCyan)
-                        
+
                         Image(systemName: "checkmark")
                             .font(.system(size: 32, weight: .bold))
                             .foregroundColor(.white)
                     }
-                    
+
                     Text("Booking Confirmed!")
                         .font(.title3).bold()
-                    
+
                     Text("Unduh label berikut, kemudian cetak dan tempelkan pada paket kardus sebelum dikirim.")
                         .font(.footnote)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 32)
                 }
-                
-                // MARK: - Label Card
-                labelCard
-                Spacer()
-                
-                // MARK: - Buttons
-                VStack(spacing: 8) {
-                    if labelFile != nil {
+
+                if donationVM.booking == nil, donationVM.isCreatingBooking {
+                    ProgressView("Mengirim booking…")
+                    Spacer()
+                } else if donationVM.booking == nil {
+                    VStack(spacing: 12) {
+                        Text(donationVM.errorMessage ?? "Terjadi kesalahan tak terduga.")
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                        Button("Coba lagi") {
+                            Task {
+                                if await donationVM.createBooking() {
+                                    renderLabel()
+                                }
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 24)
+                    Spacer()
+                } else {
+                    // MARK: - Label Card
+
+                    labelCard
+                    Spacer()
+
+                    // MARK: - Buttons
+
+                    VStack(spacing: 12) {
+                        if labelFile != nil {
+                            Button {
+                                isShareSheetPresented = true
+                            } label: {
+                                buttonLabel("Unduh Label")
+                            }
+                            .buttonStyle(.plain)
+                            .background(AppColor.primaryCyan)
+                            .clipShape(Capsule())
+                        } else {
+                            buttonLabel("Menyiapkan label…")
+                                .background(Color.gray.opacity(0.3))
+                                .clipShape(RoundedRectangle(cornerRadius: 99))
+                        }
+
                         Button {
-                            isShareSheetPresented = true
+                            showGuide = true
                         } label: {
-                            buttonLabel("Unduh Label")
+                            Text("Donasikan Pakaian")
+                                .font(.body).bold()
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 15)
+                                .padding(.horizontal, 16)
+                                .background(
+                                    Color(#colorLiteral(red: 0.4240652323, green: 0.424192071, blue: 0.4281041622, alpha: 1)).opacity(0.2),
+                                    in: RoundedRectangle(cornerRadius: 99)
+                                )
                         }
                         .buttonStyle(.plain)
-                        .background(AppColor.primaryCyan)
-                        .clipShape(Capsule())
-                    } else {
-                        buttonLabel("Menyiapkan label…")
-                            .background(Color.gray.opacity(0.3))
-                            .clipShape(RoundedRectangle(cornerRadius: 99))
                     }
-                    
-                    Button{
-                        showGuide = true
-                    } label: {
-                        Text("Donasikan Pakaian")
-                            .font(.body).bold()
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 15)
-                            .padding(.horizontal, 16)
-                            .background(
-                                Color(#colorLiteral(red: 0.4240652323, green: 0.424192071, blue: 0.4281041622, alpha: 1)).opacity(0.2),
-                                in: RoundedRectangle(cornerRadius: 99)
-                            )
-                    }
-                    .buttonStyle(.plain)
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 12)
                 }
-                .padding(.horizontal, 24)
             }
         }
         .overlay(alignment: .top) {
@@ -119,23 +144,24 @@ struct ResultView: View {
         }
         .navigationBarBackButtonHidden(true)
         .task {
-            print("ISI QR:")
-            print(donationVM.qrContent)
+            if donationVM.booking == nil, !donationVM.isCreatingBooking {
+                _ = await donationVM.createBooking()
+            }
             renderLabel()
         }
     }
-    
+
     private var labelCard: LabelCard {
-        let snapshot = donationVM.booking?.labelSnapshot
+        let snapshot = donationVM.booking?.eventSnapshot
         return LabelCard(
-            senderName: donationVM.name,
+            senderName: donationVM.displayName,
             receiverName: snapshot?.receiverName ?? "Penerima donasi",
             receiverPhone: snapshot?.receiverPhone ?? "-",
             receiverAddress: snapshot?.receiverAddress ?? "-",
-            qrContent: donationVM.booking?.qrPayload.absoluteString ?? ""
+            qrContent: donationVM.booking?.qrToken ?? ""
         )
     }
-    
+
     private func buttonLabel(_ title: String) -> some View {
         Text(title)
             .font(.headline)
@@ -143,22 +169,22 @@ struct ResultView: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 15)
     }
-    
+
     @MainActor
     private func renderLabel() {
-        guard labelFile == nil else { return }
-        
+        guard labelFile == nil, let booking = donationVM.booking else { return }
+
         let renderer = ImageRenderer(
             content: labelCard
                 .frame(width: 320)
                 .background(Color.white)
         )
         renderer.scale = displayScale
-        
+
         guard let image = renderer.uiImage, let png = image.pngData() else { return }
-        
+
         let url = URL.temporaryDirectory
-            .appending(path: "Label-\(donationVM.displayBookingID).png")
+            .appending(path: "Label-\(booking.publicBookingId).png")
         do {
             try png.write(to: url, options: .atomic)
             labelFile = url
@@ -169,7 +195,6 @@ struct ResultView: View {
 }
 
 #Preview {
-    ResultView(onNext: {})
+    ResultView()
         .environment(DonationViewModel())
-        .environment(AppRouter())
 }

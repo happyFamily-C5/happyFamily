@@ -1,6 +1,6 @@
-import SwiftUI
 import CoreLocation
 import MapKit
+import SwiftUI
 
 struct EventSuccessView: View {
     var eventName: String = "Ecoday\n drop your unused shirt"
@@ -8,11 +8,11 @@ struct EventSuccessView: View {
     var locationAddress: String = "Duren Selatan, Jakarta Barat"
     var dateRange: String = "Rab, 9 Sept - 16 Sept 2026"
     var coordinate: CLLocationCoordinate2D? = CLLocationCoordinate2D(latitude: -6.1754, longitude: 106.8272)
-    
+
     var onViewEventTapped: () -> Void
     var onReturnHomeTapped: () -> Void
     var onCloseTapped: () -> Void
-    
+
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 42) {
@@ -22,30 +22,30 @@ struct EventSuccessView: View {
                             .resizable()
                             .scaledToFit()
                             .frame(width: 152)
-                        
+
                         Text("Acara berhasil Dibuat !")
                             .font(.title).bold()
                             .foregroundColor(.primary)
                     }
-                    
+
                     // 2. Kartu Ringkasan & Peta
-                        VStack(spacing: 16) {
-                            Text(eventName)
-                                .font(.title2).bold()
-                                .frame(maxWidth: .infinity)
-                                .multilineTextAlignment(.center)
-                            
-                            VStack {
-                                Text(locationName)
-                                    .font(.body).bold()
-                                Text(locationAddress)
-                                    .font(.subheadline)
-                            }
-                            
-                            Text(dateRange)
-                                .font(.subheadline).bold()
+                    VStack(spacing: 16) {
+                        Text(eventName)
+                            .font(.title2).bold()
+                            .frame(maxWidth: .infinity)
+                            .multilineTextAlignment(.center)
+
+                        VStack {
+                            Text(locationName)
+                                .font(.body).bold()
+                            Text(locationAddress)
+                                .font(.subheadline)
                         }
-                    
+
+                        Text(dateRange)
+                            .font(.subheadline).bold()
+                    }
+
                     // Peta Statis MapKit
                     Map(initialPosition: .region(MKCoordinateRegion(
                         center: coordinate ?? CLLocationCoordinate2D(latitude: -6.1754, longitude: 106.8272),
@@ -61,13 +61,13 @@ struct EventSuccessView: View {
                 .padding(20)
                 .cornerRadius(24)
                 .padding(.horizontal, 16)
-                
+
                 // 3. Tombol Aksi Bawah
                 VStack(spacing: 12) {
                     PrimaryButton(title: "Lihat Halaman Acara") {
                         onViewEventTapped()
                     }
-                    
+
                     Button(action: onReturnHomeTapped) {
                         Text("Kembali ke Beranda")
                             .font(.system(size: 16, weight: .semibold))
@@ -83,11 +83,9 @@ struct EventSuccessView: View {
             }
         }
         .navigationBarBackButtonHidden(true)
-        .toolbar{
+        .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button{
-                    
-                }label: {
+                Button {} label: {
                     Image(systemName: "xmark")
                 }
             }

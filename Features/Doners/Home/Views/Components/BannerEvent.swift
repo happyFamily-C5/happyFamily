@@ -9,7 +9,7 @@ import SwiftUI
 
 struct BannerEvent: View {
     let image: Image?
-    var remoteURL: URL? = nil
+    var remoteURL: URL?
 
     var body: some View {
         ZStack {
