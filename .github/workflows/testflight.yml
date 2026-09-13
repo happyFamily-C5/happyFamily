@@ -48,6 +48,28 @@ jobs:
           ruby-version: '3.3'
           bundler-cache: true
 
+      # The release lane points at production, so a reset is deliberately
+      # restricted to the explicitly selected staging_beta lane.
+      - name: Install Supabase CLI for staging reset
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.lane == 'staging_beta'
+        uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf # v2.1.1
+        with:
+          version: v2.116.0
+
+      - name: Reset kumpul-staging data before Staging TestFlight build
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.lane == 'staging_beta'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_STAGING_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
+          SUPABASE_STAGING_PROJECT_REF: tdpvtdblphojutjifdlc
+          SUPABASE_STAGING_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_STAGING_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+          supabase login --token "$SUPABASE_ACCESS_TOKEN"
+          supabase link --project-ref "$SUPABASE_STAGING_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
+          supabase db reset --linked --no-seed
+          node Scripts/reset_staging_supabase.mjs
+
       - name: Install code quality tools
         run: |
           if ! command -v xcodegen &> /dev/null; then
