@@ -1,5 +1,5 @@
 type ErrorEnvelope = {
-  error?: { code?: string } | null;
+  error?: { code?: string; retryable?: boolean } | null;
 };
 
 type Metric = {
@@ -53,24 +53,105 @@ const safeErrorCode = (value: unknown): string => {
   return envelope.error?.code ?? "REQUEST_FAILED";
 };
 
-async function requestJson<T>(
+const MAX_ATTEMPTS = 4;
+const RETRY_BASE_DELAY_MS = 250;
+// Gateway/isolate-level 5xx carry no function error envelope. smoke.sh
+// already retries this exact class around create-booking on CI runners.
+const TRANSIENT_STATUSES = new Set([500, 502, 503, 504]);
+
+const sleep = (milliseconds: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+const retryDelayMs = (attempt: number): number =>
+  RETRY_BASE_DELAY_MS * 2 ** (attempt - 1) + Math.random() * RETRY_BASE_DELAY_MS;
+
+const envelopeRetryable = (value: unknown): boolean =>
+  !!value && typeof value === "object" &&
+  (value as ErrorEnvelope).error?.retryable === true;
+
+const bodySummary = (value: unknown): string => {
+  try {
+    const text = JSON.stringify(value) ?? "null";
+    return text.length > 200 ? `${text.slice(0, 200)}...` : text;
+  } catch {
+    return "[unserializable response body]";
+  }
+};
+
+let retryAttempts = 0;
+
+type AttemptOutcome<T> =
+  | { kind: "success"; body: T; durationMs: number }
+  | { kind: "failure"; error: Error; retryable: boolean };
+
+async function attemptJson<T>(
   url: string,
   init: RequestInit,
   expectedStatuses: readonly number[],
-): Promise<TimedResponse<T>> {
+): Promise<AttemptOutcome<T>> {
   const startedAt = performance.now();
-  const response = await fetch(url, init);
+  let response: Response;
+  try {
+    response = await fetch(url, init);
+  } catch (error) {
+    // Transport-level failure, e.g. a dropped connection while the edge
+    // runtime recycles an isolate mid-burst.
+    return {
+      kind: "failure",
+      error: error instanceof Error ? error : new Error(String(error)),
+      retryable: true,
+    };
+  }
   const durationMs = performance.now() - startedAt;
   let body: unknown;
   try {
     body = await response.json();
   } catch {
-    throw new Error(`HTTP ${response.status}: INVALID_JSON_RESPONSE`);
+    return {
+      kind: "failure",
+      error: new Error(`HTTP ${response.status}: INVALID_JSON_RESPONSE`),
+      retryable: TRANSIENT_STATUSES.has(response.status),
+    };
   }
-  if (!expectedStatuses.includes(response.status)) {
-    throw new Error(`HTTP ${response.status}: ${safeErrorCode(body)}`);
+  if (expectedStatuses.includes(response.status)) {
+    return { kind: "success", body: body as T, durationMs };
   }
-  return { body: body as T, durationMs };
+  return {
+    kind: "failure",
+    error: new Error(`HTTP ${response.status}: ${safeErrorCode(body)} ${bodySummary(body)}`),
+    // Deterministic 4xx business rejections never recover on retry; only
+    // gateway-level 5xx or contract-retryable envelopes are worth retrying.
+    // 429 is excluded even though the contract marks it retryable: this
+    // harness uses unique fingerprints, so a rate hit signals a test-design
+    // defect, and retrying would only burn the shared bucket on the way out.
+    retryable: response.status !== 429 &&
+      (TRANSIENT_STATUSES.has(response.status) || envelopeRetryable(body)),
+  };
+}
+
+async function requestJson<T>(
+  url: string,
+  init: RequestInit,
+  expectedStatuses: readonly number[],
+): Promise<TimedResponse<T>> {
+  let lastFailure: Error | undefined;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+    if (attempt > 1) {
+      retryAttempts += 1;
+      const reason = lastFailure?.message ?? "unknown failure";
+      console.error(
+        `Retrying ${url} after ${reason} (attempt ${attempt}/${MAX_ATTEMPTS})`,
+      );
+    }
+    const outcome = await attemptJson<T>(url, init, expectedStatuses);
+    if (outcome.kind === "success") {
+      return { body: outcome.body, durationMs: outcome.durationMs };
+    }
+    lastFailure = outcome.error;
+    if (!outcome.retryable || attempt === MAX_ATTEMPTS) break;
+    await sleep(retryDelayMs(attempt));
+  }
+  throw lastFailure ?? new Error("REQUEST_FAILED");
 }
 
 async function parallelMap<T>(
@@ -80,11 +161,19 @@ async function parallelMap<T>(
 ): Promise<T[]> {
   const results = new Array<T>(count);
   let nextIndex = 0;
+  let failed = false;
   const workers = Array.from({ length: Math.min(count, workerCount) }, async () => {
-    while (true) {
+    while (!failed) {
       const index = nextIndex++;
       if (index >= count) return;
-      results[index] = await operation(index);
+      try {
+        results[index] = await operation(index);
+      } catch (error) {
+        // Stop claiming new work after the first hard failure; in-flight
+        // requests finish on their own and Promise.all rejects.
+        failed = true;
+        throw error;
+      }
     }
   });
   await Promise.all(workers);
@@ -245,6 +334,15 @@ try {
   const invocationToken = invocationUrl.searchParams.get("event");
   if (!invocationToken) throw new Error("Publish response omitted the invocation token");
 
+  // A cold resolve-event isolate sheds the first 25-way burst with gateway
+  // 5xx on the 2-vCPU CI runner. Warm it with one deterministic 404 (unknown
+  // token, distinct fingerprint bucket) before the measured phase starts.
+  await requestJson<ErrorEnvelope>(
+    `${functionsUrl}/resolve-event?token=${encodeURIComponent("w".repeat(64))}`,
+    { headers: publicHeaders(0, "warmup-resolve") },
+    [404],
+  );
+
   const resolveDurations = await parallelMap(resolveCount, concurrency, async (index) => {
     const response = await requestJson<ErrorEnvelope>(
       `${functionsUrl}/resolve-event?token=${encodeURIComponent(invocationToken)}`,
@@ -254,9 +352,25 @@ try {
     return response.durationMs;
   });
 
+  // Same cold-isolate risk for the heaviest burst: one malformed request
+  // boots the create-booking isolate and returns a deterministic 400
+  // without creating any booking state.
+  await requestJson<ErrorEnvelope>(
+    `${functionsUrl}/create-booking`,
+    {
+      method: "POST",
+      headers: {
+        ...publicHeaders(0, "warmup-booking"),
+        "idempotency-key": `load-warmup-${suffix}`,
+      },
+      body: "{",
+    },
+    [400],
+  );
+
   const bookings = await parallelMap(bookingCount, concurrency, async (index) => {
     const response = await requestJson<{
-      data: { booking_id: string; qr_token: string };
+      data: { booking_id: string; qr_token: string; idempotent_replay: boolean };
     }>(
       `${functionsUrl}/create-booking`,
       {
@@ -283,14 +397,28 @@ try {
           privacy_version: "local-v1",
         }),
       },
-      [201],
+      // A retried request replays idempotently, which the contract answers
+      // with 200 instead of the fresh-creation 201; both are valid here.
+      [200, 201],
     );
     return {
       durationMs: response.durationMs,
       publicBookingId: response.body.data.booking_id,
       qrToken: response.body.data.qr_token,
+      idempotentReplay: response.body.data.idempotent_replay,
     };
   });
+
+  // Warm the resolve-qr isolate with an unknown token (deterministic 404).
+  await requestJson<ErrorEnvelope>(
+    `${functionsUrl}/resolve-qr`,
+    {
+      method: "POST",
+      headers: organizerHeaders(accessToken),
+      body: JSON.stringify({ qr_token: "q".repeat(64) }),
+    },
+    [404],
+  );
 
   const qrResolutions = await parallelMap(qrCount, concurrency, async (index) => {
     const response = await requestJson<{
@@ -361,6 +489,8 @@ try {
       status: "completed",
       booking_count: bookingCount,
       concurrency,
+      retry_attempts: retryAttempts,
+      idempotent_replays: bookings.filter((booking) => booking.idempotentReplay).length,
       metrics,
     },
     null,
