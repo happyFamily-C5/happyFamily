@@ -18,7 +18,7 @@ struct ClothingCard: View {
                 .scaledToFit()
                 .frame(height: 173)
                 .clipShape(RoundedRectangle(cornerRadius: 20))
-
+            
             Button {
                 onOpenDetail()
             } label: {
