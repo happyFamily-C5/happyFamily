@@ -5,7 +5,7 @@ import Testing
 @Suite("Authenticated routing")
 struct AuthRoutingTests {
     @Test func adminOnboardingDoesNotRequestSameEmailChange() {
-        #expect(!AppCoordinatorView.shouldRequestEmailChange(
+        #expect(!AppCoordinatorViewModel.shouldRequestEmailChange(
             currentWorkspaceEmail: "",
             submittedEmail: "admin@example.invalid"
         ))
