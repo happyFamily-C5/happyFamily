@@ -3,11 +3,11 @@ import SwiftUI
 struct RegisterAccountView: View {
     @State private var name = ""
     @State private var model: AuthViewModel
-
+    
     var onRegisterTapped: (RegisterAccountDraft) -> Void
     var onAppleRegisterTapped: (RegisterAccountDraft) -> Void
     var onLoginTapped: () -> Void
-
+    
     init(
         authSession: (any AuthSession)? = BackendDependencies.authSessionOrDefault(),
         onRegisterTapped: @escaping (RegisterAccountDraft) -> Void,
@@ -21,88 +21,88 @@ struct RegisterAccountView: View {
         self.onAppleRegisterTapped = onAppleRegisterTapped
         self.onLoginTapped = onLoginTapped
     }
-
+    
     private var isRegisterFormInvalid: Bool {
         name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
-            !model.isSubmitEnabled ||
-            !model.isEmailValid ||
-            !model.isPasswordValid
+        !model.isSubmitEnabled ||
+        !model.isEmailValid ||
+        !model.isPasswordValid
     }
-
+    
     var body: some View {
         ZStack {
             VStack(spacing: 0) {
                 Spacer().frame(height: 72)
-
+                
                 AppLogoHeaderView(imageSize: 82)
-
+                
                 Spacer().frame(height: 28)
-
+                
                 Text("Buat Akun Baru")
                     .font(.system(size: 24, weight: .bold))
                     .foregroundColor(.primary)
                     .multilineTextAlignment(.center)
-
+                
                 Spacer().frame(height: 28)
-
+                
                 VStack(spacing: 16) {
                     RegisterInputField(
                         label: "Nama",
-                        placeholder: "Masukkan nama",
+                        placeholder: "John mayer",
                         text: $name,
                         textContentType: .name
                     )
-
+                    
                     RegisterInputField(
                         label: "Email",
-                        placeholder: "Masukkan email",
+                        placeholder: "john@gmail.com",
                         text: $model.email,
                         keyboardType: .emailAddress,
                         textContentType: .emailAddress
                     )
-
+                    
                     RegisterSecureInputField(
                         label: "Kata Sandi",
-                        placeholder: "Masukkan kata sandi",
+                        placeholder: "pilih kata sandi",
                         text: $model.password
                     )
                 }
-
+                
                 Spacer().frame(height: 52)
-
+                
                 if let error = model.errorMessage {
                     Text(error)
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.red)
                         .padding(.bottom, 16)
                 }
-
+                
                 LoginAuthPrimaryButton(title: model.isSubmitting ? "Memproses…" : "Daftar", isDisabled: isRegisterFormInvalid) {
                     Task { await submit() }
                 }
-
+                
                 Spacer().frame(height: 24)
-
+                
                 RegisterDividerLabel(text: "atau")
-
+                
                 Spacer().frame(height: 18)
-
+                
                 SocialAuthButton(title: "Daftar dengan Apple") {
                     onAppleRegisterTapped(accountDraft)
                 }
-
+                
                 Spacer().frame(height: 22)
-
+                
                 Button(action: onLoginTapped) {
                     HStack(spacing: 4) {
                         Text("Sudah punya akun?")
-                            .foregroundColor(.secondary)
-
-                        Text("Masuk sekarang!")
+                            .foregroundColor(.primary)
+                        
+                        Text("Masuk")
                             .foregroundColor(.primary)
                             .underline()
                     }
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.callout)
                 }
                 .buttonStyle(PlainButtonStyle())
             }
@@ -111,7 +111,7 @@ struct RegisterAccountView: View {
             .frame(maxWidth: .infinity)
         }
     }
-
+    
     private var accountDraft: RegisterAccountDraft {
         RegisterAccountDraft(
             name: name,
@@ -119,7 +119,7 @@ struct RegisterAccountView: View {
             password: model.password
         )
     }
-
+    
     private func submit() async {
         guard await model.submit() else { return }
         onRegisterTapped(accountDraft)
@@ -132,13 +132,13 @@ private struct RegisterInputField: View {
     @Binding var text: String
     var keyboardType: UIKeyboardType = .default
     var textContentType: UITextContentType?
-
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(label)
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(.primary)
-
+            
             TextField(placeholder, text: $text)
                 .keyboardType(keyboardType)
                 .textContentType(textContentType)
@@ -147,7 +147,7 @@ private struct RegisterInputField: View {
                 .font(.system(size: 15, weight: .medium))
                 .padding(.horizontal, 16)
                 .frame(height: 54)
-                .background(Color(.systemBackground).opacity(0.9))
+                .background(Color(#colorLiteral(red: 0.9215686275, green: 0.9215686275, blue: 0.9215686275, alpha: 1)))
                 .cornerRadius(27)
         }
     }
@@ -157,40 +157,66 @@ private struct RegisterSecureInputField: View {
     let label: String
     let placeholder: String
     @Binding var text: String
-
+    @State var isSecured = false
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(label)
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(.primary)
-
-            SecureField(placeholder, text: $text)
-                .textContentType(.newPassword)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .font(.system(size: 15, weight: .medium))
-                .padding(.horizontal, 16)
-                .frame(height: 54)
-                .background(Color(.systemBackground).opacity(0.9))
-                .cornerRadius(27)
+            
+            ZStack(alignment: .trailing){
+                Group{
+                    if !isSecured {
+                        SecureField(placeholder, text: $text)
+                            .textContentType(.newPassword)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .font(.system(size: 15, weight: .medium))
+                            .padding(.horizontal, 16)
+                            .frame(height: 54)
+                            .background(Color(#colorLiteral(red: 0.9214347005, green: 0.9214347005, blue: 0.9214347005, alpha: 1)))
+                            .cornerRadius(27)
+                    } else {
+                        TextField(placeholder, text: $text)
+                            .textContentType(.newPassword)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .font(.system(size: 15, weight: .medium))
+                            .padding(.horizontal, 16)
+                            .frame(height: 54)
+                            .background(Color(#colorLiteral(red: 0.9214347005, green: 0.9214347005, blue: 0.9214347005, alpha: 1)))
+                            .cornerRadius(27)
+                    }
+                }
+                
+                
+                Button(action: {
+                    isSecured.toggle()
+                }, label: {
+                    Image(systemName: self.isSecured ? "eye.slash" : "eye")
+                        .foregroundStyle(Color.secondary.opacity(0.5))
+                })
+                .padding(.trailing, 16)
+            }
         }
     }
 }
 
 private struct RegisterDividerLabel: View {
     let text: String
-
+    
     var body: some View {
         HStack(spacing: 12) {
             Rectangle()
                 .fill(Color(.systemGray4))
                 .frame(height: 1)
-
+            
             Text(text)
                 .font(.system(size: 12, weight: .medium))
                 .foregroundColor(.secondary)
                 .lineLimit(1)
-
+            
             Rectangle()
                 .fill(Color(.systemGray4))
                 .frame(height: 1)

@@ -13,10 +13,10 @@ struct LoginWelcomeView: View {
     @State private var model: AuthViewModel
     @State private var appleNonce: AppleSignInSupport.Nonce?
     @FocusState private var focusedField: LoginField?
-
+    
     var onAuthenticated: () -> Void
     var onRegisterTapped: () -> Void
-
+    
     init(
         authSession: (any AuthSession)? = BackendDependencies.authSessionOrDefault(),
         onAuthenticated: @escaping () -> Void,
@@ -26,26 +26,36 @@ struct LoginWelcomeView: View {
         self.onAuthenticated = onAuthenticated
         self.onRegisterTapped = onRegisterTapped
     }
-
+    
     var body: some View {
         ZStack {
             Color(.systemBackground)
                 .ignoresSafeArea()
-
+            
             VStack(spacing: 0) {
                 Spacer().frame(height: 76)
-
+                
                 AppLogoHeaderView(imageSize: 82)
-
+                
                 Spacer().frame(height: 28)
-
-                Text("Selamat Datang Kembali")
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundColor(.primary)
-                    .multilineTextAlignment(.center)
-
+                
+                
+                VStack(spacing: 8) {
+                    Text("Selamat Datang Kembali")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(.primary)
+                        .multilineTextAlignment(.center)
+                    
+                    VStack(spacing: 8){
+                        Text("Kelola acara pengumpulan limbah tekstilmu di")
+                            .font(.body)
+                        Text(".Kumpul")
+                            .font(.title3).bold()
+                    }
+                }
+                
                 Spacer().frame(height: 28)
-
+                
                 VStack(spacing: 16) {
                     LoginInputField(
                         label: "Email",
@@ -58,7 +68,7 @@ struct LoginWelcomeView: View {
                     ) {
                         focusedField = .password
                     }
-
+                    
                     LoginSecureInputField(
                         label: "Password",
                         placeholder: "Masukkan password",
@@ -69,7 +79,7 @@ struct LoginWelcomeView: View {
                         Task { await submit() }
                     }
                 }
-
+                
                 if let error = model.errorMessage {
                     Text(error)
                         .font(.system(size: 13, weight: .medium))
@@ -80,22 +90,22 @@ struct LoginWelcomeView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 16))
                         .padding(.top, 16)
                 }
-
+                
                 Spacer().frame(height: 52)
-
+                
                 LoginAuthPrimaryButton(
                     title: model.isSubmitting ? "Memproses…" : "Masuk",
                     isDisabled: !model.isSubmitEnabled
                 ) {
                     Task { await submit() }
                 }
-
+                
                 Spacer().frame(height: 24)
-
+                
                 LoginDividerLabel(text: "atau")
-
+                
                 Spacer().frame(height: 18)
-
+                
                 SignInWithAppleButton(
                     .signIn,
                     onRequest: { request in
@@ -115,19 +125,19 @@ struct LoginWelcomeView: View {
                 .disabled(model.isSubmitting)
                 .opacity(model.isSubmitting ? 0.6 : 1)
                 .frame(maxWidth: .infinity)
-
+                
                 Spacer().frame(height: 22)
-
+                
                 Button(action: onRegisterTapped) {
                     HStack(spacing: 4) {
                         Text("Belum punya akun?")
-                            .foregroundColor(.secondary)
-
-                        Text("Daftar sekarang!")
+                            .foregroundColor(.primary)
+                        
+                        Text("Daftar")
                             .foregroundColor(.primary)
                             .underline()
                     }
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.callout)
                 }
                 .buttonStyle(PlainButtonStyle())
                 .disabled(model.isSubmitting)
@@ -137,7 +147,7 @@ struct LoginWelcomeView: View {
             .frame(maxWidth: .infinity)
         }
     }
-
+    
     private func submit() async {
         focusedField = nil
         let authenticated = await model.submit()
@@ -145,7 +155,7 @@ struct LoginWelcomeView: View {
             onAuthenticated()
         }
     }
-
+    
     private func handleAppleCompletion(_ result: Result<ASAuthorization, Error>) {
         switch result {
         case let .success(authorization):
@@ -153,7 +163,7 @@ struct LoginWelcomeView: View {
                   let tokenData = credential.identityToken,
                   let idToken = String(data: tokenData, encoding: .utf8),
                   let nonce = appleNonce
-            else {
+                    else {
                 model.errorMessage = "Sign in with Apple tidak lengkap. Coba lagi."
                 return
             }
@@ -178,13 +188,13 @@ private struct LoginInputField: View {
     var focus: FocusState<LoginField?>.Binding
     let field: LoginField
     var onSubmit: () -> Void
-
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(label)
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(.primary)
-
+            
             TextField(placeholder, text: $text)
                 .keyboardType(keyboardType)
                 .textInputAutocapitalization(.never)
@@ -208,42 +218,70 @@ private struct LoginSecureInputField: View {
     var focus: FocusState<LoginField?>.Binding
     let field: LoginField
     var onSubmit: () -> Void
-
+    @State var isSecured = false
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(label)
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(.primary)
-
-            SecureField(placeholder, text: $text)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .font(.system(size: 15, weight: .medium))
-                .submitLabel(.go)
-                .focused(focus, equals: field)
-                .onSubmit(onSubmit)
-                .padding(.horizontal, 16)
-                .frame(height: 54)
-                .background(Color(#colorLiteral(red: 0.9214347005, green: 0.9214347005, blue: 0.9214347005, alpha: 1)))
-                .cornerRadius(27)
+            
+            ZStack(alignment: .trailing) {
+                
+                Group {
+                    if !isSecured {
+                        SecureField(placeholder, text: $text)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .font(.system(size: 15, weight: .medium))
+                            .submitLabel(.go)
+                            .focused(focus, equals: field)
+                            .onSubmit(onSubmit)
+                            .padding(.horizontal, 16)
+                            .frame(height: 54)
+                            .background(Color(#colorLiteral(red: 0.9214347005, green: 0.9214347005, blue: 0.9214347005, alpha: 1)))
+                            .cornerRadius(27)
+                    } else {
+                        TextField(placeholder, text: $text)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .font(.system(size: 15, weight: .medium))
+                            .submitLabel(.go)
+                            .focused(focus, equals: field)
+                            .onSubmit(onSubmit)
+                            .padding(.horizontal, 16)
+                            .frame(height: 54)
+                            .background(Color(#colorLiteral(red: 0.9214347005, green: 0.9214347005, blue: 0.9214347005, alpha: 1)))
+                            .cornerRadius(27)
+                    }
+                }
+                
+                Button(action: {
+                    isSecured.toggle()
+                }, label: {
+                    Image(systemName: self.isSecured ? "eye.slash" : "eye")
+                        .foregroundStyle(Color.secondary.opacity(0.5))
+                })
+                .padding(.trailing, 16)
+            }
         }
     }
 }
 
 struct LoginDividerLabel: View {
     let text: String
-
+    
     var body: some View {
         HStack(spacing: 12) {
             Rectangle()
                 .fill(Color(.systemGray4))
                 .frame(height: 1)
-
+            
             Text(text)
                 .font(.system(size: 12, weight: .medium))
                 .foregroundColor(.secondary)
                 .lineLimit(1)
-
+            
             Rectangle()
                 .fill(Color(.systemGray4))
                 .frame(height: 1)
