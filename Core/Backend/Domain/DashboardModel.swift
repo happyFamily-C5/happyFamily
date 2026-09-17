@@ -117,10 +117,15 @@ final class DashboardModel {
 
     @discardableResult
     func createDraft(_ event: BackendAdminEvent) async -> Bool {
-        let mutationId = pendingDraftMutationIds[event.id] ?? UUID()
-        pendingDraftMutationIds[event.id] = mutationId
         do {
-            let saved = try await repository.upsertDraft(event, mutationId: mutationId)
+            var preparedEvent = event
+            if let banner = try await EventBannerPolicy.prepareForUpload(event.bannerImageData) {
+                preparedEvent.bannerImageData = banner.data
+            }
+
+            let mutationId = pendingDraftMutationIds[event.id] ?? UUID()
+            pendingDraftMutationIds[event.id] = mutationId
+            let saved = try await repository.upsertDraft(preparedEvent, mutationId: mutationId)
             pendingDraftMutationIds.removeValue(forKey: event.id)
             if let index = events.firstIndex(where: { $0.id == saved.id }) {
                 events[index] = saved

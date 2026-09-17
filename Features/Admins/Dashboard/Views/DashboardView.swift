@@ -68,20 +68,22 @@ struct DashboardView: View {
 
                     VStack {
                         HStack {
-                            Image("ecoTouchLogo")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 24)
-                                .padding(12)
-                                .background(
-                                    Color(#colorLiteral(red: 1, green: 0.9679821134, blue: 0.8170431256, alpha: 1)), in: Circle()
-                                )
+                            Button(action: openAdminProfile) {
+                                Image("ecoTouchLogo")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 24)
+                                    .padding(12)
+                                    .background(
+                                        Color(#colorLiteral(red: 1, green: 0.9679821134, blue: 0.8170431256, alpha: 1)), in: Circle()
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Buka profil")
+                            .accessibilityIdentifier("dashboardProfile")
                             Spacer()
                         }
                         .padding(.horizontal, 20)
-                        .onTapGesture {
-                            router.push(to: AdminsRouter.profile)
-                        }
 
                         EmptyStateViewDashboard {
                             requestCreateEvent()
@@ -98,7 +100,7 @@ struct DashboardView: View {
                     ScrollView(showsIndicators: false) {
                         VStack(alignment: .leading, spacing: 20) {
                             HeaderNavigationView(
-                                onLogoTapped: { isShowingProfile = true },
+                                onLogoTapped: openAdminProfile,
                                 onAddTapped: { requestCreateEvent() }
                             )
 
@@ -352,6 +354,10 @@ struct DashboardView: View {
         } else {
             isShowingRequiredProfile = true
         }
+    }
+
+    private func openAdminProfile() {
+        isShowingProfile = true
     }
 
     private func resumeEventCreationAfterProfileSave() {

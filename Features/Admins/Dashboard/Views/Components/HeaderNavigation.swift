@@ -13,6 +13,8 @@ struct HeaderNavigationView: View {
                     .foregroundColor(.primary) // Menggunakan warna utama (hitam/gelap di mode light)
             }
             .buttonStyle(PlainButtonStyle())
+            .accessibilityLabel("Buka profil")
+            .accessibilityIdentifier("dashboardProfile")
 
             Spacer()
 

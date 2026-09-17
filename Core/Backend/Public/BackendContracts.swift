@@ -129,6 +129,8 @@ enum BackendError: Error, Equatable, Sendable, LocalizedError {
         "EVENT_NOT_CANCELLABLE": "Acara sudah tidak dapat dibatalkan.",
         "DRAFT_HAS_BOOKINGS": "Draf memiliki donasi terkait dan tidak dapat dihapus.",
         "BANNER_REJECTED": "Upload gambar tidak diizinkan. Gunakan JPEG atau PNG.",
+        "BANNER_DIMENSIONS_INVALID": "Dimensi gambar terlalu besar. Pilih gambar lain atau coba kembali.",
+        "BANNER_DIMENSION_INVALID": "Dimensi gambar terlalu besar. Pilih gambar lain atau coba kembali.",
         "PROFILE_MEDIA_REJECTED": "Upload gambar ditolak oleh penyimpanan. Gunakan JPEG atau PNG berukuran maksimal 5 MB.",
         "PROFILE_MEDIA_FORBIDDEN": "Anda tidak memiliki izin untuk mengunggah gambar ini. Muat ulang profil lalu coba lagi.",
         "BANNER_TOO_LARGE": "Ukuran gambar melebihi 5 MB. Kompres atau pilih gambar lain.",
