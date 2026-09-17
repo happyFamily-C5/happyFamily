@@ -231,30 +231,21 @@ private struct LoginSecureInputField: View {
                 Group {
                     if !isSecured {
                         SecureField(placeholder, text: $text)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                            .font(.system(size: 15, weight: .medium))
-                            .submitLabel(.go)
-                            .focused(focus, equals: field)
-                            .onSubmit(onSubmit)
-                            .padding(.horizontal, 16)
-                            .frame(height: 54)
-                            .background(Color(#colorLiteral(red: 0.9214347005, green: 0.9214347005, blue: 0.9214347005, alpha: 1)))
-                            .cornerRadius(27)
+                            
                     } else {
                         TextField(placeholder, text: $text)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                            .font(.system(size: 15, weight: .medium))
-                            .submitLabel(.go)
-                            .focused(focus, equals: field)
-                            .onSubmit(onSubmit)
-                            .padding(.horizontal, 16)
-                            .frame(height: 54)
-                            .background(Color(#colorLiteral(red: 0.9214347005, green: 0.9214347005, blue: 0.9214347005, alpha: 1)))
-                            .cornerRadius(27)
                     }
                 }
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .font(.system(size: 15, weight: .medium))
+                .submitLabel(.go)
+                .focused(focus, equals: field)
+                .onSubmit(onSubmit)
+                .padding(.horizontal, 16)
+                .frame(height: 54)
+                .background(AppColor.fieldBackground)
+                .cornerRadius(27)
                 
                 Button(action: {
                     isSecured.toggle()

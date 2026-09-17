@@ -169,26 +169,18 @@ private struct RegisterSecureInputField: View {
                 Group{
                     if !isSecured {
                         SecureField(placeholder, text: $text)
-                            .textContentType(.newPassword)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                            .font(.system(size: 15, weight: .medium))
-                            .padding(.horizontal, 16)
-                            .frame(height: 54)
-                            .background(Color(#colorLiteral(red: 0.9214347005, green: 0.9214347005, blue: 0.9214347005, alpha: 1)))
-                            .cornerRadius(27)
                     } else {
                         TextField(placeholder, text: $text)
-                            .textContentType(.newPassword)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                            .font(.system(size: 15, weight: .medium))
-                            .padding(.horizontal, 16)
-                            .frame(height: 54)
-                            .background(Color(#colorLiteral(red: 0.9214347005, green: 0.9214347005, blue: 0.9214347005, alpha: 1)))
-                            .cornerRadius(27)
                     }
                 }
+                .textContentType(.newPassword)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .font(.system(size: 15, weight: .medium))
+                .padding(.horizontal, 16)
+                .frame(height: 54)
+                .background(AppColor.fieldBackground)
+                .cornerRadius(27)
                 
                 
                 Button(action: {
