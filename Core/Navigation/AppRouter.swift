@@ -125,6 +125,7 @@ final class AppRouter {
     }
 }
 
+
 extension View {
     func mapPickerRouter(_ router: AppRouter) -> some View {
         self.navigationDestination(for: MapPickerRouter.self) { destination in
