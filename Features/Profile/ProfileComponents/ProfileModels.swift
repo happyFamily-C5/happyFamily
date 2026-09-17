@@ -58,6 +58,23 @@ struct DonorProfile {
     )
 }
 
+enum ProfileCompletionPolicy {
+    static func canCreateEvent(_ profile: AdminProfile) -> Bool {
+        required(profile.companyName)
+            && required(profile.companyAddress)
+            && required(profile.phoneNumber)
+            && required(profile.email)
+    }
+
+    static func canDonate(_ profile: DonorProfile) -> Bool {
+        required(profile.fullName) && required(profile.phoneE164)
+    }
+
+    private static func required(_ value: String) -> Bool {
+        !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+}
+
 // MARK: Donor's donation history — events they've personally contributed to, with the weight they gave
 
 struct DonorDonation: Identifiable {
@@ -108,12 +125,6 @@ struct DonorDonation: Identifiable {
             bannerImageData: nil
         ),
     ]
-}
-
-struct RegisterAccountDraft {
-    let name: String
-    let email: String
-    let password: String
 }
 
 enum ProfileHistoryDummyData {

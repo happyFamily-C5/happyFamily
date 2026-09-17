@@ -27,6 +27,8 @@ struct DashboardView: View {
 
     // State untuk membuka modal CreatingView multi-step
     @State private var isShowingCreateModal: Bool = false
+    @State private var isShowingRequiredProfile: Bool = false
+    @State private var shouldOpenCreateAfterProfileSave = false
     @State private var isShowingRecapDonation: Bool = false
     @State private var isShowingQRScanner: Bool = false
     @State private var isShowingProfile: Bool = false
@@ -82,7 +84,7 @@ struct DashboardView: View {
                         }
 
                         EmptyStateViewDashboard {
-                            isShowingCreateModal = true
+                            requestCreateEvent()
                         }
 
                         Spacer()
@@ -97,7 +99,7 @@ struct DashboardView: View {
                         VStack(alignment: .leading, spacing: 20) {
                             HeaderNavigationView(
                                 onLogoTapped: { isShowingProfile = true },
-                                onAddTapped: { isShowingCreateModal = true }
+                                onAddTapped: { requestCreateEvent() }
                             )
 
                             Menu {
@@ -282,6 +284,19 @@ struct DashboardView: View {
                 .mapPickerRouter(router)
             }
         }
+        .fullScreenCover(
+            isPresented: $isShowingRequiredProfile,
+            onDismiss: resumeEventCreationAfterProfileSave
+        ) {
+            RegisterOrganizationInfoView(profile: adminProfile) { updated in
+                guard let onSaveProfile else {
+                    throw BackendError.configuration("penyimpanan profil pengelola")
+                }
+                try await onSaveProfile(updated)
+                adminProfile = updated
+                shouldOpenCreateAfterProfileSave = true
+            }
+        }
         .fullScreenCover(isPresented: $isShowingRecapDonation) {
             RecapDonation()
         }
@@ -329,6 +344,20 @@ struct DashboardView: View {
         .sheet(isPresented: $isShowingQRScanner) {
             QRScannerView()
         }
+    }
+
+    private func requestCreateEvent() {
+        if ProfileCompletionPolicy.canCreateEvent(adminProfile) {
+            isShowingCreateModal = true
+        } else {
+            isShowingRequiredProfile = true
+        }
+    }
+
+    private func resumeEventCreationAfterProfileSave() {
+        guard shouldOpenCreateAfterProfileSave else { return }
+        shouldOpenCreateAfterProfileSave = false
+        isShowingCreateModal = true
     }
 }
 

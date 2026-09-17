@@ -18,6 +18,8 @@ struct SelectedEventDetailView: View {
     @State private var isStartingFlow = false
     @State private var showPrivacyPolice = false
     @State private var openDonationFlowAfterConsent = false
+    @State private var showRequiredProfile = false
+    @State private var shouldResumeDonationAfterProfileSave = false
 
     var body: some View {
         VStack {
@@ -61,6 +63,15 @@ struct SelectedEventDetailView: View {
             .background(Color.white)
             .presentationDetents([.medium])
             .presentationDragIndicator(.visible)
+        }
+        .fullScreenCover(isPresented: $showRequiredProfile, onDismiss: resumeDonationAfterProfileSave) {
+            DonorProfileEditView(profile: router.donorProfile, mode: .donationRequired) { updated in
+                guard let onSaveProfile = router.onSaveDonorProfile else {
+                    throw BackendError.configuration("penyimpanan profil donor")
+                }
+                try await onSaveProfile(updated)
+                shouldResumeDonationAfterProfileSave = true
+            }
         }
     }
 
@@ -186,12 +197,11 @@ struct SelectedEventDetailView: View {
         VStack(spacing: 6) {
             Button {
                 guard let detail = model.detail, bookable, !isStartingFlow else { return }
-                isStartingFlow = true
-                Task {
-                    await donationVM.start(eventId: detail.event.id)
-                    isStartingFlow = false
-                    showPrivacyPolice = true
+                guard ProfileCompletionPolicy.canDonate(router.donorProfile) else {
+                    showRequiredProfile = true
+                    return
                 }
+                Task { await beginDonation(eventId: detail.event.id) }
             } label: {
                 Text(isStartingFlow ? "Menyiapkan…" : "Donasikan Pakaian")
                     .foregroundStyle(Color.white)
@@ -221,6 +231,27 @@ struct SelectedEventDetailView: View {
         guard openDonationFlowAfterConsent else { return }
         openDonationFlowAfterConsent = false
         router.push(to: .donationFlow)
+    }
+
+    private func beginDonation(eventId: UUID) async {
+        guard !isStartingFlow else { return }
+        isStartingFlow = true
+        await donationVM.start(eventId: eventId)
+        isStartingFlow = false
+
+        guard donationVM.isProfileComplete else {
+            showRequiredProfile = true
+            return
+        }
+        showPrivacyPolice = true
+    }
+
+    private func resumeDonationAfterProfileSave() {
+        guard shouldResumeDonationAfterProfileSave,
+              let eventId = model.detail?.event.id
+        else { return }
+        shouldResumeDonationAfterProfileSave = false
+        Task { await beginDonation(eventId: eventId) }
     }
 
     private static let dateFormatter: DateFormatter = {

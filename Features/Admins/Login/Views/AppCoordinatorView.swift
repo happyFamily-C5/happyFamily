@@ -25,28 +25,14 @@ struct AppCoordinatorView: View {
                     )
                 case .register:
                     RegisterAccountView(
-                        onRegisterTapped: { draft in model.handleRegister(draft) },
-                        onAppleRegisterTapped: { draft in model.handleRegister(draft) },
+                        onRegisterTapped: { model.handleRegister() },
+                        onAppleRegisterTapped: { model.handleRegister() },
                         onLoginTapped: { model.goToLogin() }
                     )
                 case .roleSelection:
                     RoleSelectionView(
                         onContinueTapped: { role in Task { await model.completeOnboarding(role, router: router) } },
                         onBackTapped: { model.goToRegister() }
-                    )
-                case .donorProfileCompletion:
-                    if let donorProfile = model.donorProfile {
-                        DonorProfileCompletionView(profile: donorProfile) { update in
-                            try await model.completeDonorProfile(update)
-                        }
-                    }
-                case .organizationInfo:
-                    RegisterOrganizationInfoView(
-                        initialEmail: model.registeredAccount?.email ?? model.adminProfile.email,
-                        onCreateAccountTapped: { profile in
-                            Task { await model.completeAdminWorkspace(profile) }
-                        },
-                        onBackTapped: { model.goToRoleSelection() }
                     )
                 case .adminDashboard:
                     DashboardView(

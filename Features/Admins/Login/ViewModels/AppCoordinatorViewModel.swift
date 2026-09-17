@@ -3,8 +3,7 @@ import Observation
 import SwiftUI
 
 enum AppScreen {
-    case splash, login, register, roleSelection, donorProfileCompletion
-    case organizationInfo, adminDashboard, donorHome
+    case splash, login, register, roleSelection, adminDashboard, donorHome
 }
 
 /// View model behind `AppCoordinatorView`. It owns every authentication,
@@ -16,7 +15,6 @@ enum AppScreen {
 @Observable
 final class AppCoordinatorViewModel {
     private(set) var currentScreen: AppScreen = .splash
-    private(set) var registeredAccount: RegisterAccountDraft?
     private(set) var donorProfile: AccountProfileData?
     var adminProfile: AdminProfile = .defaultProfile
     private(set) var isSplashAnimationDone = false
@@ -54,10 +52,8 @@ final class AppCoordinatorViewModel {
             let account = try BackendDependencies.accountClient()
             let profile = try await account.myProfile()
             donorProfile = profile
-            var workspaceIsPublishable: Bool?
             if profile.role == .admin {
                 let workspace = try await BackendDependencies.organizerClient().workspaceProfile()
-                workspaceIsPublishable = workspace.publishable
                 // Logo display is cosmetic: a failed fetch leaves the image
                 // nil while the server path is still tracked.
                 var logoData: Data?
@@ -74,7 +70,7 @@ final class AppCoordinatorViewModel {
                     logoObjectPath: workspace.logoObjectPath
                 )
             }
-            route(AuthRouting.destination(for: profile, workspaceIsPublishable: workspaceIsPublishable), router: router)
+            route(AuthRouting.destination(for: profile), router: router)
         } catch {
             // No stored/valid session is normal at splash. Authenticated
             // bootstrap errors must stay visible, never default to Admin.
@@ -84,8 +80,7 @@ final class AppCoordinatorViewModel {
         }
     }
 
-    func handleRegister(_ draft: RegisterAccountDraft) {
-        registeredAccount = draft
+    func handleRegister() {
         currentScreen = .roleSelection
     }
 
@@ -107,22 +102,6 @@ final class AppCoordinatorViewModel {
             let account = try BackendDependencies.accountClient()
             _ = try await account.completeOnboarding(role: role)
             await bootstrapSession(router: router)
-        } catch {
-            bootstrapError = error.localizedDescription
-        }
-    }
-
-    func completeDonorProfile(_ update: AccountProfileUpdate) async throws {
-        let account = try BackendDependencies.accountClient()
-        donorProfile = try await account.updateProfile(update)
-        currentScreen = .donorHome
-    }
-
-    func completeAdminWorkspace(_ profile: AdminProfile) async {
-        do {
-            // saveAdminProfile refreshes adminProfile with the resolved logo.
-            try await saveAdminProfile(profile)
-            currentScreen = .adminDashboard
         } catch {
             bootstrapError = error.localizedDescription
         }
@@ -156,6 +135,28 @@ final class AppCoordinatorViewModel {
         adminProfile.logoObjectPath = logoObjectPath
     }
 
+    func saveDonorProfile(_ profile: DonorProfile, router: AppRouter) async throws {
+        let account = try BackendDependencies.accountClient()
+        let saved = try await account.updateProfile(AccountProfileUpdate(
+            displayName: profile.fullName,
+            phoneE164: profile.phoneE164,
+            address: profile.address,
+            locationLabel: "",
+            latitude: nil,
+            longitude: nil,
+            avatarObjectPath: profile.avatarObjectPath
+        ))
+        donorProfile = saved
+        router.donorProfile = DonorProfile(
+            fullName: saved.displayName,
+            address: saved.address ?? "",
+            imageData: profile.imageData,
+            id: saved.id,
+            phoneE164: saved.phoneE164 ?? "",
+            avatarObjectPath: saved.avatarObjectPath ?? ""
+        )
+    }
+
     nonisolated static func shouldRequestEmailChange(
         currentWorkspaceEmail: String,
         submittedEmail: String
@@ -169,8 +170,6 @@ final class AppCoordinatorViewModel {
         switch destination {
         case .signIn: currentScreen = .login
         case .roleSelection: currentScreen = .roleSelection
-        case .donorProfileCompletion: currentScreen = .donorProfileCompletion
-        case .adminWorkspaceCompletion: currentScreen = .organizationInfo
         case .donorHome:
             syncDonorRouterProfile(router: router)
             currentScreen = .donorHome
@@ -187,26 +186,36 @@ final class AppCoordinatorViewModel {
         guard let account = donorProfile else { return }
         router.onLogout = { self.logout(router: router) }
         router.onDeleteAccount = { try await self.deleteAccount(router: router) }
-        if router.donorProfile.id != account.id {
-            var profile = DonorProfile(
-                fullName: account.displayName,
-                address: account.address ?? "",
-                imageData: nil,
-                id: account.id,
-                phoneE164: account.phoneE164 ?? "",
-                avatarObjectPath: account.avatarObjectPath ?? ""
-            )
-            if let avatarPath = account.avatarObjectPath, !avatarPath.isEmpty {
-                Task {
-                    let avatarData = await BackendDependencies.storageMediaClientOrDefault()?
-                        .fetchPublicObject(bucket: "profile-avatars", path: avatarPath)
-                    if let avatarData {
-                        profile.imageData = avatarData
-                        router.donorProfile = profile
-                    }
+        router.onSaveDonorProfile = { profile in
+            try await self.saveDonorProfile(profile, router: router)
+        }
+
+        let keepsCachedAvatar = router.donorProfile.id == account.id
+            && router.donorProfile.avatarObjectPath == (account.avatarObjectPath ?? "")
+        var profile = DonorProfile(
+            fullName: account.displayName,
+            address: account.address ?? "",
+            imageData: keepsCachedAvatar ? router.donorProfile.imageData : nil,
+            id: account.id,
+            phoneE164: account.phoneE164 ?? "",
+            avatarObjectPath: account.avatarObjectPath ?? ""
+        )
+        router.donorProfile = profile
+        if profile.imageData == nil,
+           let avatarPath = account.avatarObjectPath,
+           !avatarPath.isEmpty
+        {
+            Task {
+                let avatarData = await BackendDependencies.storageMediaClientOrDefault()?
+                    .fetchPublicObject(bucket: "profile-avatars", path: avatarPath)
+                if let avatarData,
+                   router.donorProfile.id == account.id,
+                   router.donorProfile.avatarObjectPath == avatarPath
+                {
+                    profile.imageData = avatarData
+                    router.donorProfile = profile
                 }
             }
-            router.donorProfile = profile
         }
     }
 
@@ -238,7 +247,6 @@ final class AppCoordinatorViewModel {
         try await BackendDependencies.accountClient().deleteAccount()
         await BackendDependencies.clearDeletedAccountState()
         router.popToRoot()
-        registeredAccount = nil
         donorProfile = nil
         adminProfile = .defaultProfile
         currentScreen = .login
