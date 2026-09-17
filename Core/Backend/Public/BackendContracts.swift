@@ -145,7 +145,7 @@ enum BackendError: Error, Equatable, Sendable, LocalizedError {
 struct PublicEventDTO: Codable, Identifiable, Equatable, Sendable {
     let id: UUID
     let name: String
-    let description: String
+    let description: String?
     let status: EventStatusCode
     let availability: EventAvailabilityCode
     let startAt: Date
