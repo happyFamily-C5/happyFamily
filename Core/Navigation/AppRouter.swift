@@ -53,6 +53,9 @@ final class AppRouter {
     /// Backend-backed admin profile save (uploads the logo, updates the
     /// workspace, and requests the email change when needed).
     var onSaveAdminProfile: ((AdminProfile) async throws -> Void)?
+    /// Backend-backed donor profile save, shared by the profile screen and
+    /// the donation prerequisite flow.
+    var onSaveDonorProfile: ((DonorProfile) async throws -> Void)?
 
     func push(to destination: AdminsRouter) {
         adminPath.append(destination)
@@ -194,7 +197,8 @@ extension View {
                 DonorProfileView(
                     profile: Bindable(router).donorProfile,
                     onLogout: { router.onLogout?() },
-                    onDeleteAccount: router.onDeleteAccount
+                    onDeleteAccount: router.onDeleteAccount,
+                    onSaveProfile: router.onSaveDonorProfile
                 )
             case .trackingHistory:
                 TrackingHistoryView()

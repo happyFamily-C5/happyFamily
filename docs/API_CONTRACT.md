@@ -170,7 +170,8 @@ bucket private `profile-avatars`; mengosongkan field akan melepas avatar.
 ```
 
 Nama kantor adalah nama Pengelola. Alamat, telepon, email, dan logo bersifat
-persisten. Workspace profile harus lengkap sebelum event dapat dipublish.
+persisten. Workspace profile harus lengkap sebelum membuat event draft baru
+atau mempublish event.
 
 `delete_account` hanya menghapus identitas actor yang sedang terautentikasi;
 client tidak dapat mengirim user id milik pihak lain. Untuk donor, relasi
@@ -287,6 +288,12 @@ Criteria valid: `cotton`, `linen`, `rayon`, `wool`, `tencel`, `silk`,
 `max_donation_per_user_grams` wajib positif dan dikonfigurasi per event.
 Receiver bukan field yang dapat dioverride UI: saat event dibuat, backend
 menyalin nama, alamat, dan telepon workspace sebagai snapshot immutable.
+
+Field event sendiri boleh belum lengkap selama event masih draft. Namun,
+pembuatan draft baru memerlukan workspace profile lengkap (nama, alamat,
+telepon, dan email); bila belum lengkap backend menolak dengan
+`WORKSPACE_PROFILE_INCOMPLETE`. Update draft yang sudah dimiliki workspace
+tetap diizinkan agar Pengelola dapat melanjutkan pekerjaan yang tersimpan.
 
 Publish memerlukan semua field operasional, banner, criteria, kapasitas, limit
 donasi per donor, dan workspace profile lengkap. Maksimal lima event aktif per

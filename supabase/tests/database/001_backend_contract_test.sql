@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(75);
+select plan(79);
 
 create or replace function pg_temp.make_event(
   p_id uuid,
@@ -132,6 +132,44 @@ select is(
   api.complete_onboarding_v1('admin') ->> 'role',
   'admin',
   'organizer two onboards as admin'
+);
+select throws_ok(
+  $$select api.upsert_event_draft_v1(
+    'aaaaaaaa-aaaa-4aaa-8aaa-000000000010',
+    '10000000-0000-4000-8000-000000000010',
+    pg_temp.event_draft_payload('Rejected v1 draft')
+  )$$,
+  '23514', 'WORKSPACE_PROFILE_INCOMPLETE',
+  'incomplete workspace cannot create a v1 event draft'
+);
+select throws_ok(
+  $$select api.upsert_event_draft_v2(
+    'aaaaaaaa-aaaa-4aaa-8aaa-000000000011',
+    '10000000-0000-4000-8000-000000000011',
+    pg_temp.event_draft_payload('Rejected v2 draft')
+  )$$,
+  '23514', 'WORKSPACE_PROFILE_INCOMPLETE',
+  'incomplete workspace cannot create a v2 event draft'
+);
+select is_empty(
+  $$select * from public.events where id in (
+    'aaaaaaaa-aaaa-4aaa-8aaa-000000000010',
+    'aaaaaaaa-aaaa-4aaa-8aaa-000000000011'
+  )$$,
+  'rejected draft requests do not create events'
+);
+select is_empty(
+  $$select * from public.idempotency_keys where scope = 'event-draft' and key in (
+    '10000000-0000-4000-8000-000000000010',
+    '10000000-0000-4000-8000-000000000011'
+  )$$,
+  'rejected draft requests do not claim idempotency keys'
+);
+
+select set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', true);
+select api.update_workspace_profile_v1(
+  'Organizer One', 'Jl. Uji Jakarta', '+6281234567890',
+  'organizer-one@example.invalid', ''
 );
 reset role;
 

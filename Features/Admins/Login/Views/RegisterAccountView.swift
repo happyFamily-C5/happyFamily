@@ -1,17 +1,16 @@
 import SwiftUI
 
 struct RegisterAccountView: View {
-    @State private var name = ""
     @State private var model: AuthViewModel
     
-    var onRegisterTapped: (RegisterAccountDraft) -> Void
-    var onAppleRegisterTapped: (RegisterAccountDraft) -> Void
+    var onRegisterTapped: () -> Void
+    var onAppleRegisterTapped: () -> Void
     var onLoginTapped: () -> Void
     
     init(
         authSession: (any AuthSession)? = BackendDependencies.authSessionOrDefault(),
-        onRegisterTapped: @escaping (RegisterAccountDraft) -> Void,
-        onAppleRegisterTapped: @escaping (RegisterAccountDraft) -> Void,
+        onRegisterTapped: @escaping () -> Void,
+        onAppleRegisterTapped: @escaping () -> Void,
         onLoginTapped: @escaping () -> Void
     ) {
         let model = AuthViewModel(authSession: authSession)
@@ -23,7 +22,6 @@ struct RegisterAccountView: View {
     }
     
     private var isRegisterFormInvalid: Bool {
-        name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
         !model.isSubmitEnabled ||
         !model.isEmailValid ||
         !model.isPasswordValid
@@ -46,13 +44,6 @@ struct RegisterAccountView: View {
                 Spacer().frame(height: 28)
                 
                 VStack(spacing: 16) {
-                    RegisterInputField(
-                        label: "Nama",
-                        placeholder: "John mayer",
-                        text: $name,
-                        textContentType: .name
-                    )
-                    
                     RegisterInputField(
                         label: "Email",
                         placeholder: "john@gmail.com",
@@ -88,7 +79,7 @@ struct RegisterAccountView: View {
                 Spacer().frame(height: 18)
                 
                 SocialAuthButton(title: "Daftar dengan Apple") {
-                    onAppleRegisterTapped(accountDraft)
+                    onAppleRegisterTapped()
                 }
                 
                 Spacer().frame(height: 22)
@@ -112,17 +103,9 @@ struct RegisterAccountView: View {
         }
     }
     
-    private var accountDraft: RegisterAccountDraft {
-        RegisterAccountDraft(
-            name: name,
-            email: model.email.trimmingCharacters(in: .whitespacesAndNewlines),
-            password: model.password
-        )
-    }
-    
     private func submit() async {
         guard await model.submit() else { return }
-        onRegisterTapped(accountDraft)
+        onRegisterTapped()
     }
 }
 
@@ -218,8 +201,8 @@ private struct RegisterDividerLabel: View {
 
 #Preview {
     RegisterAccountView(
-        onRegisterTapped: { _ in },
-        onAppleRegisterTapped: { _ in },
+        onRegisterTapped: {},
+        onAppleRegisterTapped: {},
         onLoginTapped: {}
     )
 }
