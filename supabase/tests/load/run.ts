@@ -274,6 +274,22 @@ try {
     [200],
   );
 
+  await requestJson<{ id: string }>(
+    `${restUrl}/rpc/update_workspace_profile_v1`,
+    {
+      method: "POST",
+      headers: rpcHeaders(accessToken),
+      body: JSON.stringify({
+        p_name: "Load Test Workspace",
+        p_address: "Synthetic load test address",
+        p_phone_e164: "+6281234567890",
+        p_email: email,
+        p_logo_object_path: "",
+      }),
+    },
+    [200],
+  );
+
   const workspaces = await requestJson<Array<{ id: string }>>(
     `${restUrl}/workspaces?select=id&owner_user_id=eq.${encodeURIComponent(userId)}`,
     { headers: organizerHeaders(accessToken) },
