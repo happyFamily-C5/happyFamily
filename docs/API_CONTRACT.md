@@ -342,7 +342,9 @@ memiliki satu field bernama `file`.
 file: image/jpeg atau image/png
 ```
 
-Ukuran maksimum 5 MiB; server memeriksa signature, MIME, dan dimensi gambar.
+Ukuran maksimum 5 MiB; lebar dan tinggi masing-masing maksimum 4096 piksel.
+Client iOS menyiapkan gambar sebelum upload, tetapi server tetap memeriksa
+signature, MIME, dan dimensi gambar.
 Respons `201` berisi `object_path`, `content_type`, `width`, dan `height`.
 Masukkan `object_path` tersebut ke `payload.banner_object_path` pada
 `upsert_event_draft`.
