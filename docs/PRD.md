@@ -74,7 +74,7 @@ Kecuali diputuskan lain oleh pemilik produk, fase pertama tidak bertujuan menjad
 - Rilis pertama hanya untuk Indonesia dan seluruh copy produk menggunakan Bahasa Indonesia.
 - Status acara memakai Bahasa Indonesia: **Draf, Akan Datang, Berlangsung, Selesai, Ditutup,** dan **Dibatalkan**. Terbit adalah aksi, bukan status.
 - Acara berpindah menjadi **Selesai** secara otomatis setelah waktu berakhir.
-- Banner dan deskripsi wajib sebelum acara dapat diterbitkan.
+- Banner wajib sebelum acara dapat diterbitkan; deskripsi bersifat opsional.
 - Setiap acara memiliki tepat satu drop point dan satu jadwal operasional.
 - Kapasitas kilogram adalah batas keras.
 - Kapasitas baru terpakai ketika paket diterima dan ditimbang oleh Pengelola.
@@ -316,8 +316,8 @@ Prioritas menggunakan **P0** untuk MVP wajib, **P1** untuk penting setelah fonda
 ### 10.2 Event management
 
 - **FR-EVT-01 (P0):** Event memiliki ID stabil, organisasi, nama, deskripsi, banner, status, tanggal mulai/selesai, timezone, lokasi, koordinat, jadwal operasional, kriteria, kapasitas, dan timestamps.
-- **FR-EVT-02 (P0):** Nama, deskripsi, banner, tanggal valid, lokasi, minimal satu hari operasional, jam valid, minimal satu kriteria, dan kapasitas positif wajib sebelum acara dapat diterbitkan.
-- **FR-EVT-03 (P0):** Banner dan deskripsi boleh belum lengkap saat berstatus Draf, tetapi wajib tersedia sebelum aksi menerbitkan.
+- **FR-EVT-02 (P0):** Nama, banner, tanggal valid, lokasi, minimal satu hari operasional, jam valid, minimal satu kriteria, dan kapasitas positif wajib sebelum acara dapat diterbitkan. Deskripsi bersifat opsional.
+- **FR-EVT-03 (P0):** Banner boleh belum lengkap saat berstatus Draf, tetapi wajib tersedia sebelum aksi menerbitkan. Deskripsi boleh tetap kosong baik pada Draf maupun setelah diterbitkan.
 - **FR-EVT-04 (P0):** Pengelola dapat menyimpan acara sebagai Draf tanpa kehilangan field yang telah diisi.
 - **FR-EVT-05 (P0):** Pengelola dapat mengedit seluruh field event selama status Draf, Akan Datang, atau Berlangsung. Event Selesai, Ditutup, dan Dibatalkan bersifat read-only serta tidak dapat dibuka kembali.
 - **FR-EVT-06 (P0):** Vocabulary status acara adalah Draf, Akan Datang, Berlangsung, Selesai, Ditutup, dan Dibatalkan; seluruh label yang terlihat pengguna menggunakan Bahasa Indonesia. Terbit adalah aksi dan timestamp, bukan status.
@@ -961,7 +961,7 @@ Seluruh pertanyaan produk yang diajukan selama penyusunan PRD telah ditutup. Thr
 
 6. **Status acara:** Draf, Akan Datang, Berlangsung, Selesai, Ditutup, dan Dibatalkan. Terbit adalah aksi, bukan status.
 7. **Penyelesaian acara:** otomatis setelah end datetime.
-8. **Syarat publish:** banner dan deskripsi wajib.
+8. **Syarat publish:** banner wajib; deskripsi opsional.
 9. **Lokasi/jadwal:** satu drop point dan satu jadwal operasional per acara.
 10. **Kapasitas:** batas keras dalam kilogram.
 11. **Waktu pemakaian kapasitas:** ketika paket diterima dan ditimbang.

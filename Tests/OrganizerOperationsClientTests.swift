@@ -29,6 +29,24 @@ struct OrganizerOperationsClientTests {
         #expect(booking.bookingId == UUID(uuidString: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"))
     }
 
+    @Test("resolveQR decodes an event snapshot without a description")
+    func resolveQRDecodesMissingEventDescription() async throws {
+        URLProtocolStub.requestHandler = { request in
+            let data = try JSONSerialization.data(withJSONObject: [
+                "data": resolvedQRJSON(eventDescription: NSNull()),
+                "error": NSNull(),
+                "request_id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+                "server_time": "2026-09-10T01:00:00Z",
+            ])
+            return try (response(for: request, status: 200), data)
+        }
+
+        let booking = try await makeClient().resolveQR(token: String(repeating: "q", count: 64))
+
+        #expect(booking.eventSnapshot.description == nil)
+        #expect(booking.eventSnapshot.name == "Acara Uji")
+    }
+
     @Test("publish posts operations action with a stable idempotency key")
     func publishPostsOperationsBody() async throws {
         let recorder = RequestRecorder()
@@ -70,7 +88,6 @@ struct OrganizerOperationsClientTests {
                     "retryable": false,
                     "field_errors": [
                         "banner": "Banner acara belum diunggah.",
-                        "description": "Deskripsi acara belum diisi.",
                     ],
                 ],
                 "request_id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
@@ -89,7 +106,6 @@ struct OrganizerOperationsClientTests {
                 && !retryable
                 && fieldErrors == [
                     "banner": "Banner acara belum diunggah.",
-                    "description": "Deskripsi acara belum diisi.",
                 ]
                 && error.localizedDescription.contains("Banner acara belum diunggah.")
         }
@@ -610,7 +626,7 @@ private func eventRecordJSON() -> [String: Any] {
     ]
 }
 
-private func resolvedQRJSON() -> [String: Any] {
+private func resolvedQRJSON(eventDescription: Any = "Deskripsi") -> [String: Any] {
     [
         "booking_id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
         "public_booking_id": "KMP-TEST-001",
@@ -623,7 +639,7 @@ private func resolvedQRJSON() -> [String: Any] {
         "event_snapshot": [
             "id": "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff",
             "name": "Acara Uji",
-            "description": "Deskripsi",
+            "description": eventDescription,
             "status": "ongoing",
             "availability": "available",
             "start_at": "2026-02-14T00:00:00Z",

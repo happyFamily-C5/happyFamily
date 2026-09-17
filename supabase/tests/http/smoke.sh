@@ -110,6 +110,22 @@ assert_json "$SMOKE_TMP/onboard.json" \
   "onboarding response" \
   '.error == null and .role == "admin"'
 
+WORKSPACE_PROFILE_STATUS="$(curl -sS -o "$SMOKE_TMP/workspace-profile.json" -w '%{http_code}' \
+  "$REST_URL/rpc/update_workspace_profile_v1" \
+  -H "apikey: $PUBLISHABLE_KEY" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H 'content-type: application/json' \
+  -H 'content-profile: api' \
+  -H 'accept-profile: api' \
+  --data "$(jq -nc --arg email "$EMAIL" '{
+    p_name:"HTTP Smoke Workspace",
+    p_address:"Jl. Smoke Test, Jakarta",
+    p_phone_e164:"+6281234567890",
+    p_email:$email,
+    p_logo_object_path:""
+  }')")"
+assert_status "$WORKSPACE_PROFILE_STATUS" 200 "complete workspace profile"
+
 SERVICE_ROLE_BYPASS_STATUS="$(curl -sS -o "$SMOKE_TMP/service-role-bypass.json" \
   -w '%{http_code}' "$FUNCTIONS_URL/publish-event" \
   -H "apikey: $PUBLISHABLE_KEY" \

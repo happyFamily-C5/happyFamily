@@ -139,7 +139,7 @@ struct AccountDonorClientTests {
                 "data": [
                     "id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
                     "name": "Acara Uji",
-                    "description": "Deskripsi",
+                    "description": NSNull(),
                     "status": "ongoing",
                     "start_at": "2026-02-14T00:00:00Z",
                     "end_at": "2026-02-21T00:00:00Z",
@@ -175,6 +175,7 @@ struct AccountDonorClientTests {
         let detail = try await makeAccountClient().eventDetail(id: UUID())
 
         #expect(detail.event.name == "Acara Uji")
+        #expect(detail.event.description == nil)
         #expect(detail.event.usedWeightGrams == 1500)
         #expect(detail.event.distanceKm == 1.4)
         #expect(detail.availability.bookable)

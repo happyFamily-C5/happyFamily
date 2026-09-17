@@ -295,6 +295,12 @@ telepon, dan email); bila belum lengkap backend menolak dengan
 `WORKSPACE_PROFILE_INCOMPLETE`. Update draft yang sudah dimiliki workspace
 tetap diizinkan agar Pengelola dapat melanjutkan pekerjaan yang tersimpan.
 
+`description` bersifat opsional pada payload draf. Field ini boleh tidak
+dikirim, bernilai string kosong atau hanya spasi, maupun `null`; backend
+menyimpannya sebagai `null`. Publish tetap menerima event dengan deskripsi
+`null`, dan respons event atau `event_snapshot` dapat berisi
+`"description": null`.
+
 Publish memerlukan semua field operasional, banner, criteria, kapasitas, limit
 donasi per donor, dan workspace profile lengkap. Maksimal lima event aktif per
 workspace.
