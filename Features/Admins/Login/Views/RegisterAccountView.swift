@@ -157,7 +157,7 @@ private struct RegisterSecureInputField: View {
     let label: String
     let placeholder: String
     @Binding var text: String
-    @State var isSecured = false
+    @State var isPasswordVisible = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -167,7 +167,7 @@ private struct RegisterSecureInputField: View {
             
             ZStack(alignment: .trailing){
                 Group{
-                    if !isSecured {
+                    if !isPasswordVisible {
                         SecureField(placeholder, text: $text)
                     } else {
                         TextField(placeholder, text: $text)
@@ -184,9 +184,9 @@ private struct RegisterSecureInputField: View {
                 
                 
                 Button(action: {
-                    isSecured.toggle()
+                    isPasswordVisible.toggle()
                 }, label: {
-                    Image(systemName: self.isSecured ? "eye.slash" : "eye")
+                    Image(systemName: self.isPasswordVisible ? "eye.slash" : "eye")
                         .foregroundStyle(Color.secondary.opacity(0.5))
                 })
                 .padding(.trailing, 16)

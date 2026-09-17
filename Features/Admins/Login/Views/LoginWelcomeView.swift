@@ -218,7 +218,7 @@ private struct LoginSecureInputField: View {
     var focus: FocusState<LoginField?>.Binding
     let field: LoginField
     var onSubmit: () -> Void
-    @State var isSecured = false
+    @State var isPasswordVisible = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -229,7 +229,7 @@ private struct LoginSecureInputField: View {
             ZStack(alignment: .trailing) {
                 
                 Group {
-                    if !isSecured {
+                    if !isPasswordVisible {
                         SecureField(placeholder, text: $text)
                             
                     } else {
@@ -248,9 +248,9 @@ private struct LoginSecureInputField: View {
                 .cornerRadius(27)
                 
                 Button(action: {
-                    isSecured.toggle()
+                    isPasswordVisible.toggle()
                 }, label: {
-                    Image(systemName: self.isSecured ? "eye.slash" : "eye")
+                    Image(systemName: self.isPasswordVisible ? "eye.slash" : "eye")
                         .foregroundStyle(Color.secondary.opacity(0.5))
                 })
                 .padding(.trailing, 16)
