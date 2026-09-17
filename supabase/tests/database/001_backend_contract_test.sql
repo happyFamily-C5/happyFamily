@@ -158,6 +158,7 @@ select is_empty(
   )$$,
   'rejected draft requests do not create events'
 );
+reset role;
 select is_empty(
   $$select * from public.idempotency_keys where scope = 'event-draft' and key in (
     '10000000-0000-4000-8000-000000000010',
@@ -166,6 +167,7 @@ select is_empty(
   'rejected draft requests do not claim idempotency keys'
 );
 
+set local role authenticated;
 select set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', true);
 select api.update_workspace_profile_v1(
   'Organizer One', 'Jl. Uji Jakarta', '+6281234567890',
