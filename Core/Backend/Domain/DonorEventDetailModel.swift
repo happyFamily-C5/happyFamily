@@ -48,10 +48,63 @@ final class DonorEventDetailModel {
 
     /// "09.00 - 16.00" style operating window from the event schedule.
     var timeInfoText: String? {
-        guard let startAt = detail?.event.startAt, let endAt = detail?.event.endAt else { return nil }
+        guard let event = detail?.event else { return nil }
+        return DonorEventScheduleFormatter.operationalTimeInfoText(event)
+    }
+}
+
+enum DonorEventScheduleFormatter {
+    private static let fallbackTimeZone = TimeZone(identifier: "Asia/Jakarta")!
+
+    static func dateRangeText(_ event: DonorEventDTO) -> String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "HH.mm"
-        formatter.timeZone = TimeZone(identifier: detail?.event.timezoneName ?? "Asia/Jakarta")
-        return "\(formatter.string(from: startAt)) - \(formatter.string(from: endAt))"
+        formatter.locale = Locale(identifier: "id_ID")
+        formatter.dateFormat = "d MMM yyyy"
+        formatter.timeZone = event.timezoneName.flatMap(TimeZone.init(identifier:)) ?? fallbackTimeZone
+
+        switch (event.startAt, event.endAt) {
+        case let (start?, end?):
+            return "\(formatter.string(from: start)) - \(formatter.string(from: end))"
+        case let (start?, nil):
+            return formatter.string(from: start)
+        case let (nil, end?):
+            return formatter.string(from: end)
+        default:
+            return "-"
+        }
+    }
+
+    static func operationalTimeInfoText(_ event: DonorEventDTO) -> String? {
+        guard let opensAt = formattedLocalTime(event.opensAtLocal),
+              let closesAt = formattedLocalTime(event.closesAtLocal)
+        else { return nil }
+
+        let timeRange = "\(opensAt) - \(closesAt)"
+        guard let days = event.operationalDays, !days.isEmpty else { return timeRange }
+        return "\(operationalMode(for: days)) • \(timeRange)"
+    }
+
+    private static func formattedLocalTime(_ value: String?) -> String? {
+        guard let value else { return nil }
+        let components = value.split(separator: ":")
+        guard components.count >= 2,
+              let hour = Int(components[0]), (0 ... 23).contains(hour),
+              let minute = Int(components[1]), (0 ... 59).contains(minute)
+        else { return nil }
+        return String(format: "%02d.%02d", hour, minute)
+    }
+
+    private static func operationalMode(for days: [Int]) -> String {
+        let values = Set(days)
+        if values == Set(1 ... 5) {
+            return "Hari Kerja"
+        }
+        if values == Set([6, 7]) {
+            return "Akhir Pekan"
+        }
+        if values == Set(1 ... 7) {
+            return "Setiap Hari"
+        }
+        return "Hari Kustom"
     }
 }

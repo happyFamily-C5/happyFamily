@@ -191,6 +191,12 @@ orphan cleanup.
 }
 ```
 
+Event donor pada `dashboard`, `event_detail`, dan snapshot booking membawa
+`operational_days`, `opens_at_local`, serta `closes_at_local` yang sama dengan
+jadwal Admin. Client harus memformat `start_at`/`end_at` memakai `timezone_name`
+dan menampilkan jam operasional dari field lokal tersebut, bukan dari komponen
+jam `start_at`/`end_at`.
+
 MVP mewajibkan donor menerima pernyataan persetujuan di aplikasi sebelum
 membuat booking. `event_detail` tidak mengembalikan URL atau versi Terms/Privacy,
 dan body booking tidak mengirim field tersebut. Server merekam `consented_at`

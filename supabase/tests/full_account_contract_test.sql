@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(67);
+select plan(70);
 
 -- The hosted Management API returns only the final result set. Capture every
 -- TAP assertion so this suite remains diagnosable without a local Docker-based
@@ -342,6 +342,21 @@ select is(
   api.event_detail_v2('e1111111-1111-4111-8111-111111111111')
     -> 'availability' ->> 'available_weight_grams',
   '500', 'event detail carries the remaining capacity after reservation'
+);
+insert into pg_temp.tap_results(result)
+select is(
+  api.event_detail_v2('e1111111-1111-4111-8111-111111111111') -> 'operational_days',
+  '[1, 2, 3, 4, 5]'::jsonb, 'event detail carries the admin operational days'
+);
+insert into pg_temp.tap_results(result)
+select is(
+  api.event_detail_v2('e1111111-1111-4111-8111-111111111111') ->> 'opens_at_local',
+  '08:00:00', 'event detail carries the admin opening time'
+);
+insert into pg_temp.tap_results(result)
+select is(
+  api.event_detail_v2('e1111111-1111-4111-8111-111111111111') ->> 'closes_at_local',
+  '17:00:00', 'event detail carries the admin closing time'
 );
 reset role;
 

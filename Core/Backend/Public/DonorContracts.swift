@@ -11,6 +11,9 @@ struct DonorEventDTO: Decodable, Equatable, Sendable, Identifiable {
     let startAt: Date?
     let endAt: Date?
     let timezoneName: String?
+    let operationalDays: [Int]?
+    let opensAtLocal: String?
+    let closesAtLocal: String?
     let locationName: String?
     let locationAddress: String?
     let latitude: Double?
