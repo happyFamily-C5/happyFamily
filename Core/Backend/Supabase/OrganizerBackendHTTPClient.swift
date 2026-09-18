@@ -9,7 +9,7 @@ protocol OrganizerEdgeServing: Sendable {
     func publish(eventId: UUID) async throws -> PublishEventData
     func resolveQR(token: String) async throws -> ResolvedQRBooking
     func decideReception(_ input: ReceptionDecisionInput) async throws -> ReceptionDecisionData
-    func advanceTracking(bookingId: UUID, status: BookingStatusCode) async throws -> ReceptionDecisionData
+    func advanceTracking(bookingId: UUID, status: BookingStatusCode) async throws -> TrackingMutationData
     func recap(eventId: UUID?) async throws -> AdminRecapData
     func donationHistory(eventId: UUID?, cursor: String?) async throws -> HistoryPage
     func eventHistory(eventId: UUID?, cursor: String?) async throws -> HistoryPage
@@ -24,7 +24,7 @@ extension OrganizerEdgeServing {
         throw BackendError.configuration("operations decide_reception is unavailable")
     }
 
-    func advanceTracking(bookingId _: UUID, status _: BookingStatusCode) async throws -> ReceptionDecisionData {
+    func advanceTracking(bookingId _: UUID, status _: BookingStatusCode) async throws -> TrackingMutationData {
         throw BackendError.configuration("operations advance_tracking is unavailable")
     }
 
@@ -148,7 +148,7 @@ struct OrganizerBackendHTTPClient: OrganizerEdgeServing, Sendable {
         )
     }
 
-    func advanceTracking(bookingId: UUID, status: BookingStatusCode) async throws -> ReceptionDecisionData {
+    func advanceTracking(bookingId: UUID, status: BookingStatusCode) async throws -> TrackingMutationData {
         guard status == .processed || status == .recycled else {
             throw BackendError.configuration("Invalid admin tracking destination")
         }

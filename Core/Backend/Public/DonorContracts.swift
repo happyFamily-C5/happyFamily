@@ -39,37 +39,17 @@ struct DonorEventAvailability: Decodable, Equatable, Sendable {
     let availableWeightGrams: Int64?
 }
 
-/// Legal versions are server-owned; the UI must use these when creating a
-/// booking instead of hardcoding version identifiers.
-struct DonorLegalData: Decodable, Equatable, Sendable {
-    let termsVersion: String
-    let termsURL: URL
-    let privacyVersion: String
-    let privacyURL: URL
-
-    /// The shared decoder converts snake keys to lowerCamelCase, so the
-    /// acronym URLs must be matched against "termsUrl"/"privacyUrl".
-    enum CodingKeys: String, CodingKey {
-        case termsVersion
-        case termsURL = "termsUrl"
-        case privacyVersion
-        case privacyURL = "privacyUrl"
-    }
-}
-
 /// `account:event_detail`: the donor event JSON flattened with availability,
-/// the already-booked flag, and the environment's active legal documents.
+/// and the already-booked flag.
 struct DonorEventDetail: Decodable, Equatable, Sendable {
     let event: DonorEventDTO
     let availability: DonorEventAvailability
     let alreadyBooked: Bool
-    let legal: DonorLegalData
     /// Keys are camelCase because the shared decoder applies
     /// convertFromSnakeCase before custom containers see them.
     private enum ExtraKeys: String, CodingKey {
         case availability
         case alreadyBooked
-        case legal
     }
 
     init(from decoder: Decoder) throws {
@@ -77,7 +57,6 @@ struct DonorEventDetail: Decodable, Equatable, Sendable {
         let container = try decoder.container(keyedBy: ExtraKeys.self)
         availability = try container.decode(DonorEventAvailability.self, forKey: .availability)
         alreadyBooked = try container.decode(Bool.self, forKey: .alreadyBooked)
-        legal = try container.decode(DonorLegalData.self, forKey: .legal)
     }
 }
 
@@ -133,7 +112,7 @@ struct DonorBookingDetail: Decodable, Equatable, Sendable {
     let qrToken: String?
 }
 
-/// Booking body accepted by `account:create_booking` — exactly the seven
+/// Booking body accepted by `account:create_booking` — exactly the five
 /// allowed keys; anything else is rejected server-side.
 struct AccountBookingBody: Encodable, Sendable, Equatable {
     let estimatedWeightGrams: Int64
@@ -141,8 +120,6 @@ struct AccountBookingBody: Encodable, Sendable, Equatable {
     let items: [AccountBookingItem]
     let shippingMethod: ShippingMethodCode
     let scanModelVersion: String
-    let termsVersion: String
-    let privacyVersion: String
 }
 
 struct AccountBookingItem: Encodable, Sendable, Equatable {

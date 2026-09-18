@@ -104,8 +104,7 @@ struct CreatingView: View {
                                 .clipShape(RoundedRectangle(cornerRadius: 16))
                         }
                         PrimaryButton(title: currentStep == totalSteps ?
-                            (isUploadingBanner ? "Mengunggah banner…" : isSubmitting ? "Menyimpan…" : "Buat Acara") : "Lanjut")
-                        {
+                            (isUploadingBanner ? "Mengunggah banner…" : isSubmitting ? "Menyimpan…" : "Buat Acara") : "Lanjut") {
                             if currentStep < totalSteps {
                                 currentStep += 1
                             } else {
@@ -264,8 +263,7 @@ struct CreatingView: View {
             .onChange(of: selectedItem) { _, newItem in
                 Task {
                     if let data = try? await newItem?.loadTransferable(type: Data.self),
-                       let uiImage = UIImage(data: data)
-                    {
+                       let uiImage = UIImage(data: data) {
                         await MainActor.run {
                             selectedImageData = data
                             selectedBannerImage = Image(uiImage: uiImage)

@@ -86,7 +86,7 @@ Kecuali diputuskan lain oleh pemilik produk, fase pertama tidak bertujuan menjad
 - Salinan foto yang dibuat/dipilih oleh .kumpul hanya hidup selama satu sesi App Clip untuk verifikasi dan tidak diunggah atau disimpan; foto asli yang sudah dimiliki pengguna di galeri tidak dihapus oleh aplikasi.
 - Hanya hasil/status pemeriksaan aktif terakhir yang dapat dipertahankan tanpa foto. Percobaan lama yang digantikan dan seluruh data item yang dihapus tidak disimpan.
 - Donor wajib memberikan nama, nomor telepon Indonesia, estimasi berat pakaian yang didonasikan, dan status pakaian; donor anonim tidak diperbolehkan.
-- Checkbox persetujuan syarat dan ketentuan wajib, tetapi naskah legalnya belum tersedia dan menjadi blocker rilis.
+- Checkbox persetujuan syarat dan ketentuan wajib. Untuk MVP, checkbox menampilkan pernyataan: “Dengan melanjutkan, saya memahami bahwa pakaian yang saya serahkan dapat digunakan kembali, disalurkan, atau didaur ulang sesuai dengan kondisinya dan kebutuhan pengelolaan tekstil.”
 - Booking berlaku maksimal 12 jam dan berakhir lebih awal jika event mencapai end datetime.
 - Metode pengiriman MVP dibatasi pada antar langsung, ojek online, dan ekspedisi; ketiganya selalu tersedia dan berupa instruksi manual tanpa integrasi kurir.
 - Label berupa gambar yang dapat disimpan ke galeri dan memuat logo .kumpul, nama event, booking ID, QR, nama donor, serta nama, nomor telepon, dan alamat penerima dari snapshot booking. Barcode selain QR tidak diperlukan.
@@ -366,7 +366,7 @@ Prioritas menggunakan **P0** untuk MVP wajib, **P1** untuk penting setelah fonda
 - **FR-DONOR-01 (P0):** Donor wajib memberikan nama, nomor telepon Indonesia, estimasi berat pakaian yang didonasikan, dan status pemeriksaan pakaian; tidak ada mode donasi anonim.
 - **FR-DONOR-02 (P0):** Nama harus di-trim dan divalidasi panjang minimumnya.
 - **FR-DONOR-03 (P0):** Nomor telepon harus dinormalisasi dan divalidasi untuk Indonesia.
-- **FR-DONOR-04 (P0):** Donor wajib mencentang persetujuan syarat dan ketentuan sebelum melanjutkan; checkbox harus memiliki tautan ke naskah legal yang berlaku.
+- **FR-DONOR-04 (P0):** Donor wajib mencentang persetujuan syarat dan ketentuan sebelum melanjutkan. Untuk MVP, checkbox menampilkan pernyataan persetujuan di aplikasi tanpa URL atau versi Terms/Privacy.
 - **FR-DONOR-05 (P0):** Error harus spesifik, dapat diperbaiki, dan tidak menghapus input.
 - **FR-DONOR-06 (P1):** Data donor yang pernah diketik dapat dipulihkan selama sesi App Clip yang sama bila navigasi mundur.
 - **FR-DONOR-07 (P0):** Pembuat aplikasi bertanggung jawab menulis dan menyetujui naskah syarat, ketentuan, dan kebijakan privasi sebelum production release.
@@ -915,7 +915,7 @@ QR/label, auth, offline sync, serta dashboard/rekap/CSV tetap harus memiliki cov
 - Pengelola login → create → publish event.
 - App Clip invocation valid → event detail yang benar.
 - Donor form validation.
-- Persetujuan syarat dan ketentuan wajib serta link legal dapat dibuka.
+- Persetujuan syarat dan ketentuan wajib sebelum melanjutkan; pernyataan persetujuan MVP tampil di aplikasi.
 - Camera denied → gallery fallback.
 - Satu item lolos pemeriksaan awal → shipping → booking → label.
 - Scan multiple garments → retake.
@@ -1047,7 +1047,7 @@ Seluruh pertanyaan produk yang diajukan selama penyusunan PRD telah ditutup. Thr
 64. **Retensi:** donor/booking satu bulan sejak event menjadi Selesai, Ditutup, atau Dibatalkan; audit log satu bulan sejak audit dibuat.
 65. **Skala:** lima event Akan Datang/Berlangsung per Pengelola dan baseline 1.000 booking per hari di seluruh platform.
 66. **Item dihapus:** seluruh riwayat scan nonfoto ikut dihapus.
-67. **Dokumen legal:** pembuat aplikasi bertanggung jawab menulis dan menyetujuinya.
+67. **Dokumen legal:** MVP memakai pernyataan persetujuan di aplikasi tanpa URL atau versi Terms/Privacy.
 68. **Status booking:** Menunggu, Diterima, Ditolak, Kedaluwarsa, dan Dibatalkan; tidak ada Dalam Pengiriman.
 69. **Selesai dan Ditutup:** Ditutup dilakukan manual untuk menghentikan event lebih awal. Selesai terjadi otomatis pada end datetime dan langsung menutup event secara operasional tanpa perlu status Ditutup berikutnya.
 70. **Expiry booking:** waktu lebih awal antara 12 jam setelah booking dibuat dan event selesai.

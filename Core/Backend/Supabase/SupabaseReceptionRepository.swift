@@ -15,7 +15,7 @@ actor SupabaseReceptionRepository: ReceptionRepository {
         try await edge.decideReception(input)
     }
 
-    func advanceTracking(bookingId: UUID, status: BookingStatusCode) async throws -> ReceptionDecisionData {
+    func advanceTracking(bookingId: UUID, status: BookingStatusCode) async throws -> TrackingMutationData {
         try await edge.advanceTracking(bookingId: bookingId, status: status)
     }
 }

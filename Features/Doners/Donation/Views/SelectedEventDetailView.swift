@@ -27,11 +27,8 @@ struct SelectedEventDetailView: View {
                 if let detail = model.detail {
                     content(detail)
                 } else if model.isLoading {
-                    VStack {
-                        ProgressView("Memuat acara…")
-                        Spacer()
-                    }
-                    .frame(maxWidth: .infinity, minHeight: 320)
+                    SelectedEventDetailSkeleton()
+                        .skeleton(isLoading: true)
                 } else if let errorMessage = model.errorMessage {
                     VStack(spacing: 12) {
                         Text(errorMessage)
@@ -83,19 +80,13 @@ struct SelectedEventDetailView: View {
                 // MARK: - Banner
 
                 Group {
-                    if let bannerURL = model.bannerURL() {
-                        AsyncImage(url: bannerURL) { image in
-                            image.resizable().scaledToFill()
-                        } placeholder: {
-                            Image("Image 2").resizable().scaledToFill()
-                        }
-                    } else {
-                        Image("Image 2")
-                            .resizable()
-                            .scaledToFit()
-                    }
+                    LoadableEventImage(
+                        localImage: nil,
+                        remoteURL: model.bannerURL(),
+                        unavailableLabel: "Banner acara tidak tersedia"
+                    )
                 }
-                .frame(width: 330)
+                .frame(width: 330, height: 330)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
 
                 // MARK: - Title
@@ -272,6 +263,33 @@ struct SelectedEventDetailView: View {
         default:
             "-"
         }
+    }
+}
+
+private struct SelectedEventDetailSkeleton: View {
+    var body: some View {
+        VStack(spacing: 20) {
+            SkeletonBlock(cornerRadius: 16)
+                .frame(width: 330, height: 330)
+            SkeletonBlock(cornerRadius: 5)
+                .frame(width: 230, height: 28)
+            SkeletonBlock(cornerRadius: 5)
+                .frame(width: 150, height: 18)
+            SkeletonBlock(cornerRadius: 5)
+                .frame(width: 170, height: 16)
+            VStack(alignment: .leading, spacing: 12) {
+                SkeletonBlock(cornerRadius: 5)
+                    .frame(width: 130, height: 20)
+                SkeletonBlock(cornerRadius: 16)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 80)
+                SkeletonBlock(cornerRadius: 16)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 140)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 16)
     }
 }
 

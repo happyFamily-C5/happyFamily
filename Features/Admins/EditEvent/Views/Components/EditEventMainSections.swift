@@ -4,12 +4,13 @@ import SwiftUI
 
 struct EditEventBannerSection: View {
     let selectedImageData: Data?
+    let remoteURL: URL?
     var onTap: () -> Void
 
     var body: some View {
         Button(action: onTap) {
             ZStack(alignment: .bottomLeading) {
-                EditEventBannerImage(imageData: selectedImageData)
+                EditEventBannerImage(imageData: selectedImageData, remoteURL: remoteURL)
                     .frame(height: 184)
                     .frame(maxWidth: .infinity)
                     .clipShape(RoundedRectangle(cornerRadius: 16))

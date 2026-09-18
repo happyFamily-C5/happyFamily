@@ -191,20 +191,10 @@ orphan cleanup.
 }
 ```
 
-`event_detail.data.legal` selalu berisi versi dan URL legal aktif untuk
-environment server:
-
-```json
-{
-  "terms_version": "terms-v1",
-  "terms_url": "https://example.com/terms",
-  "privacy_version": "privacy-v1",
-  "privacy_url": "https://example.com/privacy"
-}
-```
-
-UI harus memakai `terms_version` dan `privacy_version` ini saat membuat
-booking; jangan meng-hardcode versi legal di aplikasi.
+MVP mewajibkan donor menerima pernyataan persetujuan di aplikasi sebelum
+membuat booking. `event_detail` tidak mengembalikan URL atau versi Terms/Privacy,
+dan body booking tidak mengirim field tersebut. Server merekam `consented_at`
+ketika booking dibuat.
 
 `bookable` sudah memperhitungkan waktu server, kapasitas, dan booking aktif
 donor tersebut. UI tetap harus menangani `CAPACITY_EXCEEDED` karena kapasitas
@@ -224,9 +214,7 @@ adalah invariant transaksional dan dapat berubah secara bersamaan.
       "metadata": {}
     }],
     "shipping_method": "direct",
-    "scan_model_version": "model-version",
-    "terms_version": "legal-version",
-    "privacy_version": "legal-version"
+    "scan_model_version": "model-version"
   }
 }
 ```
@@ -314,6 +302,14 @@ workspace.
 Hanya Admin dari workspace yang sesuai yang dapat resolve QR. Jangan mencoba
 resolve QR di client donor atau memakai `public_booking_id` sebagai kredensial.
 
+`resolve_qr.data.event_snapshot` adalah snapshot immutable yang disalin saat
+booking dibuat dari `private.event_user_json`. Bentuknya sama dengan
+`DonorEventDTO`, bukan `PublicEventDTO`; karena itu snapshot membawa field
+donor seperti `reserved_weight_grams`, `used_weight_grams`, dan
+`organization_name`, sementara metadata ketersediaan event seperti
+`availability` tidak ada. Field branding, jarak, banner, dan receiver dapat
+bernilai `null` pada data historis dan client harus menanganinya.
+
 ```json
 {
   "action": "decide_reception",
@@ -328,6 +324,18 @@ wajib positif, tidak boleh melampaui limit event, dan harus masih muat di
 kapasitas transaksional. Untuk `rejected`, jangan kirim actual weight atau
 alasan; MVP hanya mencatat penolakan Admin.
 
+Respons sukses `decide_reception` hanya membawa identitas booking dan status
+terbaru. Nilai kapasitas tidak dikirim oleh mutation ini; gunakan endpoint
+history atau recap bila UI membutuhkan agregat kapasitas terbaru.
+
+```json
+{
+  "booking_id": "uuid",
+  "public_booking_id": "KMP-TEST-001",
+  "status": "accepted"
+}
+```
+
 ```json
 {
   "action": "advance_tracking",
@@ -338,6 +346,8 @@ alasan; MVP hanya mencatat penolakan Admin.
 
 Tracking hanya menerima `processed` setelah `accepted`, lalu `recycled`
 setelah `processed`; transisi lain menghasilkan `INVALID_BOOKING_TRANSITION`.
+Respons sukses tracking berbentuk `booking_id`, `status`, dan
+`status_updated_at`.
 
 ## 6. `POST /admin-banner`
 

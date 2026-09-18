@@ -27,6 +27,10 @@ struct OrganizerOperationsClientTests {
         #expect(json["action"] as? String == "resolve_qr")
         #expect(json["qr_token"] as? String == token)
         #expect(booking.bookingId == UUID(uuidString: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"))
+        #expect(booking.eventSnapshot.reservedWeightGrams == 500)
+        #expect(booking.eventSnapshot.usedWeightGrams == 500)
+        #expect(booking.eventSnapshot.organizationName == "Workspace")
+        #expect(booking.eventSnapshot.bannerObjectPath == nil)
     }
 
     @Test("resolveQR decodes an event snapshot without a description")
@@ -235,8 +239,12 @@ struct OrganizerOperationsClientTests {
         let recorder = RequestRecorder()
         URLProtocolStub.requestHandler = { request in
             recorder.record(request)
+            let action = request.jsonBody?["action"] as? String
+            let responseData = action == "advance_tracking"
+                ? trackingMutationJSON()
+                : receptionDecisionJSON()
             let data = try JSONSerialization.data(withJSONObject: [
-                "data": receptionDecisionJSON(), "error": NSNull(),
+                "data": responseData, "error": NSNull(),
                 "request_id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
                 "server_time": "2026-09-10T01:00:00Z",
             ])
@@ -249,8 +257,14 @@ struct OrganizerOperationsClientTests {
             idempotencyKey: "reception-\(bookingId.uuidString)", requestId: UUID()
         )
 
-        _ = try await makeClient().decideReception(input)
-        _ = try await makeClient().advanceTracking(bookingId: bookingId, status: .processed)
+        let receptionResult = try await makeClient().decideReception(input)
+        #expect(receptionResult.bookingId == bookingId)
+        #expect(receptionResult.publicBookingId == "KMP-TEST-001")
+        #expect(receptionResult.status == .accepted)
+
+        let trackingResult = try await makeClient().advanceTracking(bookingId: bookingId, status: .processed)
+        #expect(trackingResult.bookingId == bookingId)
+        #expect(trackingResult.status == .processed)
 
         let requests = recorder.snapshot()
         let reception = try #require(requests.first)
@@ -641,25 +655,26 @@ private func resolvedQRJSON(eventDescription: Any = "Deskripsi") -> [String: Any
             "name": "Acara Uji",
             "description": eventDescription,
             "status": "ongoing",
-            "availability": "available",
             "start_at": "2026-02-14T00:00:00Z",
             "end_at": "2026-02-21T00:00:00Z",
             "timezone_name": "Asia/Jakarta",
-            "operational_days": [6, 7],
-            "opens_at_local": "08:00:00",
-            "closes_at_local": "17:00:00",
             "location_name": "Jakarta",
             "location_address": "Jl. Test",
             "latitude": -6.2,
             "longitude": 106.8,
             "capacity_grams": 10000,
             "received_weight_grams": 0,
-            "banner_object_path": "workspace/banner.png",
+            "reserved_weight_grams": 500,
+            "used_weight_grams": 500,
+            "max_donation_per_user_grams": 1000,
+            "banner_object_path": NSNull(),
             "receiver_name": "Workspace",
             "receiver_phone": "+6281234567890",
             "receiver_address": "Jl. Workspace",
+            "organization_name": "Workspace",
+            "organization_logo_object_path": NSNull(),
+            "distance_km": NSNull(),
             "criteria": ["cotton"],
-            "version": 1,
         ],
     ]
 }
@@ -669,9 +684,14 @@ private func receptionDecisionJSON() -> [String: Any] {
         "booking_id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
         "public_booking_id": "KMP-TEST-001",
         "status": "accepted",
-        "received_weight_grams": 750,
-        "capacity_grams": 10000,
-        "capacity_full": false,
+    ]
+}
+
+private func trackingMutationJSON() -> [String: Any] {
+    [
+        "booking_id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+        "status": "processed",
+        "status_updated_at": "2026-09-10T02:00:00Z",
     ]
 }
 

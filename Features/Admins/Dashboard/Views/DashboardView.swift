@@ -61,8 +61,7 @@ struct DashboardView: View {
         ZStack(alignment: .bottom) {
             Group {
                 if model.isLoading, model.events.isEmpty {
-                    ProgressView("Memuat acara…")
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    AdminDashboardSkeleton()
                 } else if !hasAnyEvent {
                     // MARK: - 1. Empty State Murni
 
@@ -131,7 +130,8 @@ struct DashboardView: View {
                                             HStack(spacing: 0) {
                                                 ForEach(ongoingEvents) { event in
                                                     OngoingEventBanner(
-                                                        bannerImage: event.bannerImage,
+                                                        bannerImage: event.localBannerImage,
+                                                        bannerURL: model.bannerURL(for: event.bannerObjectPath),
                                                         title: event.name,
                                                         date: event.formattedDateRange
                                                     ) {
@@ -165,7 +165,8 @@ struct DashboardView: View {
                                             HStack(spacing: 16) {
                                                 ForEach(upcomingEvents) { event in
                                                     EventCard(
-                                                        cardImage: event.bannerImage,
+                                                        cardImage: event.localBannerImage,
+                                                        bannerURL: model.bannerURL(for: event.bannerObjectPath),
                                                         title: event.name,
                                                         date: event.formattedDateRange
                                                     ) {
@@ -316,6 +317,7 @@ struct DashboardView: View {
         .fullScreenCover(item: $selectedEvent) { event in
             EventDetailView(
                 event: event,
+                bannerURL: model.bannerURL(for: event.bannerObjectPath),
                 onBackTapped: { selectedEvent = nil },
                 onShareTapped: {
                     if model.publishedInvocationURL != nil {
@@ -373,5 +375,69 @@ struct DashboardView: View {
     NavigationStack {
         DashboardView()
             .environment(AppRouter())
+    }
+}
+
+private struct AdminDashboardSkeleton: View {
+    var body: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 20) {
+                HStack {
+                    SkeletonBlock(cornerRadius: 20)
+                        .frame(width: 48, height: 48)
+                    Spacer()
+                    SkeletonBlock(cornerRadius: 20)
+                        .frame(width: 48, height: 48)
+                }
+                .padding(.horizontal, 20)
+
+                SkeletonBlock(cornerRadius: 6)
+                    .frame(width: 130, height: 20)
+                    .padding(.horizontal, 16)
+
+                VStack(alignment: .leading, spacing: 16) {
+                    SkeletonBlock(cornerRadius: 6)
+                        .frame(width: 190, height: 22)
+
+                    SkeletonBlock(cornerRadius: 16)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 180)
+                }
+                .padding(.horizontal, 16)
+
+                VStack(alignment: .leading, spacing: 12) {
+                    SkeletonBlock(cornerRadius: 6)
+                        .frame(width: 160, height: 22)
+
+                    HStack(spacing: 16) {
+                        ForEach(0 ..< 2, id: \.self) { _ in
+                            VStack(alignment: .leading, spacing: 8) {
+                                SkeletonBlock(cornerRadius: 16)
+                                    .frame(width: 170, height: 140)
+                                SkeletonBlock(cornerRadius: 5)
+                                    .frame(width: 130, height: 15)
+                                SkeletonBlock(cornerRadius: 5)
+                                    .frame(width: 100, height: 12)
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, 16)
+
+                VStack(alignment: .leading, spacing: 12) {
+                    SkeletonBlock(cornerRadius: 6)
+                        .frame(width: 140, height: 22)
+                    SkeletonBlock(cornerRadius: 16)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 100)
+                }
+                .padding(.horizontal, 16)
+
+                Spacer().frame(height: 100)
+            }
+            .padding(.top, 20)
+            .padding(.bottom, 32)
+            .skeleton(isLoading: true)
+        }
     }
 }

@@ -36,13 +36,12 @@ struct AdminEvent: Identifiable {
     /// Per-donor donation limit in kilograms (backend: grams).
     var maxDonationPerUserKg: Int?
 
-    /// The organiser's cover, falling back to the placeholder when they
-    /// skipped the picker (the cover is optional in step 1).
-    var bannerImage: Image {
+    /// The organiser's local cover, if one was selected or cached.
+    var localBannerImage: Image? {
         if let bannerImageData, let uiImage = UIImage(data: bannerImageData) {
             return Image(uiImage: uiImage)
         }
-        return Image("DummyImageBanner")
+        return nil
     }
 
     init(

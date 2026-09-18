@@ -34,10 +34,7 @@ final class DonorHomeModel {
     }
 
     func bannerURL(for event: DonorEventDTO) -> URL? {
-        guard let backendBaseURL, let path = event.bannerObjectPath, !path.isEmpty else { return nil }
-        return backendBaseURL
-            .appending(path: "storage/v1/object/public/event-banners", directoryHint: .isDirectory)
-            .appending(path: path)
+        EventBannerURLBuilder.makeURL(baseURL: backendBaseURL, objectPath: event.bannerObjectPath)
     }
 
     func distanceText(for event: DonorEventDTO) -> String? {

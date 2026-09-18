@@ -40,12 +40,10 @@ final class DonorEventDetailModel {
     }
 
     func bannerURL() -> URL? {
-        guard let backendBaseURL, let path = detail?.event.bannerObjectPath, !path.isEmpty else {
-            return nil
-        }
-        return backendBaseURL
-            .appending(path: "storage/v1/object/public/event-banners", directoryHint: .isDirectory)
-            .appending(path: path)
+        EventBannerURLBuilder.makeURL(
+            baseURL: backendBaseURL,
+            objectPath: detail?.event.bannerObjectPath
+        )
     }
 
     /// "09.00 - 16.00" style operating window from the event schedule.

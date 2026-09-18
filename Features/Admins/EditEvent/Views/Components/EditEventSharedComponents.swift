@@ -58,6 +58,7 @@ struct EditEventPlainTitle: View {
 
 struct EditEventBannerImage: View {
     let imageData: Data?
+    let remoteURL: URL?
 
     var body: some View {
         if let imageData, let uiImage = UIImage(data: imageData) {
@@ -65,9 +66,11 @@ struct EditEventBannerImage: View {
                 .resizable()
                 .scaledToFill()
         } else {
-            Image("DummyImageBanner")
-                .resizable()
-                .scaledToFill()
+            LoadableEventImage(
+                localImage: nil,
+                remoteURL: remoteURL,
+                unavailableLabel: "Banner acara tidak tersedia"
+            )
         }
     }
 }

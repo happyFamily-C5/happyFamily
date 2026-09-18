@@ -95,25 +95,12 @@ private struct DonorEventHistoryRow: View {
         }
     }
 
-    @ViewBuilder
     private var banner: some View {
-        if let bannerURL {
-            AsyncImage(url: bannerURL) { phase in
-                if let image = phase.image {
-                    image.resizable().scaledToFill()
-                } else {
-                    placeholder
-                }
-            }
-        } else {
-            placeholder
-        }
-    }
-
-    private var placeholder: some View {
-        Image("DummyImageBanner")
-            .resizable()
-            .scaledToFill()
+        LoadableEventImage(
+            localImage: nil,
+            remoteURL: bannerURL,
+            unavailableLabel: "Banner acara tidak tersedia"
+        )
     }
 
     private var dateRangeText: String {

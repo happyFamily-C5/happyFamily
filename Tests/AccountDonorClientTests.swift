@@ -94,8 +94,8 @@ struct AccountDonorClientTests {
         #expect(booking["item_count"] as? Int == 2)
         #expect(booking["shipping_method"] as? String == "direct")
         #expect((booking["items"] as? [[String: Any]])?.count == 2)
-        #expect(booking["terms_version"] as? String == "terms-v1")
-        #expect(booking["privacy_version"] as? String == "privacy-v1")
+        #expect(booking["terms_version"] == nil)
+        #expect(booking["privacy_version"] == nil)
         #expect(booking["donor_name"] == nil)
 
         #expect(result.bookingId == UUID(uuidString: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"))
@@ -132,8 +132,8 @@ struct AccountDonorClientTests {
         #expect(dashboard.recommendedEvents.isEmpty)
     }
 
-    @Test("eventDetail decodes event, availability, and legal documents")
-    func eventDetailDecodesAvailabilityAndLegal() async throws {
+    @Test("eventDetail decodes event and availability")
+    func eventDetailDecodesAvailability() async throws {
         URLProtocolStub.requestHandler = { request in
             let data = try JSONSerialization.data(withJSONObject: [
                 "data": [
@@ -158,12 +158,6 @@ struct AccountDonorClientTests {
                         "available_weight_grams": 8500,
                     ],
                     "already_booked": false,
-                    "legal": [
-                        "terms_version": "terms-v1",
-                        "terms_url": "https://example.invalid/terms",
-                        "privacy_version": "privacy-v1",
-                        "privacy_url": "https://example.invalid/privacy",
-                    ],
                 ],
                 "error": NSNull(),
                 "request_id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
@@ -181,8 +175,6 @@ struct AccountDonorClientTests {
         #expect(detail.availability.bookable)
         #expect(detail.availability.availableWeightGrams == 8500)
         #expect(!detail.alreadyBooked)
-        #expect(detail.legal.termsVersion == "terms-v1")
-        #expect(detail.legal.privacyURL.absoluteString == "https://example.invalid/privacy")
     }
 
     @Test("myBookings decodes the bare array with availability-free snapshots")
@@ -329,9 +321,7 @@ private func bookingBody() -> AccountBookingBody {
             AccountBookingItem(ordinal: 1, passed: true, scannerModelVersion: "accessory-head-v1", metadata: [:]),
         ],
         shippingMethod: .direct,
-        scanModelVersion: "accessory-head-v1",
-        termsVersion: "terms-v1",
-        privacyVersion: "privacy-v1"
+        scanModelVersion: "accessory-head-v1"
     )
 }
 

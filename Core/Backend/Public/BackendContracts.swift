@@ -177,7 +177,9 @@ struct ResolvedQRBooking: Decodable, Equatable, Sendable {
     let estimatedWeightGrams: Int64
     let itemCount: Int
     let shippingMethod: ShippingMethodCode
-    let eventSnapshot: PublicEventDTO
+    /// `operations:resolve_qr` returns the immutable booking snapshot created
+    /// by `private.event_user_json`, which has the donor event shape.
+    let eventSnapshot: DonorEventDTO
     let donorName: String
     let donorPhone: String
 }
@@ -186,9 +188,12 @@ struct ReceptionDecisionData: Decodable, Equatable, Sendable {
     let bookingId: UUID
     let publicBookingId: String
     let status: BookingStatusCode
-    let receivedWeightGrams: Int64
-    let capacityGrams: Int64
-    let capacityFull: Bool
+}
+
+struct TrackingMutationData: Decodable, Equatable, Sendable {
+    let bookingId: UUID
+    let status: BookingStatusCode
+    let statusUpdatedAt: Date
 }
 
 struct PublishEventData: Decodable, Equatable, Sendable {

@@ -40,7 +40,10 @@ export type BookingInput = {
  * absent: the Edge Function obtains the name and phone number from the
  * authenticated profile before it encrypts them for the booking record.
  */
-export type AccountBookingInput = Omit<BookingInput, "invocation_token" | "donor_name" | "phone">;
+export type AccountBookingInput = Omit<
+  BookingInput,
+  "invocation_token" | "donor_name" | "phone" | "terms_version" | "privacy_version"
+>;
 
 function requiredString(value: unknown, field: string, max: number): string {
   if (typeof value !== "string" || value.trim().length < 1 || value.trim().length > max) {
@@ -140,8 +143,6 @@ export function validateAccountBooking(body: Record<string, unknown>): AccountBo
     "items",
     "shipping_method",
     "scan_model_version",
-    "terms_version",
-    "privacy_version",
   ]);
   const unknown = Object.keys(body).filter((key) => !allowed.has(key));
   if (unknown.length > 0) {
@@ -151,15 +152,23 @@ export function validateAccountBooking(body: Record<string, unknown>): AccountBo
     throw new ApiError("UNKNOWN_FIELD", 422);
   }
 
-  // Reuse the single item/weight/consent validator without accepting or
+  // Reuse the legacy item/weight validator without accepting or
   // trusting a donor identity from an authenticated client.
   const validated = validateBooking({
     ...body,
     invocation_token: "account",
     donor_name: "account",
     phone: "+62800000000",
+    terms_version: "mvp-not-submitted",
+    privacy_version: "mvp-not-submitted",
   });
-  const { invocation_token: _invocationToken, donor_name: _donorName, phone: _phone, ...booking } =
-    validated;
+  const {
+    invocation_token: _invocationToken,
+    donor_name: _donorName,
+    phone: _phone,
+    terms_version: _termsVersion,
+    privacy_version: _privacyVersion,
+    ...booking
+  } = validated;
   return booking;
 }

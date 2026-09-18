@@ -1,6 +1,15 @@
 import Foundation
 import Observation
 
+enum EventBannerURLBuilder {
+    static func makeURL(baseURL: URL?, objectPath: String?) -> URL? {
+        guard let baseURL, let objectPath, !objectPath.isEmpty else { return nil }
+        return baseURL
+            .appending(path: "storage/v1/object/public/event-banners", directoryHint: .isDirectory)
+            .appending(path: objectPath)
+    }
+}
+
 extension Notification.Name {
     /// Emitted after an Admin mutation changes event capacity, reception, or
     /// tracking totals that are also rendered by the dashboard recap.
@@ -63,7 +72,6 @@ final class DashboardModel {
             events = page.events
             nextCursor = page.cursor
             errorMessage = nil
-            await preloadMissingBanners()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -79,7 +87,6 @@ final class DashboardModel {
             events.append(contentsOf: page.events.filter { !known.contains($0.id) })
             self.nextCursor = page.cursor
             errorMessage = nil
-            await preloadMissingBanners()
         } catch let BackendError.api(code, _, _, _) where code == "CURSOR_INVALID" {
             await load()
         } catch {
@@ -99,20 +106,8 @@ final class DashboardModel {
         }
     }
 
-    /// Downloads banners for events that only carry a `banner_object_path`
-    /// (e.g. published remotely) so `bannerImage` can render them offline.
-    private func preloadMissingBanners() async {
-        guard let backendBaseURL else { return }
-        let storageBase = backendBaseURL
-            .appending(path: "storage/v1/object/public/event-banners", directoryHint: .isDirectory)
-        for index in events.indices {
-            guard events[index].bannerImageData == nil,
-                  let path = events[index].bannerObjectPath else { continue }
-            let url = storageBase.appending(path: path)
-            if let (data, _) = try? await URLSession.shared.data(from: url), !data.isEmpty {
-                events[index].bannerImageData = data
-            }
-        }
+    func bannerURL(for objectPath: String?) -> URL? {
+        EventBannerURLBuilder.makeURL(baseURL: backendBaseURL, objectPath: objectPath)
     }
 
     @discardableResult

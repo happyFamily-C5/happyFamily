@@ -117,7 +117,7 @@ Semua body memiliki field `action`. Endpoint ini dipakai oleh donor serta profil
 | `delete_account` | donor/admin | — | hapus identitas actor; media dibersihkan best-effort |
 | `update_workspace` | admin | nama, alamat, telepon, email, logo path | profil workspace |
 | `dashboard` | donor | — | profil completion dan rail event |
-| `event_detail` | donor | `event_id` | detail event, availability, legal aktif |
+| `event_detail` | donor | `event_id` | detail event dan availability |
 | `my_bookings` | donor | — | booking non-cancelled milik donor |
 | `booking_detail` | donor atau admin workspace | `booking_id` | detail/timeline; QR hanya untuk donor pemilik |
 | `donation_history` | donor | `limit?`, `cursor?` | riwayat booking donor |
@@ -138,15 +138,13 @@ Semua body memiliki field `action`. Endpoint ini dipakai oleh donor serta profil
     "metadata": {}
   }],
   "shipping_method": "direct",
-  "scan_model_version": "model-version",
-  "terms_version": "terms-version-from-event-detail",
-  "privacy_version": "privacy-version-from-event-detail"
+  "scan_model_version": "model-version"
 }
 ```
 
 Validasi booking menolak field tak dikenal, foto/path/URL/blob/embedding/history scanner, item yang tidak `passed`, metadata lebih dari 2 KiB, dan bobot tidak valid. Pilihan `shipping_method` adalah `direct`, `ojek_online`, atau `expedition`.
 
-`event_detail` mengembalikan versi dan URL Terms/Privacy aktif. UI wajib meneruskan versinya pada booking, bukan meng-hardcode versi legal. QR token adalah token opaque sensitif: iOS menyimpannya per booking di Keychain dan tidak boleh mengirimkannya ke analytics atau log.
+MVP mengharuskan donor mencentang pernyataan persetujuan di aplikasi sebelum booking. `event_detail` dan payload booking tidak memakai URL atau versi Terms/Privacy; backend merekam `consented_at` pada booking baru. QR token adalah token opaque sensitif: iOS menyimpannya per booking di Keychain dan tidak boleh mengirimkannya ke analytics atau log.
 
 ### 5.2 `POST /operations`
 
@@ -163,7 +161,7 @@ Hanya untuk admin workspace aktif. Semua input menggunakan `action`.
 | `donation_history` | `event_id?`, `limit?`, `cursor?` | riwayat donasi workspace |
 | `event_history` | `event_id?`, `limit?`, `cursor?` | riwayat event workspace |
 | `resolve_qr` | `qr_token` | booking yang boleh diproses dan PII terbuka untuk admin sah |
-| `decide_reception` | booking, decision, actual weight, header idempotency | hasil reception dan kapasitas |
+| `decide_reception` | booking, decision, actual weight, header idempotency | booking dan status hasil reception |
 | `advance_tracking` | booking, `processed | recycled`, header idempotency | status tracking terbaru |
 
 Draft event memuat jadwal, alamat/koordinat Indonesia, kapasitas dalam gram, limit donasi per donor, banner, dan criteria. Criteria yang diizinkan: `cotton`, `linen`, `rayon`, `wool`, `tencel`, `silk`, `non_stretch`, `denim`, `no_lace`, `polyester`.
@@ -205,7 +203,7 @@ Pagination memakai cursor opaque. `limit` positif dengan maksimum 100; respons b
 | `workspaces` | satu workspace milik admin; identitas kantor, status, dan logo. |
 | `events` | event milik workspace; jadwal, lokasi, banner, kapasitas, bobot diterima/dicadangkan, receiver snapshot, dan limit donor. |
 | `event_criteria` | criteria material per event. |
-| `bookings` | booking event/workspace; donor account, snapshot event, bobot, shipping, consent legal, status, QR/PII terenkripsi. |
+| `bookings` | booking event/workspace; donor account, snapshot event, bobot, shipping, waktu persetujuan MVP, status, QR/PII terenkripsi. |
 | `booking_items` | item yang lolos scan dalam booking. |
 | `receptions` | keputusan penerimaan admin dan berat aktual. |
 | `booking_status_events` | timeline append-only transisi booking dengan actor dan request ID. |
@@ -216,7 +214,7 @@ Pagination memakai cursor opaque. `limit` positif dengan maksimum 100; respons b
 | --- | --- |
 | `event_invocations` | token invocation event terenkripsi dan dapat dicabut; dipertahankan untuk kompatibilitas lifecycle. |
 | `idempotency_keys` | request hash, scope actor, response durable, dan expiry idempotency. |
-| `legal_document_versions` | versi Terms dan Privacy aktif per environment. |
+| `legal_document_versions` | data Terms dan Privacy lama yang dipertahankan untuk kompatibilitas dan histori; bukan bagian dari alur iOS MVP aktif. |
 | `audit_events` | jejak tindakan domain beserta request ID dan metadata aman. |
 | `impact_aggregates` | agregat dampak per workspace/event/periode. |
 | `job_runs` | status, hasil, dan error aman background job. |
