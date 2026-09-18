@@ -284,6 +284,11 @@ struct OrganizerOperationsClientTests {
             recorder.record(request)
             let data = try JSONSerialization.data(withJSONObject: [
                 "data": [
+                    "daily": [[
+                        "date": "2026-09-10",
+                        "accepted_weight_grams": 750,
+                        "accepted_count": 1,
+                    ]],
                     "month": ["accepted_weight_grams": 750, "accepted_count": 1, "unique_donor_count": 1],
                     "recent_donations": [[
                         "booking_id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
@@ -302,7 +307,9 @@ struct OrganizerOperationsClientTests {
 
         let request = try #require(recorder.snapshot().first)
         #expect(request.jsonBody?["action"] as? String == "recap")
+        #expect(request.jsonBody?["days"] as? Int == 7)
         #expect(recap.month.acceptedWeightGrams == 750)
+        #expect(recap.daily.first?.acceptedWeightGrams == 750)
         #expect(recap.recentDonations.first?.donorName == "Donor Uji")
     }
 

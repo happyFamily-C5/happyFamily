@@ -16,6 +16,7 @@ struct DashboardView: View {
     /// Sumber data: cache backend (DashboardModel), bukan state lokal.
     @State private var model = DashboardModel(
         repository: BackendDependencies.eventRepository(),
+        reportRepository: BackendDependencies.reportRepositoryOrDefault(),
         backendBaseURL: BackendDependencies.backendBaseURL()
     )
 
@@ -210,12 +211,37 @@ struct DashboardView: View {
                                         isShowingRecapDonation = true
                                     }
 
-                                    RecapCard(
-                                        isDataEmpty: model.isRecapDataEmpty,
-                                        totalWeight: model.recapTotalWeightText,
-                                        periodTitle: "Bulan ini"
-                                    ) {
-                                        isShowingRecapDonation = true
+                                    if !model.hasLoadedRecap || model.isRecapLoading {
+                                        ProgressView("Memuat rekap…")
+                                            .frame(maxWidth: .infinity, minHeight: 150)
+                                    } else if model.recap == nil {
+                                        VStack(spacing: 8) {
+                                            Text(model.recapErrorMessage ?? "Rekap belum tersedia.")
+                                                .font(.footnote)
+                                                .foregroundColor(.secondary)
+                                                .multilineTextAlignment(.center)
+                                            Button("Muat ulang rekap") {
+                                                Task { await model.refreshRecap() }
+                                            }
+                                        }
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.horizontal, 16)
+                                    } else {
+                                        RecapCard(
+                                            isDataEmpty: model.isRecapDataEmpty,
+                                            chartData: model.dailyChartTuples
+                                        ) {
+                                            isShowingRecapDonation = true
+                                        }
+
+                                        if let recapErrorMessage = model.recapErrorMessage {
+                                            Button("Muat ulang rekap") {
+                                                Task { await model.refreshRecap() }
+                                            }
+                                            .font(.footnote)
+                                            .frame(maxWidth: .infinity)
+                                            .accessibilityHint(recapErrorMessage)
+                                        }
                                     }
                                 }
                             }
@@ -224,16 +250,17 @@ struct DashboardView: View {
                         }
                     }
                     .scrollDismissesKeyboard(.immediately)
+                    .refreshable {
+                        await model.refresh()
+                    }
                 }
             }
             .task {
-                await model.load()
-                await model.loadRecap()
+                await model.refresh()
             }
             .onReceive(NotificationCenter.default.publisher(for: .adminOperationsDidChange)) { _ in
                 Task {
-                    await model.load()
-                    await model.refreshRecap()
+                    await model.refresh()
                 }
             }
 

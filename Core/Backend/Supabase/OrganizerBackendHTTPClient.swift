@@ -337,7 +337,7 @@ private struct AdvanceTrackingRequest: Encodable, Sendable {
 private struct RecapRequest: Encodable, Sendable {
     let action = "recap"
     let eventId: UUID?
-    let days = 31
+    let days = 7
 }
 
 private struct DonationHistoryRequest: Encodable, Sendable {

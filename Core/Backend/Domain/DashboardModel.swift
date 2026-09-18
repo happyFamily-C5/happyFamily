@@ -25,6 +25,8 @@ final class DashboardModel {
     private(set) var nextCursor: String?
     private(set) var recap: AdminRecapData?
     private(set) var isRecapLoading = false
+    private(set) var hasLoadedRecap = false
+    var recapErrorMessage: String?
     var errorMessage: String?
 
     /// Invocation URL of the most recent successful publish; nil until a
@@ -51,6 +53,12 @@ final class DashboardModel {
         guard let recap else { return true }
         return recap.month.acceptedCount == 0
             && recap.month.acceptedWeightGrams == 0
+            && recap.daily.allSatisfy { $0.acceptedCount == 0 && $0.acceptedWeightGrams == 0 }
+            && recap.recentDonations.isEmpty
+    }
+
+    var dailyChartTuples: [DonationChartMapper.ChartTuple] {
+        DonationChartMapper.chartTuples(from: recap?.daily ?? [])
     }
 
     /// Total collected weight formatted in Indonesian kilograms ("1.045 kg").
@@ -95,14 +103,20 @@ final class DashboardModel {
     }
 
     func loadRecap() async {
-        guard let reportRepository else { return }
+        guard let reportRepository else {
+            hasLoadedRecap = true
+            recapErrorMessage = "Konfigurasi backend belum lengkap."
+            return
+        }
         isRecapLoading = true
         defer { isRecapLoading = false }
         do {
             recap = try await reportRepository.recap(eventId: nil)
+            hasLoadedRecap = true
+            recapErrorMessage = nil
         } catch {
-            // Recap is a secondary surface; a failure leaves the previous
-            // value (or the empty state) intact without alarming the user.
+            hasLoadedRecap = true
+            recapErrorMessage = error.localizedDescription
         }
     }
 
@@ -165,5 +179,11 @@ final class DashboardModel {
     /// Re-runs recap aggregation after a mutation (draft/publish/etc.).
     func refreshRecap() async {
         await loadRecap()
+    }
+
+    func refresh() async {
+        async let events: Void = load()
+        async let recap: Void = loadRecap()
+        _ = await (events, recap)
     }
 }

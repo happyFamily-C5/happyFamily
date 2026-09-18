@@ -29,6 +29,51 @@ struct DonationChartBar: Equatable, Sendable {
     let weightGrams: Int64
 }
 
+enum DonationChartMapper {
+    typealias ChartTuple = (day: String, height: CGFloat, weightLabel: String?)
+
+    static func chartTuples(from daily: [AdminRecapData.Daily]) -> [ChartTuple] {
+        let bars = daily.map { row in
+            DonationChartBar(
+                dayLabel: dayLabel(for: row.date),
+                weightGrams: row.acceptedWeightGrams
+            )
+        }
+        let maxGrams = bars.map(\.weightGrams).max() ?? 0
+        let minHeight: CGFloat = 40
+        let maxHeight: CGFloat = 130
+
+        return bars.map { bar in
+            let ratio = maxGrams > 0
+                ? CGFloat(bar.weightGrams) / CGFloat(maxGrams)
+                : 0
+            let isPeak = bar.weightGrams == maxGrams && maxGrams > 0
+            return (
+                day: bar.dayLabel,
+                height: minHeight + ratio * (maxHeight - minHeight),
+                weightLabel: isPeak
+                    ? String(format: "%.1f kg", Double(bar.weightGrams) / 1000)
+                    : nil
+            )
+        }
+    }
+
+    static func dayLabel(for value: String) -> String {
+        let parser = DateFormatter()
+        parser.calendar = Calendar(identifier: .gregorian)
+        parser.locale = Locale(identifier: "en_US_POSIX")
+        parser.timeZone = TimeZone(identifier: "Asia/Jakarta")
+        parser.dateFormat = "yyyy-MM-dd"
+
+        let formatter = DateFormatter()
+        formatter.calendar = parser.calendar
+        formatter.locale = Locale(identifier: "id_ID")
+        formatter.timeZone = parser.timeZone
+        formatter.dateFormat = "EEE"
+        return parser.date(from: value).map(formatter.string(from:)) ?? value
+    }
+}
+
 /// Loads and aggregates recap data for the recap surfaces.
 /// Totals and recent rows come from `operations:recap`; no CSV export is
 /// fetched merely to render a screen containing donor PII.
@@ -69,8 +114,7 @@ final class RecapModel {
             }
 
             errorMessage = nil
-            isDataEmpty = recap.month.acceptedCount == 0
-                && recap.month.acceptedWeightGrams == 0
+            isDataEmpty = !Self.hasDonationData(in: recap)
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -99,52 +143,25 @@ final class RecapModel {
 
     /// Daily aggregation for the last 7 days, oldest first (Sen..Min).
     var dailyChartData: [DonationChartBar] {
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: .now)
-        let dayFormatter = DateFormatter()
-        dayFormatter.locale = Locale(identifier: "id_ID")
-        dayFormatter.dateFormat = "EEE"
-
-        var buckets: [Date: Int64] = [:]
-        for donation in recentDonations {
-            let day = calendar.startOfDay(for: donation.createdAt)
-            buckets[day, default: 0] += donation.weightGrams
-        }
-
-        return (-6 ... 0).compactMap { offset in
-            guard let day = calendar.date(byAdding: .day, value: offset, to: today) else {
-                return nil
-            }
-            return DonationChartBar(
-                dayLabel: dayFormatter.string(from: day),
-                weightGrams: buckets[day] ?? 0
+        recap?.daily.map {
+            DonationChartBar(
+                dayLabel: DonationChartMapper.dayLabel(for: $0.date),
+                weightGrams: $0.acceptedWeightGrams
             )
-        }
+        } ?? []
     }
 
     /// Chart tuples consumed directly by DonationBarChartView. Bar heights
     /// are normalized into the 40-130 pt range the card design uses, and the
     /// heaviest day gets the "X kg" tooltip.
     var dailyChartTuples: [(day: String, height: CGFloat, weightLabel: String?)] {
-        let bars = dailyChartData
-        guard !bars.isEmpty else { return [] }
-        let maxGrams = bars.map(\.weightGrams).max() ?? 0
-        let minHeight: CGFloat = 40
-        let maxHeight: CGFloat = 130
-        return bars.map { bar in
-            let height: CGFloat
-            if maxGrams <= 0 {
-                height = minHeight
-            } else {
-                let ratio = CGFloat(bar.weightGrams) / CGFloat(maxGrams)
-                height = minHeight + ratio * (maxHeight - minHeight)
-            }
-            let isPeak = bar.weightGrams == maxGrams && maxGrams > 0
-            return (
-                day: bar.dayLabel,
-                height: height,
-                weightLabel: isPeak ? String(format: "%.1f kg", Double(bar.weightGrams) / 1000) : nil
-            )
-        }
+        DonationChartMapper.chartTuples(from: recap?.daily ?? [])
+    }
+
+    private static func hasDonationData(in recap: AdminRecapData) -> Bool {
+        recap.month.acceptedCount > 0
+            || recap.month.acceptedWeightGrams > 0
+            || recap.daily.contains { $0.acceptedCount > 0 || $0.acceptedWeightGrams > 0 }
+            || !recap.recentDonations.isEmpty
     }
 }

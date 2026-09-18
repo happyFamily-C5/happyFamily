@@ -97,6 +97,9 @@ struct RecapDonation: View {
                     Spacer().frame(height: 40)
                 }
             }
+            .refreshable {
+                await model.load()
+            }
         }
         .task {
             await model.load()

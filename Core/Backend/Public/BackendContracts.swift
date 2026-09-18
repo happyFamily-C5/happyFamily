@@ -216,6 +216,12 @@ struct RecapData: Decodable, Equatable, Sendable {
 }
 
 struct AdminRecapData: Decodable, Equatable, Sendable {
+    struct Daily: Decodable, Equatable, Sendable {
+        let date: String
+        let acceptedWeightGrams: Int64
+        let acceptedCount: Int64
+    }
+
     struct Month: Decodable, Equatable, Sendable {
         let acceptedWeightGrams: Int64
         let acceptedCount: Int64
@@ -231,6 +237,7 @@ struct AdminRecapData: Decodable, Equatable, Sendable {
         let receivedAt: Date
     }
 
+    let daily: [Daily]
     let month: Month
     let recentDonations: [RecentDonation]
 }
