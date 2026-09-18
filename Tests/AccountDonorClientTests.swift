@@ -141,9 +141,12 @@ struct AccountDonorClientTests {
                     "name": "Acara Uji",
                     "description": NSNull(),
                     "status": "ongoing",
-                    "start_at": "2026-02-14T00:00:00Z",
-                    "end_at": "2026-02-21T00:00:00Z",
+                    "start_at": "2026-02-13T18:00:00Z",
+                    "end_at": "2026-02-14T18:00:00Z",
                     "timezone_name": "Asia/Jakarta",
+                    "operational_days": [1, 2, 3, 4, 5],
+                    "opens_at_local": "08:30:00",
+                    "closes_at_local": "17:45:00",
                     "location_name": "Jakarta",
                     "capacity_grams": 10000,
                     "received_weight_grams": 1000,
@@ -172,6 +175,9 @@ struct AccountDonorClientTests {
         #expect(detail.event.description == nil)
         #expect(detail.event.usedWeightGrams == 1500)
         #expect(detail.event.distanceKm == 1.4)
+        #expect(detail.event.operationalDays == [1, 2, 3, 4, 5])
+        #expect(DonorEventScheduleFormatter.dateRangeText(detail.event) == "14 Feb 2026 - 15 Feb 2026")
+        #expect(DonorEventScheduleFormatter.operationalTimeInfoText(detail.event) == "Hari Kerja • 08.30 - 17.45")
         #expect(detail.availability.bookable)
         #expect(detail.availability.availableWeightGrams == 8500)
         #expect(!detail.alreadyBooked)

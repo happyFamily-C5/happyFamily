@@ -102,7 +102,7 @@ struct SelectedEventDetailView: View {
                 // MARK: - Date Time
 
                 VStack(spacing: 4) {
-                    Text(Self.dateRangeText(event))
+                    Text(DonorEventScheduleFormatter.dateRangeText(event))
                         .font(.callout).bold()
                     if let timeInfo = model.timeInfoText {
                         Text(timeInfo)
@@ -243,26 +243,6 @@ struct SelectedEventDetailView: View {
         else { return }
         shouldResumeDonationAfterProfileSave = false
         Task { await beginDonation(eventId: eventId) }
-    }
-
-    private static let dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "id_ID")
-        formatter.dateFormat = "d MMM yyyy"
-        return formatter
-    }()
-
-    private static func dateRangeText(_ event: DonorEventDTO) -> String {
-        switch (event.startAt, event.endAt) {
-        case let (start?, end?):
-            "\(dateFormatter.string(from: start)) - \(dateFormatter.string(from: end))"
-        case let (start?, nil):
-            dateFormatter.string(from: start)
-        case let (nil, end?):
-            dateFormatter.string(from: end)
-        default:
-            "-"
-        }
     }
 }
 

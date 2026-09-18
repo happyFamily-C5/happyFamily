@@ -125,7 +125,6 @@ struct OperationalScheduleCardView: View {
                         DatePicker(
                             "",
                             selection: startTimeBinding,
-                            in: Date.distantPast ... endTime,
                             displayedComponents: [.hourAndMinute]
                         )
                         .datePickerStyle(.wheel)
@@ -170,7 +169,6 @@ struct OperationalScheduleCardView: View {
                         DatePicker(
                             "",
                             selection: endTimeBinding,
-                            in: startTime ... Date.distantFuture,
                             displayedComponents: [.hourAndMinute]
                         )
                         .datePickerStyle(.wheel)
@@ -191,7 +189,10 @@ struct OperationalScheduleCardView: View {
         Binding(
             get: { startTime },
             set: { newValue in
-                startTime = min(newValue, endTime)
+                startTime = newValue
+                if endTime < newValue {
+                    endTime = newValue
+                }
             }
         )
     }
@@ -200,7 +201,10 @@ struct OperationalScheduleCardView: View {
         Binding(
             get: { endTime },
             set: { newValue in
-                endTime = max(newValue, startTime)
+                endTime = newValue
+                if newValue < startTime {
+                    startTime = newValue
+                }
             }
         )
     }
@@ -211,8 +215,8 @@ struct OperationalScheduleCardView: View {
 #Preview(traits: .sizeThatFitsLayout) {
     @Previewable @State var preset = "Akhir Pekan"
     @Previewable @State var days = [true, false, false, false, false, false, true]
-    @Previewable @State var start = Date()
-    @Previewable @State var end = Date()
+    @Previewable @State var start = Calendar.current.date(from: DateComponents(hour: 8, minute: 0)) ?? Date()
+    @Previewable @State var end = Calendar.current.date(from: DateComponents(hour: 16, minute: 0)) ?? Date()
 
     return OperationalScheduleCardView(
         selectedPreset: $preset,
