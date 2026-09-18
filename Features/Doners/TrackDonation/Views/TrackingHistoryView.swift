@@ -19,11 +19,7 @@ struct TrackingHistoryView: View {
     var body: some View {
         Group {
             if model.isLoading, model.bookings.isEmpty {
-                VStack {
-                    ProgressView("Memuat booking…")
-                    Spacer()
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                TrackingHistorySkeleton()
             } else if let errorMessage = model.errorMessage, model.bookings.isEmpty {
                 VStack(spacing: 12) {
                     Text(errorMessage)
@@ -77,6 +73,39 @@ struct TrackingHistoryView: View {
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await model.load() }
         .task { await model.load() }
+    }
+}
+
+private struct TrackingHistorySkeleton: View {
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                ForEach(0 ..< 3, id: \.self) { _ in
+                    VStack(alignment: .leading, spacing: 16) {
+                        SkeletonBlock(cornerRadius: 16)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 100)
+                        HStack {
+                            VStack(alignment: .leading, spacing: 7) {
+                                SkeletonBlock(cornerRadius: 4)
+                                    .frame(width: 130, height: 14)
+                                SkeletonBlock(cornerRadius: 4)
+                                    .frame(width: 110, height: 16)
+                            }
+                            Spacer()
+                            SkeletonBlock(cornerRadius: 4)
+                                .frame(width: 80, height: 12)
+                        }
+                    }
+                    .padding(16)
+                    .background(Color.white, in: RoundedRectangle(cornerRadius: 16))
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 24)
+            .padding(.bottom, 32)
+            .skeleton(isLoading: true)
+        }
     }
 }
 

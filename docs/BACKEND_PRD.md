@@ -474,7 +474,7 @@ menghasilkan mutation ganda tanpa memblokir actor scope lain.
 
 ### 10.10 `legal_document_versions`
 
-Menyimpan document type, version identifier, public URL, published timestamp, dan status aktif untuk Syarat & Ketentuan serta Kebijakan Privasi. Hanya satu version aktif per document type/environment. Booking menyimpan version identifier yang disetujui, bukan salinan penuh dokumen.
+Menyimpan document type, version identifier, public URL, published timestamp, dan status aktif untuk Syarat & Ketentuan serta Kebijakan Privasi. Tabel ini dipertahankan untuk kompatibilitas dan histori legacy. Alur iOS MVP aktif tidak membaca tabel ini dan booking MVP tidak menyimpan version identifier.
 
 ### 10.11 `audit_events`
 

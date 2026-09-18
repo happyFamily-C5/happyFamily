@@ -34,7 +34,7 @@ struct ShimmerModifier: ViewModifier {
                         stops: [
                             .init(color: .clear, location: 0),
                             .init(color: Self.highlight, location: 0.5),
-                            .init(color: .clear, location: 1)
+                            .init(color: .clear, location: 1),
                         ],
                         startPoint: .leading,
                         endPoint: .trailing

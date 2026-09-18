@@ -22,6 +22,6 @@ enum AppColor {
     static let baseGrey = Color("BaseGrey")
     static let accentGreen = Color("AccentGreen")
     static let textMutedBlue = Color("MutedBlue")
-    
+
     static let fieldBackground = Color("textFieldColor")
 }

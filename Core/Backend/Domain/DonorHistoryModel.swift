@@ -128,11 +128,9 @@ final class DonorHistoryModel {
     /// Public banner URL for a history row's event snapshot. Cosmetic: nil
     /// on any missing piece, never fails the screen.
     func bannerURL(for item: BookingHistoryItem) -> URL? {
-        guard let backendBaseURL, let path = item.event.bannerObjectPath, !path.isEmpty else {
-            return nil
-        }
-        return backendBaseURL
-            .appending(path: "storage/v1/object/public/event-banners", directoryHint: .isDirectory)
-            .appending(path: path)
+        EventBannerURLBuilder.makeURL(
+            baseURL: backendBaseURL,
+            objectPath: item.event.bannerObjectPath
+        )
     }
 }

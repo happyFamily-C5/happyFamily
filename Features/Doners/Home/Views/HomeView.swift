@@ -118,11 +118,7 @@ struct HomeView: View {
     @ViewBuilder
     private var railContent: some View {
         if model.isLoading, model.dashboard == nil {
-            VStack {
-                ProgressView("Memuat acara…")
-                Spacer()
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            DonorHomeSkeleton()
         } else if let errorMessage = model.errorMessage {
             VStack(spacing: 12) {
                 Text(errorMessage)
@@ -169,7 +165,6 @@ struct HomeView: View {
                                 router.push(to: .eventDetail(event.id))
                             } label: {
                                 BannerEvent(image: nil, remoteURL: model.bannerURL(for: event))
-                                    .frame(width: 320)
                             }
                             .buttonStyle(.plain)
                         }
@@ -278,25 +273,54 @@ private struct EventRailCard: View {
         }
     }
 
-    @ViewBuilder
     private var banner: some View {
-        if let bannerURL {
-            AsyncImage(url: bannerURL) { phase in
-                if let image = phase.image {
-                    image.resizable().scaledToFill()
-                } else {
-                    placeholder
-                }
+        LoadableEventImage(
+            localImage: nil,
+            remoteURL: bannerURL,
+            unavailableLabel: "Banner acara tidak tersedia"
+        )
+    }
+}
+
+private struct DonorHomeSkeleton: View {
+    var body: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 32) {
+                skeletonRail(titleWidth: 150, banner: true)
+                skeletonRail(titleWidth: 120, banner: false)
+                skeletonRail(titleWidth: 130, banner: false)
             }
-        } else {
-            placeholder
+            .padding(.horizontal, 20)
+            .padding(.bottom, 32)
+            .skeleton(isLoading: true)
         }
     }
 
-    private var placeholder: some View {
-        Image("eventBanner")
-            .resizable()
-            .scaledToFill()
+    private func skeletonRail(titleWidth: CGFloat, banner: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            SkeletonBlock(cornerRadius: 6)
+                .frame(width: titleWidth, height: 24)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 16) {
+                    if banner {
+                        SkeletonBlock(cornerRadius: 16)
+                            .frame(width: 320, height: 180)
+                    } else {
+                        ForEach(0 ..< 2, id: \.self) { _ in
+                            VStack(alignment: .leading, spacing: 8) {
+                                SkeletonBlock(cornerRadius: 16)
+                                    .frame(width: 180, height: 120)
+                                SkeletonBlock(cornerRadius: 5)
+                                    .frame(width: 140, height: 16)
+                                SkeletonBlock(cornerRadius: 5)
+                                    .frame(width: 110, height: 13)
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

@@ -1,7 +1,8 @@
 import SwiftUI
 
 struct OngoingEventBanner: View {
-    let bannerImage: Image
+    let bannerImage: Image?
+    let bannerURL: URL?
     let title: String
     let date: String
     var onTap: () -> Void
@@ -10,11 +11,13 @@ struct OngoingEventBanner: View {
         Button(action: onTap) {
             ZStack(alignment: .bottomLeading) {
                 // Banner
-                bannerImage
-                    .resizable()
-                    .scaledToFill()
-                    .frame(height: 180)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                LoadableEventImage(
+                    localImage: bannerImage,
+                    remoteURL: bannerURL,
+                    unavailableLabel: "Banner acara tidak tersedia"
+                )
+                .frame(height: 180)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
 
                 LinearGradient(
                     colors: [.black.opacity(0.8), .clear],
@@ -47,7 +50,8 @@ struct OngoingEventBanner: View {
 
 #Preview(traits: .sizeThatFitsLayout) {
     OngoingEventBanner(
-        bannerImage: Image("DummyImageBanner"),
+        bannerImage: Image(systemName: "photo"),
+        bannerURL: nil,
         title: "THE WASTE PROBLEM",
         date: "APRIL 26 - MAY 11"
     ) {

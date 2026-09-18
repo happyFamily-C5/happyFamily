@@ -8,6 +8,7 @@ struct EditEventView: View {
     @Environment(\.dismiss) private var dismiss
 
     let originalEvent: AdminEvent
+    let bannerURL: URL?
     var onSave: (AdminEvent) -> Void
     var onDelete: () -> Void = {}
     var onCancel: () -> Void = {}
@@ -89,11 +90,13 @@ struct EditEventView: View {
 
     init(
         event: AdminEvent,
+        bannerURL: URL? = nil,
         onSave: @escaping (AdminEvent) -> Void,
         onDelete: @escaping () -> Void = {},
         onCancel: @escaping () -> Void = {}
     ) {
         self.originalEvent = event
+        self.bannerURL = bannerURL
         self.onSave = onSave
         self.onDelete = onDelete
         self.onCancel = onCancel
@@ -127,6 +130,7 @@ struct EditEventView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     EditEventBannerSection(
                         selectedImageData: selectedImageData,
+                        remoteURL: bannerURL,
                         onTap: { isPhotoPickerPresented = true }
                     )
 

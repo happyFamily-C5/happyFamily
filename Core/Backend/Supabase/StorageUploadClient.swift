@@ -161,13 +161,11 @@ struct StorageMediaClient: Sendable {
     /// is re-encoded as JPEG so the bytes match the declared content type.
     static func normalizedImage(data: Data) throws -> (Data, String) {
         if data.count <= maximumUploadBytes,
-           data.starts(with: [0x89, 0x50, 0x4E, 0x47])
-        {
+           data.starts(with: [0x89, 0x50, 0x4E, 0x47]) {
             return (data, "image/png")
         }
         if data.count <= maximumUploadBytes,
-           data.starts(with: [0xFF, 0xD8])
-        {
+           data.starts(with: [0xFF, 0xD8]) {
             return (data, "image/jpeg")
         }
         guard let image = UIImage(data: data),
@@ -199,8 +197,7 @@ struct StorageMediaClient: Sendable {
         }
         for quality in [CGFloat(0.85), 0.7, 0.55] {
             if let data = rendered.jpegData(compressionQuality: quality),
-               data.count <= maximumUploadBytes
-            {
+               data.count <= maximumUploadBytes {
                 return data
             }
         }

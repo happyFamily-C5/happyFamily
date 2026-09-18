@@ -4,6 +4,7 @@ import SwiftUI
 struct EventDetailView: View {
     @Environment(AppRouter.self) private var router
     @State private var event: AdminEvent
+    let bannerURL: URL?
 
     var onBackTapped: () -> Void
     var onShareTapped: () -> Void
@@ -15,6 +16,7 @@ struct EventDetailView: View {
 
     init(
         event: AdminEvent,
+        bannerURL: URL? = nil,
         onBackTapped: @escaping () -> Void,
         onShareTapped: @escaping () -> Void,
         onEditTapped: @escaping () -> Void,
@@ -23,6 +25,7 @@ struct EventDetailView: View {
         onEventDeleted: @escaping (AdminEvent) -> Void = { _ in }
     ) {
         _event = State(initialValue: event)
+        self.bannerURL = bannerURL
         self.onBackTapped = onBackTapped
         self.onShareTapped = onShareTapped
         self.onEditTapped = onEditTapped
@@ -43,7 +46,8 @@ struct EventDetailView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     // 1. Header Poster Atas (Banner & Tombol Navigasi)
                     EventDetailHeaderView(
-                        bannerImage: event.bannerImage,
+                        bannerImage: event.localBannerImage,
+                        bannerURL: bannerURL,
                         onBackTapped: onBackTapped,
                         onShareTapped: onShareTapped
                     )
@@ -160,6 +164,7 @@ struct EventDetailView: View {
             NavigationStack(path: $router.mapPath) {
                 EditEventView(
                     event: event,
+                    bannerURL: bannerURL,
                     onSave: { updatedEvent in
                         event = updatedEvent
                         onEventUpdated(updatedEvent)

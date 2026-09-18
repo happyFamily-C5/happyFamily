@@ -57,11 +57,21 @@ struct ScanResultView: View {
                     Text(booking.publicBookingId).font(.title).bold()
                 }
                 HStack(spacing: 16) {
-                    Image("Image 2").resizable().scaledToFit().frame(height: 80)
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                    LoadableEventImage(
+                        localImage: nil,
+                        remoteURL: EventBannerURLBuilder.makeURL(
+                            baseURL: BackendDependencies.backendBaseURL(),
+                            objectPath: booking.eventSnapshot.bannerObjectPath
+                        ),
+                        contentMode: .fit,
+                        unavailableLabel: "Banner acara tidak tersedia"
+                    )
+                    .frame(width: 100, height: 80)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
                     VStack(alignment: .leading, spacing: 4) {
                         Text(booking.eventSnapshot.name).font(.title3).bold()
-                        Text(booking.eventSnapshot.receiverName).font(.headline)
+                        Text(booking.eventSnapshot.receiverName ?? "Penerima tidak tersedia")
+                            .font(.headline)
                     }
                     Spacer()
                 }
