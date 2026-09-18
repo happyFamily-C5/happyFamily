@@ -27,6 +27,28 @@ struct OrganizerOperationsClientTests {
         #expect(json["action"] as? String == "resolve_qr")
         #expect(json["qr_token"] as? String == token)
         #expect(booking.bookingId == UUID(uuidString: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"))
+        #expect(booking.eventSnapshot.reservedWeightGrams == 500)
+        #expect(booking.eventSnapshot.usedWeightGrams == 500)
+        #expect(booking.eventSnapshot.organizationName == "Workspace")
+        #expect(booking.eventSnapshot.bannerObjectPath == nil)
+    }
+
+    @Test("resolveQR decodes an event snapshot without a description")
+    func resolveQRDecodesMissingEventDescription() async throws {
+        URLProtocolStub.requestHandler = { request in
+            let data = try JSONSerialization.data(withJSONObject: [
+                "data": resolvedQRJSON(eventDescription: NSNull()),
+                "error": NSNull(),
+                "request_id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+                "server_time": "2026-09-10T01:00:00Z",
+            ])
+            return try (response(for: request, status: 200), data)
+        }
+
+        let booking = try await makeClient().resolveQR(token: String(repeating: "q", count: 64))
+
+        #expect(booking.eventSnapshot.description == nil)
+        #expect(booking.eventSnapshot.name == "Acara Uji")
     }
 
     @Test("publish posts operations action with a stable idempotency key")
@@ -70,7 +92,6 @@ struct OrganizerOperationsClientTests {
                     "retryable": false,
                     "field_errors": [
                         "banner": "Banner acara belum diunggah.",
-                        "description": "Deskripsi acara belum diisi.",
                     ],
                 ],
                 "request_id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
@@ -89,7 +110,6 @@ struct OrganizerOperationsClientTests {
                 && !retryable
                 && fieldErrors == [
                     "banner": "Banner acara belum diunggah.",
-                    "description": "Deskripsi acara belum diisi.",
                 ]
                 && error.localizedDescription.contains("Banner acara belum diunggah.")
         }
@@ -219,8 +239,12 @@ struct OrganizerOperationsClientTests {
         let recorder = RequestRecorder()
         URLProtocolStub.requestHandler = { request in
             recorder.record(request)
+            let action = request.jsonBody?["action"] as? String
+            let responseData = action == "advance_tracking"
+                ? trackingMutationJSON()
+                : receptionDecisionJSON()
             let data = try JSONSerialization.data(withJSONObject: [
-                "data": receptionDecisionJSON(), "error": NSNull(),
+                "data": responseData, "error": NSNull(),
                 "request_id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
                 "server_time": "2026-09-10T01:00:00Z",
             ])
@@ -233,8 +257,14 @@ struct OrganizerOperationsClientTests {
             idempotencyKey: "reception-\(bookingId.uuidString)", requestId: UUID()
         )
 
-        _ = try await makeClient().decideReception(input)
-        _ = try await makeClient().advanceTracking(bookingId: bookingId, status: .processed)
+        let receptionResult = try await makeClient().decideReception(input)
+        #expect(receptionResult.bookingId == bookingId)
+        #expect(receptionResult.publicBookingId == "KMP-TEST-001")
+        #expect(receptionResult.status == .accepted)
+
+        let trackingResult = try await makeClient().advanceTracking(bookingId: bookingId, status: .processed)
+        #expect(trackingResult.bookingId == bookingId)
+        #expect(trackingResult.status == .processed)
 
         let requests = recorder.snapshot()
         let reception = try #require(requests.first)
@@ -254,6 +284,11 @@ struct OrganizerOperationsClientTests {
             recorder.record(request)
             let data = try JSONSerialization.data(withJSONObject: [
                 "data": [
+                    "daily": [[
+                        "date": "2026-09-10",
+                        "accepted_weight_grams": 750,
+                        "accepted_count": 1,
+                    ]],
                     "month": ["accepted_weight_grams": 750, "accepted_count": 1, "unique_donor_count": 1],
                     "recent_donations": [[
                         "booking_id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
@@ -272,7 +307,9 @@ struct OrganizerOperationsClientTests {
 
         let request = try #require(recorder.snapshot().first)
         #expect(request.jsonBody?["action"] as? String == "recap")
+        #expect(request.jsonBody?["days"] as? Int == 7)
         #expect(recap.month.acceptedWeightGrams == 750)
+        #expect(recap.daily.first?.acceptedWeightGrams == 750)
         #expect(recap.recentDonations.first?.donorName == "Donor Uji")
     }
 
@@ -610,7 +647,7 @@ private func eventRecordJSON() -> [String: Any] {
     ]
 }
 
-private func resolvedQRJSON() -> [String: Any] {
+private func resolvedQRJSON(eventDescription: Any = "Deskripsi") -> [String: Any] {
     [
         "booking_id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
         "public_booking_id": "KMP-TEST-001",
@@ -623,27 +660,28 @@ private func resolvedQRJSON() -> [String: Any] {
         "event_snapshot": [
             "id": "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff",
             "name": "Acara Uji",
-            "description": "Deskripsi",
+            "description": eventDescription,
             "status": "ongoing",
-            "availability": "available",
             "start_at": "2026-02-14T00:00:00Z",
             "end_at": "2026-02-21T00:00:00Z",
             "timezone_name": "Asia/Jakarta",
-            "operational_days": [6, 7],
-            "opens_at_local": "08:00:00",
-            "closes_at_local": "17:00:00",
             "location_name": "Jakarta",
             "location_address": "Jl. Test",
             "latitude": -6.2,
             "longitude": 106.8,
             "capacity_grams": 10000,
             "received_weight_grams": 0,
-            "banner_object_path": "workspace/banner.png",
+            "reserved_weight_grams": 500,
+            "used_weight_grams": 500,
+            "max_donation_per_user_grams": 1000,
+            "banner_object_path": NSNull(),
             "receiver_name": "Workspace",
             "receiver_phone": "+6281234567890",
             "receiver_address": "Jl. Workspace",
+            "organization_name": "Workspace",
+            "organization_logo_object_path": NSNull(),
+            "distance_km": NSNull(),
             "criteria": ["cotton"],
-            "version": 1,
         ],
     ]
 }
@@ -653,9 +691,14 @@ private func receptionDecisionJSON() -> [String: Any] {
         "booking_id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
         "public_booking_id": "KMP-TEST-001",
         "status": "accepted",
-        "received_weight_grams": 750,
-        "capacity_grams": 10000,
-        "capacity_full": false,
+    ]
+}
+
+private func trackingMutationJSON() -> [String: Any] {
+    [
+        "booking_id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+        "status": "processed",
+        "status_updated_at": "2026-09-10T02:00:00Z",
     ]
 }
 

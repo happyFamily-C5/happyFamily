@@ -23,20 +23,6 @@ struct BackendContractTests {
             ])
         }
     }
-
-    @Test func decoderMapsURLAcronymsFromServerKeys() throws {
-        let data = Data("""
-        {
-          "terms_version": "terms-v1",
-          "terms_url": "https://example.invalid/terms",
-          "privacy_version": "privacy-v1",
-          "privacy_url": "https://example.invalid/privacy"
-        }
-        """.utf8)
-        let legal = try BackendJSON.decoder().decode(DonorLegalData.self, from: data)
-        #expect(legal.termsURL.absoluteString == "https://example.invalid/terms")
-        #expect(legal.privacyURL.absoluteString == "https://example.invalid/privacy")
-    }
 }
 
 @Suite("Dashboard repository seam")

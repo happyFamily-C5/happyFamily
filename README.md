@@ -124,6 +124,8 @@ public/PII, RPC untuk mutation atomik, Storage untuk banner, dan Cron untuk life
 Main app menambahkan cache event serta antrean Draf offline tenant-scoped di SwiftData; mutation
 operasional seperti publish, booking, QR, accept, dan reject tetap online-only.
 
+- Penjelasan ramah pemula (mulai dari sini kalau baru kenal backend):
+  [`docs/BACKEND_UNTUK_PEMULA.md`](docs/BACKEND_UNTUK_PEMULA.md)
 - Product contract: [`docs/BACKEND_PRD.md`](docs/BACKEND_PRD.md)
 - Local setup, deployment, key rotation, monitoring, dan recovery:
   [`docs/BACKEND_RUNBOOK.md`](docs/BACKEND_RUNBOOK.md)

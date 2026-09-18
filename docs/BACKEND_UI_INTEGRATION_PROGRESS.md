@@ -28,9 +28,9 @@ verifikasi yang masih tersisa.
 - Menambahkan `operations:list_events` pada Edge Function. Action ini memakai
   JWT Admin/RLS yang sudah ada, membungkus `api.list_events_v2`, menerima
   `cursor`/`limit`, dan mengembalikan `{ items, next_cursor }`.
-- Menambahkan `legal` pada respons `account:event_detail`. Versi dan URL Terms
-  serta Privacy diambil dari legal document aktif untuk `APP_ENVIRONMENT`; UI
-  tidak perlu meng-hardcode versi consent.
+- `account:event_detail` hanya mengembalikan detail event dan availability.
+  MVP memakai pernyataan persetujuan di aplikasi; booking mencatat
+  `consented_at` tanpa URL atau versi Terms/Privacy.
 - Memperbarui `docs/API_CONTRACT.md` untuk kedua perubahan contract dan
   memperjelas bahwa identity/profile Admin tetap memakai `/account`.
 - Memindahkan `SupabaseEventRepository.list` dari RPC langsung ke
@@ -40,8 +40,8 @@ verifikasi yang masih tersisa.
   `operations:publish_event` dengan idempotency key deterministik per event.
 - Memindahkan QR resolve Admin dari endpoint legacy `resolve-qr` ke
   `operations:resolve_qr`; request hanya mengirim opaque QR token.
-- Menambah unit test request/response untuk `listEvents` dan menambah assertion
-  staging E2E untuk list event dan legal metadata.
+- Menambah unit test request/response untuk `listEvents` dan assertion staging
+  E2E untuk list event.
 - Menyelesaikan signup email/password pada layar registrasi dengan
   `AuthViewModel`: validasi password contract dijalankan sebelum request dan
   error Auth ditampilkan pada form.
@@ -72,11 +72,10 @@ verifikasi yang masih tersisa.
   publish, dan resolve QR melalui `/operations`.
 - `git diff --check` berhasil.
 - Deploy hosted staging memakai Supabase MCP berhasil: `account` aktif versi 7
-  dan `operations` aktif versi 8, keduanya dengan JWT verification. Staging
-  mempunyai masing-masing satu legal document aktif Terms dan Privacy.
+  dan `operations` aktif versi 8, keduanya dengan JWT verification.
 - E2E hosted `v2-contract-20260909-2139` berhasil untuk signup/onboarding,
-  profile, booking, QR reception, tracking, history, recap, legal metadata,
-  dan race capacity. Rerun assertion isolasi dua workspace belum memiliki
+  profile, booking, QR reception, tracking, history, recap, dan race capacity.
+  Rerun assertion isolasi dua workspace belum memiliki
   output final yang dapat diandalkan sehingga belum dinyatakan lulus.
 - Debug simulator build berhasil setelah perubahan auth/onboarding. Focused
   `AuthRoutingTests` dan `AuthViewModelTests` selesai tanpa failure yang

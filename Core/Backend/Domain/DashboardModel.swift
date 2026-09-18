@@ -1,6 +1,15 @@
 import Foundation
 import Observation
 
+enum EventBannerURLBuilder {
+    static func makeURL(baseURL: URL?, objectPath: String?) -> URL? {
+        guard let baseURL, let objectPath, !objectPath.isEmpty else { return nil }
+        return baseURL
+            .appending(path: "storage/v1/object/public/event-banners", directoryHint: .isDirectory)
+            .appending(path: objectPath)
+    }
+}
+
 extension Notification.Name {
     /// Emitted after an Admin mutation changes event capacity, reception, or
     /// tracking totals that are also rendered by the dashboard recap.
@@ -16,6 +25,8 @@ final class DashboardModel {
     private(set) var nextCursor: String?
     private(set) var recap: AdminRecapData?
     private(set) var isRecapLoading = false
+    private(set) var hasLoadedRecap = false
+    var recapErrorMessage: String?
     var errorMessage: String?
 
     /// Invocation URL of the most recent successful publish; nil until a
@@ -42,6 +53,12 @@ final class DashboardModel {
         guard let recap else { return true }
         return recap.month.acceptedCount == 0
             && recap.month.acceptedWeightGrams == 0
+            && recap.daily.allSatisfy { $0.acceptedCount == 0 && $0.acceptedWeightGrams == 0 }
+            && recap.recentDonations.isEmpty
+    }
+
+    var dailyChartTuples: [DonationChartMapper.ChartTuple] {
+        DonationChartMapper.chartTuples(from: recap?.daily ?? [])
     }
 
     /// Total collected weight formatted in Indonesian kilograms ("1.045 kg").
@@ -63,7 +80,6 @@ final class DashboardModel {
             events = page.events
             nextCursor = page.cursor
             errorMessage = nil
-            await preloadMissingBanners()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -79,7 +95,6 @@ final class DashboardModel {
             events.append(contentsOf: page.events.filter { !known.contains($0.id) })
             self.nextCursor = page.cursor
             errorMessage = nil
-            await preloadMissingBanners()
         } catch let BackendError.api(code, _, _, _) where code == "CURSOR_INVALID" {
             await load()
         } catch {
@@ -88,39 +103,38 @@ final class DashboardModel {
     }
 
     func loadRecap() async {
-        guard let reportRepository else { return }
+        guard let reportRepository else {
+            hasLoadedRecap = true
+            recapErrorMessage = "Konfigurasi backend belum lengkap."
+            return
+        }
         isRecapLoading = true
         defer { isRecapLoading = false }
         do {
             recap = try await reportRepository.recap(eventId: nil)
+            hasLoadedRecap = true
+            recapErrorMessage = nil
         } catch {
-            // Recap is a secondary surface; a failure leaves the previous
-            // value (or the empty state) intact without alarming the user.
+            hasLoadedRecap = true
+            recapErrorMessage = error.localizedDescription
         }
     }
 
-    /// Downloads banners for events that only carry a `banner_object_path`
-    /// (e.g. published remotely) so `bannerImage` can render them offline.
-    private func preloadMissingBanners() async {
-        guard let backendBaseURL else { return }
-        let storageBase = backendBaseURL
-            .appending(path: "storage/v1/object/public/event-banners", directoryHint: .isDirectory)
-        for index in events.indices {
-            guard events[index].bannerImageData == nil,
-                  let path = events[index].bannerObjectPath else { continue }
-            let url = storageBase.appending(path: path)
-            if let (data, _) = try? await URLSession.shared.data(from: url), !data.isEmpty {
-                events[index].bannerImageData = data
-            }
-        }
+    func bannerURL(for objectPath: String?) -> URL? {
+        EventBannerURLBuilder.makeURL(baseURL: backendBaseURL, objectPath: objectPath)
     }
 
     @discardableResult
     func createDraft(_ event: BackendAdminEvent) async -> Bool {
-        let mutationId = pendingDraftMutationIds[event.id] ?? UUID()
-        pendingDraftMutationIds[event.id] = mutationId
         do {
-            let saved = try await repository.upsertDraft(event, mutationId: mutationId)
+            var preparedEvent = event
+            if let banner = try await EventBannerPolicy.prepareForUpload(event.bannerImageData) {
+                preparedEvent.bannerImageData = banner.data
+            }
+
+            let mutationId = pendingDraftMutationIds[event.id] ?? UUID()
+            pendingDraftMutationIds[event.id] = mutationId
+            let saved = try await repository.upsertDraft(preparedEvent, mutationId: mutationId)
             pendingDraftMutationIds.removeValue(forKey: event.id)
             if let index = events.firstIndex(where: { $0.id == saved.id }) {
                 events[index] = saved
@@ -165,5 +179,11 @@ final class DashboardModel {
     /// Re-runs recap aggregation after a mutation (draft/publish/etc.).
     func refreshRecap() async {
         await loadRecap()
+    }
+
+    func refresh() async {
+        async let events: Void = load()
+        async let recap: Void = loadRecap()
+        _ = await (events, recap)
     }
 }

@@ -24,6 +24,7 @@ struct ProfileTopBar: View {
 
 struct ProfileBackBar: View {
     var showsSave: Bool = false
+    var isSaveDisabled = false
     var onBackTapped: () -> Void
     var onSaveTapped: () -> Void = {}
 
@@ -51,6 +52,7 @@ struct ProfileBackBar: View {
                         .clipShape(Circle())
                 }
                 .buttonStyle(PlainButtonStyle())
+                .disabled(isSaveDisabled)
             }
         }
         .padding(.horizontal, 16)

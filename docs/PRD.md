@@ -74,7 +74,7 @@ Kecuali diputuskan lain oleh pemilik produk, fase pertama tidak bertujuan menjad
 - Rilis pertama hanya untuk Indonesia dan seluruh copy produk menggunakan Bahasa Indonesia.
 - Status acara memakai Bahasa Indonesia: **Draf, Akan Datang, Berlangsung, Selesai, Ditutup,** dan **Dibatalkan**. Terbit adalah aksi, bukan status.
 - Acara berpindah menjadi **Selesai** secara otomatis setelah waktu berakhir.
-- Banner dan deskripsi wajib sebelum acara dapat diterbitkan.
+- Banner wajib sebelum acara dapat diterbitkan; deskripsi bersifat opsional.
 - Setiap acara memiliki tepat satu drop point dan satu jadwal operasional.
 - Kapasitas kilogram adalah batas keras.
 - Kapasitas baru terpakai ketika paket diterima dan ditimbang oleh Pengelola.
@@ -86,7 +86,7 @@ Kecuali diputuskan lain oleh pemilik produk, fase pertama tidak bertujuan menjad
 - Salinan foto yang dibuat/dipilih oleh .kumpul hanya hidup selama satu sesi App Clip untuk verifikasi dan tidak diunggah atau disimpan; foto asli yang sudah dimiliki pengguna di galeri tidak dihapus oleh aplikasi.
 - Hanya hasil/status pemeriksaan aktif terakhir yang dapat dipertahankan tanpa foto. Percobaan lama yang digantikan dan seluruh data item yang dihapus tidak disimpan.
 - Donor wajib memberikan nama, nomor telepon Indonesia, estimasi berat pakaian yang didonasikan, dan status pakaian; donor anonim tidak diperbolehkan.
-- Checkbox persetujuan syarat dan ketentuan wajib, tetapi naskah legalnya belum tersedia dan menjadi blocker rilis.
+- Checkbox persetujuan syarat dan ketentuan wajib. Untuk MVP, checkbox menampilkan pernyataan: “Dengan melanjutkan, saya memahami bahwa pakaian yang saya serahkan dapat digunakan kembali, disalurkan, atau didaur ulang sesuai dengan kondisinya dan kebutuhan pengelolaan tekstil.”
 - Booking berlaku maksimal 12 jam dan berakhir lebih awal jika event mencapai end datetime.
 - Metode pengiriman MVP dibatasi pada antar langsung, ojek online, dan ekspedisi; ketiganya selalu tersedia dan berupa instruksi manual tanpa integrasi kurir.
 - Label berupa gambar yang dapat disimpan ke galeri dan memuat logo .kumpul, nama event, booking ID, QR, nama donor, serta nama, nomor telepon, dan alamat penerima dari snapshot booking. Barcode selain QR tidak diperlukan.
@@ -316,8 +316,8 @@ Prioritas menggunakan **P0** untuk MVP wajib, **P1** untuk penting setelah fonda
 ### 10.2 Event management
 
 - **FR-EVT-01 (P0):** Event memiliki ID stabil, organisasi, nama, deskripsi, banner, status, tanggal mulai/selesai, timezone, lokasi, koordinat, jadwal operasional, kriteria, kapasitas, dan timestamps.
-- **FR-EVT-02 (P0):** Nama, deskripsi, banner, tanggal valid, lokasi, minimal satu hari operasional, jam valid, minimal satu kriteria, dan kapasitas positif wajib sebelum acara dapat diterbitkan.
-- **FR-EVT-03 (P0):** Banner dan deskripsi boleh belum lengkap saat berstatus Draf, tetapi wajib tersedia sebelum aksi menerbitkan.
+- **FR-EVT-02 (P0):** Nama, banner, tanggal valid, lokasi, minimal satu hari operasional, jam valid, minimal satu kriteria, dan kapasitas positif wajib sebelum acara dapat diterbitkan. Deskripsi bersifat opsional.
+- **FR-EVT-03 (P0):** Banner boleh belum lengkap saat berstatus Draf, tetapi wajib tersedia sebelum aksi menerbitkan. Deskripsi boleh tetap kosong baik pada Draf maupun setelah diterbitkan.
 - **FR-EVT-04 (P0):** Pengelola dapat menyimpan acara sebagai Draf tanpa kehilangan field yang telah diisi.
 - **FR-EVT-05 (P0):** Pengelola dapat mengedit seluruh field event selama status Draf, Akan Datang, atau Berlangsung. Event Selesai, Ditutup, dan Dibatalkan bersifat read-only serta tidak dapat dibuka kembali.
 - **FR-EVT-06 (P0):** Vocabulary status acara adalah Draf, Akan Datang, Berlangsung, Selesai, Ditutup, dan Dibatalkan; seluruh label yang terlihat pengguna menggunakan Bahasa Indonesia. Terbit adalah aksi dan timestamp, bukan status.
@@ -366,7 +366,7 @@ Prioritas menggunakan **P0** untuk MVP wajib, **P1** untuk penting setelah fonda
 - **FR-DONOR-01 (P0):** Donor wajib memberikan nama, nomor telepon Indonesia, estimasi berat pakaian yang didonasikan, dan status pemeriksaan pakaian; tidak ada mode donasi anonim.
 - **FR-DONOR-02 (P0):** Nama harus di-trim dan divalidasi panjang minimumnya.
 - **FR-DONOR-03 (P0):** Nomor telepon harus dinormalisasi dan divalidasi untuk Indonesia.
-- **FR-DONOR-04 (P0):** Donor wajib mencentang persetujuan syarat dan ketentuan sebelum melanjutkan; checkbox harus memiliki tautan ke naskah legal yang berlaku.
+- **FR-DONOR-04 (P0):** Donor wajib mencentang persetujuan syarat dan ketentuan sebelum melanjutkan. Untuk MVP, checkbox menampilkan pernyataan persetujuan di aplikasi tanpa URL atau versi Terms/Privacy.
 - **FR-DONOR-05 (P0):** Error harus spesifik, dapat diperbaiki, dan tidak menghapus input.
 - **FR-DONOR-06 (P1):** Data donor yang pernah diketik dapat dipulihkan selama sesi App Clip yang sama bila navigasi mundur.
 - **FR-DONOR-07 (P0):** Pembuat aplikasi bertanggung jawab menulis dan menyetujui naskah syarat, ketentuan, dan kebijakan privasi sebelum production release.
@@ -915,7 +915,7 @@ QR/label, auth, offline sync, serta dashboard/rekap/CSV tetap harus memiliki cov
 - Pengelola login → create → publish event.
 - App Clip invocation valid → event detail yang benar.
 - Donor form validation.
-- Persetujuan syarat dan ketentuan wajib serta link legal dapat dibuka.
+- Persetujuan syarat dan ketentuan wajib sebelum melanjutkan; pernyataan persetujuan MVP tampil di aplikasi.
 - Camera denied → gallery fallback.
 - Satu item lolos pemeriksaan awal → shipping → booking → label.
 - Scan multiple garments → retake.
@@ -961,7 +961,7 @@ Seluruh pertanyaan produk yang diajukan selama penyusunan PRD telah ditutup. Thr
 
 6. **Status acara:** Draf, Akan Datang, Berlangsung, Selesai, Ditutup, dan Dibatalkan. Terbit adalah aksi, bukan status.
 7. **Penyelesaian acara:** otomatis setelah end datetime.
-8. **Syarat publish:** banner dan deskripsi wajib.
+8. **Syarat publish:** banner wajib; deskripsi opsional.
 9. **Lokasi/jadwal:** satu drop point dan satu jadwal operasional per acara.
 10. **Kapasitas:** batas keras dalam kilogram.
 11. **Waktu pemakaian kapasitas:** ketika paket diterima dan ditimbang.
@@ -1047,7 +1047,7 @@ Seluruh pertanyaan produk yang diajukan selama penyusunan PRD telah ditutup. Thr
 64. **Retensi:** donor/booking satu bulan sejak event menjadi Selesai, Ditutup, atau Dibatalkan; audit log satu bulan sejak audit dibuat.
 65. **Skala:** lima event Akan Datang/Berlangsung per Pengelola dan baseline 1.000 booking per hari di seluruh platform.
 66. **Item dihapus:** seluruh riwayat scan nonfoto ikut dihapus.
-67. **Dokumen legal:** pembuat aplikasi bertanggung jawab menulis dan menyetujuinya.
+67. **Dokumen legal:** MVP memakai pernyataan persetujuan di aplikasi tanpa URL atau versi Terms/Privacy.
 68. **Status booking:** Menunggu, Diterima, Ditolak, Kedaluwarsa, dan Dibatalkan; tidak ada Dalam Pengiriman.
 69. **Selesai dan Ditutup:** Ditutup dilakukan manual untuk menghentikan event lebih awal. Selesai terjadi otomatis pada end datetime dan langsung menutup event secara operasional tanpa perlu status Ditutup berikutnya.
 70. **Expiry booking:** waktu lebih awal antara 12 jam setelah booking dibuat dan event selesai.
