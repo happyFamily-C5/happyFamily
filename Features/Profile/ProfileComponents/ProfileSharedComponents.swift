@@ -97,7 +97,7 @@ struct ProfileSectionTitle: View {
 struct ProfileTextInput: View {
     let placeholder: String
     @Binding var text: String
-    var minHeight: CGFloat = 48
+    var minHeight: CGFloat = 52
     var isMultiline = false
     var keyboardType: UIKeyboardType = .default
 
@@ -105,15 +105,15 @@ struct ProfileTextInput: View {
         Group {
             if isMultiline {
                 TextEditor(text: $text)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.body).bold()
                     .scrollContentBackground(.hidden)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 13)
                     .frame(minHeight: minHeight)
                     .overlay(alignment: .topLeading) {
                         if text.isEmpty {
                             Text(placeholder)
-                                .font(.body).bold()
+                                .font(.body)
                                 .foregroundColor(Color(.placeholderText))
                                 .padding(.horizontal, 16)
                                 .padding(.vertical, 13)
@@ -125,12 +125,13 @@ struct ProfileTextInput: View {
                     .keyboardType(keyboardType)
                     .textInputAutocapitalization(keyboardType == .emailAddress ? .never : .words)
                     .autocorrectionDisabled()
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.body)
                     .padding(.horizontal, 16)
+                    .padding(.vertical, 13)
                     .frame(height: minHeight)
             }
         }
-        .background(Color(.systemGray6))
+        .background(AppColor.fieldBackground)
         .cornerRadius(24)
     }
 }
