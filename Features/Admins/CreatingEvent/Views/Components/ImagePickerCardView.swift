@@ -1,69 +1,86 @@
 import SwiftUI
+import PhotosUI
 
 @MainActor
 struct ImagePickerCardView: View {
     let selectedImage: Image?
-    var onAddTapped: () -> Void
+    @Binding var selectedItem: PhotosPickerItem?
     var onDeleteTapped: () -> Void
-
+    
     var body: some View {
         ZStack {
             if let image = selectedImage {
                 // MARK: - Ready / Filled State
-
                 image
                     .resizable()
                     .scaledToFill()
                     .frame(maxWidth: .infinity)
                     .aspectRatio(16 / 9, contentMode: .fit)
                     .clipShape(RoundedRectangle(cornerRadius: 16))
+                
+//                Button(action: onDeleteTapped) {
+//                    Image(systemName: "xmark")
+//                        .font(.system(size: 12, weight: .bold))
+//                        .foregroundColor(.white)
+//                        .frame(width: 28, height: 28)
+//                        .background(Color.black.opacity(0.6))
+//                        .clipShape(Circle())
+//                }
+//                .padding(12)
             } else {
                 // MARK: - Empty State
-
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color(.systemGray6))
-                    .frame(maxWidth: .infinity)
-                    .aspectRatio(16 / 9, contentMode: .fit)
-                    .overlay(
-                        HStack(spacing: 16) {
-                            Text("Ajak lebih banyak orang dengan sampul yang menarik")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.leading)
-                                .fixedSize(horizontal: false, vertical: true)
-
-                            Spacer()
-
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color(.systemBackground))
-                                    .frame(width: 80, height: 64)
-                                    .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
-
-                                Image(systemName: "photo.badge.plus")
-                                    .font(.system(size: 24))
-                                    .foregroundColor(Color("3-DarkSoftCyan"))
-                            }
-                        }
-                        .padding(.horizontal, 20)
+                
+                RoundedRectangle(cornerRadius: 32)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                AppColor.accentCyan,
+                                AppColor.primaryCyan
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
                     )
+                    .frame(maxWidth: .infinity)
+                    .frame(width: 362, height: 216)
                     .overlay(
-                        HStack {
-                            Text("Tambah sampul")
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(.primary)
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 8)
-                                .background(Color(.systemBackground))
-                                .cornerRadius(8)
-                                .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
-                            Spacer()
+                        ZStack(alignment: .trailing) {
+                            HStack(alignment: .center,spacing: 16) {
+                                VStack(alignment: .leading){
+                                    Text("Ajak lebih \nbanyak orang \ndengan sampul \nyang menarik")
+                                        .font(.title3)
+                                        .foregroundColor(.white)
+                                        .multilineTextAlignment(.leading)
+                                        .padding(.top, 12)
+                                    Spacer()
+                                    PhotosPicker(selection: $selectedItem, matching: .images) {
+                                        Text("Tambah sampul")
+                                            .foregroundStyle(.black).bold()
+                                            .padding(.vertical, 12)
+                                            .padding(.horizontal, 22)
+                                            .background(
+                                                Color.white,
+                                                in: RoundedRectangle(cornerRadius: 32)
+                                            )
+                                    }
+                                }
+                                .padding(20)
+                                
+                                Spacer()
+                                
+                            }
+                            Image("addImageCard")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 170)
                         }
-                        .padding(16),
-                        alignment: .bottomLeading
                     )
             }
         }
         .padding(.horizontal, 16)
     }
+}
+
+#Preview {
+    ImagePickerCardView(selectedImage: .none, selectedItem: .constant(nil), onDeleteTapped: {})
 }

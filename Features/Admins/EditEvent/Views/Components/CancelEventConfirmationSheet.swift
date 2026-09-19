@@ -6,22 +6,22 @@ struct CancelEventConfirmationSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             Image(systemName: "calendar.badge.exclamationmark")
-                .font(.system(size: 36, weight: .semibold))
+                .font(.system(size: 50, weight: .semibold))
                 .foregroundColor(cancelRed)
                 .frame(width: 52, height: 52)
 
             VStack(alignment: .leading, spacing: 8) {
                 Text("Batalkan Acara")
-                    .font(.system(size: 22, weight: .bold))
+                    .font(.title).bold()
                     .foregroundColor(.primary)
 
                 Text("Kami akan mengirim notifikasi kepada para donatur yang telah melakukan booking donasi")
-                    .font(.system(size: 13))
+                    .font(.body)
                     .foregroundColor(.primary)
                     .fixedSize(horizontal: false, vertical: true)
 
                 Text("Tindakan ini tidak dapat dibatalkan")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.footnote)
                     .foregroundColor(cancelRed)
             }
 
