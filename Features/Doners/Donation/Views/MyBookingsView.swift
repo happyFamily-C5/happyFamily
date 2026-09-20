@@ -41,9 +41,13 @@ struct MyBookingsView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.top, 120)
                     } else if model.isLoading, model.bookings.isEmpty {
-                        ProgressView()
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, 120)
+                        VStack(spacing: 12) {
+                            ForEach(0 ..< 3, id: \.self) { _ in
+                                BookingRowSkeleton()
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .skeleton(isLoading: true)
                     } else if model.bookings.isEmpty {
                         Text("Belum ada pesanan donasi.\nBooking yang kamu buat akan tampil di sini.")
                             .font(.footnote)
@@ -124,6 +128,26 @@ struct MyBookingsView: View {
 
     private static func weightText(grams: Int64) -> String {
         String(format: "%.1f kg", Double(grams) / 1000)
+    }
+}
+
+private struct BookingRowSkeleton: View {
+    var body: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 7) {
+                SkeletonBlock(cornerRadius: 4)
+                    .frame(width: 160, height: 15)
+                SkeletonBlock(cornerRadius: 4)
+                    .frame(width: 95, height: 11)
+                SkeletonBlock(cornerRadius: 10)
+                    .frame(width: 115, height: 18)
+            }
+            Spacer()
+            SkeletonBlock(cornerRadius: 4)
+                .frame(width: 12, height: 16)
+        }
+        .padding(14)
+        .background(Color.gray.opacity(0.08), in: RoundedRectangle(cornerRadius: 16))
     }
 }
 

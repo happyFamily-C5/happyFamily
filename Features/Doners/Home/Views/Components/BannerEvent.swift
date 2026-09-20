@@ -11,38 +11,20 @@ struct BannerEvent: View {
     let image: Image?
     var remoteURL: URL?
 
+    private let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
+
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 40)
-                .fill(AppColor.primaryCyan)
+            shape.fill(AppColor.primaryCyan)
 
-            if let remoteURL {
-                AsyncImage(url: remoteURL) { phase in
-                    if let image = phase.image {
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    } else if phase.error != nil {
-                        fallback
-                    } else {
-                        ProgressView()
-                    }
-                }
-            } else if let image {
-                image
-                    .resizable()
-                    .scaledToFill()
-            } else {
-                fallback
-            }
+            LoadableEventImage(
+                localImage: image,
+                remoteURL: remoteURL,
+                unavailableLabel: "Banner acara tidak tersedia"
+            )
         }
-        .aspectRatio(4 / 3, contentMode: .fit)
-    }
-
-    private var fallback: some View {
-        Text("Banner acara tidak tersedia")
-            .font(.headline)
-            .foregroundStyle(AppColor.textDarkCyan)
+        .frame(width: 320, height: 180)
+        .clipShape(shape)
     }
 }
 

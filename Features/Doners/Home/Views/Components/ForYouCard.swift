@@ -69,25 +69,36 @@ struct ForYouCard: View {
         }
     }
 
-    @ViewBuilder
     private var banner: some View {
-        if let bannerURL {
-            AsyncImage(url: bannerURL) { phase in
-                if let image = phase.image {
-                    image.resizable().scaledToFill()
-                } else {
-                    placeholder
-                }
-            }
-        } else {
-            placeholder
-        }
+        LoadableEventImage(
+            localImage: nil,
+            remoteURL: bannerURL,
+            unavailableLabel: "Banner acara tidak tersedia"
+        )
     }
+}
 
-    private var placeholder: some View {
-        Image("Image 2")
-            .resizable()
-            .scaledToFill()
+struct ForYouCardSkeleton: View {
+    var body: some View {
+        HStack(spacing: 16) {
+            SkeletonBlock(cornerRadius: 16)
+                .frame(width: 121, height: 84)
+
+            VStack(alignment: .leading, spacing: 7) {
+                SkeletonBlock(cornerRadius: 4)
+                    .frame(width: 110, height: 12)
+                SkeletonBlock(cornerRadius: 4)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 16)
+                SkeletonBlock(cornerRadius: 4)
+                    .frame(width: 130, height: 16)
+                SkeletonBlock(cornerRadius: 4)
+                    .frame(width: 120, height: 12)
+                SkeletonBlock(cornerRadius: 4)
+                    .frame(width: 100, height: 12)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

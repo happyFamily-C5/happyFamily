@@ -1,19 +1,22 @@
 import SwiftUI
 
 struct EventDetailHeaderView: View {
-    let bannerImage: Image
+    let bannerImage: Image?
+    let bannerURL: URL?
     var onBackTapped: () -> Void
     var onShareTapped: () -> Void
 
     var body: some View {
         ZStack(alignment: .top) {
-            bannerImage
-                .resizable()
-                .scaledToFill()
-                .frame(height: 210)
-                .frame(maxWidth: .infinity)
-                .clipShape(RoundedRectangle(cornerRadius: 18))
-                .padding(.horizontal, 16)
+            LoadableEventImage(
+                localImage: bannerImage,
+                remoteURL: bannerURL,
+                unavailableLabel: "Banner acara tidak tersedia"
+            )
+            .frame(height: 210)
+            .frame(maxWidth: .infinity)
+            .clipShape(RoundedRectangle(cornerRadius: 18))
+            .padding(.horizontal, 16)
 
             // 2. Tombol Navigasi Mengapung Tepat di Atas Gambar
             HStack {
@@ -47,7 +50,8 @@ struct EventDetailHeaderView: View {
 
 #Preview(traits: .sizeThatFitsLayout) {
     EventDetailHeaderView(
-        bannerImage: Image("DummyImageBanner"),
+        bannerImage: Image(systemName: "photo"),
+        bannerURL: nil,
         onBackTapped: { print("Back diklik") },
         onShareTapped: { print("Share diklik") }
     )

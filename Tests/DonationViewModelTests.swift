@@ -118,12 +118,6 @@ private final class DonationAccountClient: AccountBackendServing, @unchecked Sen
                 "available_weight_grams": 10000,
             ],
             "already_booked": false,
-            "legal": [
-                "terms_version": "terms-v1",
-                "terms_url": "https://example.invalid/terms",
-                "privacy_version": "privacy-v1",
-                "privacy_url": "https://example.invalid/privacy",
-            ],
         ]
         let data = try JSONSerialization.data(withJSONObject: json)
         detail = try BackendJSON.decoder().decode(DonorEventDetail.self, from: data)

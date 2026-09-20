@@ -16,6 +16,7 @@ struct DashboardView: View {
     /// Sumber data: cache backend (DashboardModel), bukan state lokal.
     @State private var model = DashboardModel(
         repository: BackendDependencies.eventRepository(),
+        reportRepository: BackendDependencies.reportRepositoryOrDefault(),
         backendBaseURL: BackendDependencies.backendBaseURL()
     )
 
@@ -61,27 +62,28 @@ struct DashboardView: View {
         ZStack(alignment: .bottom) {
             Group {
                 if model.isLoading, model.events.isEmpty {
-                    ProgressView("Memuat acara…")
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    AdminDashboardSkeleton()
                 } else if !hasAnyEvent {
                     // MARK: - 1. Empty State Murni
 
                     VStack {
                         HStack {
-                            Image("ecoTouchLogo")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 24)
-                                .padding(12)
-                                .background(
-                                    Color(#colorLiteral(red: 1, green: 0.9679821134, blue: 0.8170431256, alpha: 1)), in: Circle()
-                                )
+                            Button(action: openAdminProfile) {
+                                Image("ecoTouchLogo")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 24)
+                                    .padding(12)
+                                    .background(
+                                        Color(#colorLiteral(red: 1, green: 0.9679821134, blue: 0.8170431256, alpha: 1)), in: Circle()
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Buka profil")
+                            .accessibilityIdentifier("dashboardProfile")
                             Spacer()
                         }
                         .padding(.horizontal, 20)
-                        .onTapGesture {
-                            router.push(to: AdminsRouter.profile)
-                        }
 
                         EmptyStateViewDashboard {
                             requestCreateEvent()
@@ -98,7 +100,7 @@ struct DashboardView: View {
                     ScrollView(showsIndicators: false) {
                         VStack(alignment: .leading, spacing: 20) {
                             HeaderNavigationView(
-                                onLogoTapped: { isShowingProfile = true },
+                                onLogoTapped: openAdminProfile,
                                 onAddTapped: { requestCreateEvent() }
                             )
 
@@ -129,7 +131,8 @@ struct DashboardView: View {
                                             HStack(spacing: 0) {
                                                 ForEach(ongoingEvents) { event in
                                                     OngoingEventBanner(
-                                                        bannerImage: event.bannerImage,
+                                                        bannerImage: event.localBannerImage,
+                                                        bannerURL: model.bannerURL(for: event.bannerObjectPath),
                                                         title: event.name,
                                                         date: event.formattedDateRange
                                                     ) {
@@ -163,7 +166,8 @@ struct DashboardView: View {
                                             HStack(spacing: 16) {
                                                 ForEach(upcomingEvents) { event in
                                                     EventCard(
-                                                        cardImage: event.bannerImage,
+                                                        cardImage: event.localBannerImage,
+                                                        bannerURL: model.bannerURL(for: event.bannerObjectPath),
                                                         title: event.name,
                                                         date: event.formattedDateRange
                                                     ) {
@@ -207,12 +211,37 @@ struct DashboardView: View {
                                         isShowingRecapDonation = true
                                     }
 
-                                    RecapCard(
-                                        isDataEmpty: model.isRecapDataEmpty,
-                                        totalWeight: model.recapTotalWeightText,
-                                        periodTitle: "Bulan ini"
-                                    ) {
-                                        isShowingRecapDonation = true
+                                    if !model.hasLoadedRecap || model.isRecapLoading {
+                                        ProgressView("Memuat rekap…")
+                                            .frame(maxWidth: .infinity, minHeight: 150)
+                                    } else if model.recap == nil {
+                                        VStack(spacing: 8) {
+                                            Text(model.recapErrorMessage ?? "Rekap belum tersedia.")
+                                                .font(.footnote)
+                                                .foregroundColor(.secondary)
+                                                .multilineTextAlignment(.center)
+                                            Button("Muat ulang rekap") {
+                                                Task { await model.refreshRecap() }
+                                            }
+                                        }
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.horizontal, 16)
+                                    } else {
+                                        RecapCard(
+                                            isDataEmpty: model.isRecapDataEmpty,
+                                            chartData: model.dailyChartTuples
+                                        ) {
+                                            isShowingRecapDonation = true
+                                        }
+
+                                        if let recapErrorMessage = model.recapErrorMessage {
+                                            Button("Muat ulang rekap") {
+                                                Task { await model.refreshRecap() }
+                                            }
+                                            .font(.footnote)
+                                            .frame(maxWidth: .infinity)
+                                            .accessibilityHint(recapErrorMessage)
+                                        }
                                     }
                                 }
                             }
@@ -221,16 +250,17 @@ struct DashboardView: View {
                         }
                     }
                     .scrollDismissesKeyboard(.immediately)
+                    .refreshable {
+                        await model.refresh()
+                    }
                 }
             }
             .task {
-                await model.load()
-                await model.loadRecap()
+                await model.refresh()
             }
             .onReceive(NotificationCenter.default.publisher(for: .adminOperationsDidChange)) { _ in
                 Task {
-                    await model.load()
-                    await model.refreshRecap()
+                    await model.refresh()
                 }
             }
 
@@ -314,6 +344,7 @@ struct DashboardView: View {
         .fullScreenCover(item: $selectedEvent) { event in
             EventDetailView(
                 event: event,
+                bannerURL: model.bannerURL(for: event.bannerObjectPath),
                 onBackTapped: { selectedEvent = nil },
                 onShareTapped: {
                     if model.publishedInvocationURL != nil {
@@ -354,6 +385,10 @@ struct DashboardView: View {
         }
     }
 
+    private func openAdminProfile() {
+        isShowingProfile = true
+    }
+
     private func resumeEventCreationAfterProfileSave() {
         guard shouldOpenCreateAfterProfileSave else { return }
         shouldOpenCreateAfterProfileSave = false
@@ -367,5 +402,69 @@ struct DashboardView: View {
     NavigationStack {
         DashboardView()
             .environment(AppRouter())
+    }
+}
+
+private struct AdminDashboardSkeleton: View {
+    var body: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 20) {
+                HStack {
+                    SkeletonBlock(cornerRadius: 20)
+                        .frame(width: 48, height: 48)
+                    Spacer()
+                    SkeletonBlock(cornerRadius: 20)
+                        .frame(width: 48, height: 48)
+                }
+                .padding(.horizontal, 20)
+
+                SkeletonBlock(cornerRadius: 6)
+                    .frame(width: 130, height: 20)
+                    .padding(.horizontal, 16)
+
+                VStack(alignment: .leading, spacing: 16) {
+                    SkeletonBlock(cornerRadius: 6)
+                        .frame(width: 190, height: 22)
+
+                    SkeletonBlock(cornerRadius: 16)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 180)
+                }
+                .padding(.horizontal, 16)
+
+                VStack(alignment: .leading, spacing: 12) {
+                    SkeletonBlock(cornerRadius: 6)
+                        .frame(width: 160, height: 22)
+
+                    HStack(spacing: 16) {
+                        ForEach(0 ..< 2, id: \.self) { _ in
+                            VStack(alignment: .leading, spacing: 8) {
+                                SkeletonBlock(cornerRadius: 16)
+                                    .frame(width: 170, height: 140)
+                                SkeletonBlock(cornerRadius: 5)
+                                    .frame(width: 130, height: 15)
+                                SkeletonBlock(cornerRadius: 5)
+                                    .frame(width: 100, height: 12)
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, 16)
+
+                VStack(alignment: .leading, spacing: 12) {
+                    SkeletonBlock(cornerRadius: 6)
+                        .frame(width: 140, height: 22)
+                    SkeletonBlock(cornerRadius: 16)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 100)
+                }
+                .padding(.horizontal, 16)
+
+                Spacer().frame(height: 100)
+            }
+            .padding(.top, 20)
+            .padding(.bottom, 32)
+            .skeleton(isLoading: true)
+        }
     }
 }

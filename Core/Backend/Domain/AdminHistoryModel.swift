@@ -25,13 +25,16 @@ final class AdminHistoryModel {
     
     private let historyRepository: (any ReportRepository)?
     private let receptionRepository: (any ReceptionRepository)?
-    
+    private let backendBaseURL: URL?
+
     init(
         historyRepository: (any ReportRepository)?,
-        receptionRepository: (any ReceptionRepository)?
+        receptionRepository: (any ReceptionRepository)?,
+        backendBaseURL: URL? = BackendDependencies.backendBaseURL()
     ) {
         self.historyRepository = historyRepository
         self.receptionRepository = receptionRepository
+        self.backendBaseURL = backendBaseURL
     }
     
 #if DEBUG
@@ -57,7 +60,14 @@ final class AdminHistoryModel {
     var hasMoreEvents: Bool {
         eventCursor != nil
     }
-    
+
+    func bannerURL(for item: BookingHistoryItem) -> URL? {
+        EventBannerURLBuilder.makeURL(
+            baseURL: backendBaseURL,
+            objectPath: item.event.bannerObjectPath
+        )
+    }
+
     func loadDonations() async {
         guard let historyRepository, !isLoadingDonations else { return }
         isLoadingDonations = true
@@ -117,11 +127,11 @@ final class AdminHistoryModel {
     func advanceTracking(bookingId: UUID, status: BookingStatusCode) async -> Bool {
         guard let receptionRepository else { return false }
         do {
-            let decision = try await receptionRepository.advanceTracking(
+            let result = try await receptionRepository.advanceTracking(
                 bookingId: bookingId,
                 status: status
             )
-            replace(status: decision.status, for: decision.bookingId)
+            replace(status: result.status, for: result.bookingId)
             NotificationCenter.default.post(name: .adminOperationsDidChange, object: nil)
             return true
         } catch let BackendError.api(code, _, _, _) where code == "INVALID_BOOKING_TRANSITION" {

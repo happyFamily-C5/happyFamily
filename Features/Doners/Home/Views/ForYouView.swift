@@ -21,27 +21,9 @@ struct ForYouView: View {
             if model.isLoading, model.dashboard == nil {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 32) {
-                        ForYouCard(
-                            title: "Ecoday Shirt | drop your unused shirt",
-                            startDate: "12 Sep",
-                            endDate: "14 Sep",
-                            location: "Jakarta Selatan",
-                            bannerURL: nil
-                        )
-                        ForYouCard(
-                            title: "Donasikan pakaianmu",
-                            startDate: "20 Sep",
-                            endDate: "22 Sep",
-                            location: "Jakarta Pusat",
-                            bannerURL: nil
-                        )
-                        ForYouCard(
-                            title: "Bantu kurangi limbah tekstil",
-                            startDate: "28 Sep",
-                            endDate: "30 Sep",
-                            location: "Jakarta Barat",
-                            bannerURL: nil
-                        )
+                        ForEach(0 ..< 3, id: \.self) { _ in
+                            ForYouCardSkeleton()
+                        }
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 18)

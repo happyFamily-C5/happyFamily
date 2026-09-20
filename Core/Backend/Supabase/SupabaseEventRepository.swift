@@ -22,14 +22,19 @@ actor SupabaseEventRepository: EventRepository {
     func upsertDraft(_ event: BackendAdminEvent, mutationId: UUID) async throws -> BackendAdminEvent {
         var preparedEvent = event
         if let bannerData = event.bannerImageData {
-            try EventBannerPolicy.validate(bannerData)
-            let contentType = bannerData.starts(with: [0x89, 0x50, 0x4E, 0x47])
-                ? "image/png"
-                : "image/jpeg"
+            guard let banner = try await EventBannerPolicy.prepareForUpload(bannerData) else {
+                throw BackendError.api(
+                    code: "BANNER_REJECTED",
+                    retryable: false,
+                    fieldErrors: [:],
+                    requestId: nil
+                )
+            }
             let uploaded = try await edge.uploadEventBanner(
-                data: bannerData,
-                contentType: contentType
+                data: banner.data,
+                contentType: banner.contentType
             )
+            preparedEvent.bannerImageData = banner.data
             preparedEvent.bannerObjectPath = uploaded.objectPath
         }
         let record = try await edge.upsertEventDraft(
@@ -37,7 +42,7 @@ actor SupabaseEventRepository: EventRepository {
             mutationId: mutationId,
             payload: EventDraftPayload(event: preparedEvent)
         )
-        return BackendAdminEvent(record: record, bannerImageData: event.bannerImageData)
+        return BackendAdminEvent(record: record, bannerImageData: preparedEvent.bannerImageData)
     }
 
     func cancelOrDelete(eventId: UUID) async throws -> CancelEventData {

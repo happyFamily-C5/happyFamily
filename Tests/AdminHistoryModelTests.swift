@@ -180,18 +180,15 @@ private final class FakeReceptionRepository: ReceptionRepository, @unchecked Sen
         throw BackendError.configuration("unused in history tests")
     }
 
-    func advanceTracking(bookingId: UUID, status: BookingStatusCode) async throws -> ReceptionDecisionData {
+    func advanceTracking(bookingId: UUID, status: BookingStatusCode) async throws -> TrackingMutationData {
         advances.append((bookingId, status))
         if let advanceError {
             throw advanceError
         }
-        return ReceptionDecisionData(
+        return TrackingMutationData(
             bookingId: bookingId,
-            publicBookingId: "KMP-TEST-001",
             status: decisionStatus,
-            receivedWeightGrams: 750,
-            capacityGrams: 10000,
-            capacityFull: false
+            statusUpdatedAt: Date(timeIntervalSince1970: 1_800_000_000)
         )
     }
 }

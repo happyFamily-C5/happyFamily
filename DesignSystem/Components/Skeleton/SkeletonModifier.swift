@@ -48,6 +48,85 @@ private struct SkeletonModifier: ViewModifier {
     }
 }
 
+/// A geometry-only placeholder used to build loading layouts without fake
+/// copy or fake domain models.
+struct SkeletonBlock: View {
+    var cornerRadius: CGFloat = 8
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .fill(Color.secondary.opacity(0.18))
+    }
+}
+
+/// Displays a local or remote event image and keeps pending and failed states
+/// visually distinct. The caller owns the frame and clipping.
+struct LoadableEventImage: View {
+    let localImage: Image?
+    let remoteURL: URL?
+    var contentMode: ContentMode = .fill
+    var unavailableLabel = "Gambar tidak tersedia"
+
+    var body: some View {
+        Group {
+            if let localImage {
+                rendered(localImage)
+            } else if let remoteURL {
+                AsyncImage(url: remoteURL) { phase in
+                    switch phase {
+                    case .empty:
+                        SkeletonBlock(cornerRadius: 0)
+                            .skeleton(isLoading: true)
+                    case let .success(image):
+                        rendered(image)
+                    case .failure:
+                        UnavailableImagePlaceholder(label: unavailableLabel)
+                    @unknown default:
+                        UnavailableImagePlaceholder(label: unavailableLabel)
+                    }
+                }
+            } else {
+                UnavailableImagePlaceholder(label: unavailableLabel)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func rendered(_ image: Image) -> some View {
+        image
+            .resizable()
+            .aspectRatio(contentMode: contentMode)
+            .accessibilityHidden(true)
+    }
+}
+
+private struct UnavailableImagePlaceholder: View {
+    let label: String
+
+    var body: some View {
+        ZStack {
+            Color(uiColor: .secondarySystemBackground)
+
+            ViewThatFits(in: .vertical) {
+                VStack(spacing: 6) {
+                    Image(systemName: "photo")
+                        .font(.title3)
+                    Text(label)
+                        .font(.caption2)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                }
+
+                Image(systemName: "photo")
+                    .font(.title3)
+            }
+            .foregroundStyle(.secondary)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(label)
+    }
+}
+
 // MARK: - Previews
 
 private struct SkeletonDemoCard: View {
@@ -94,7 +173,6 @@ private struct SkeletonToggleDemo: View {
         .padding()
         .preferredColorScheme(.dark)
 }
-
 
 #Preview("Loading toggle") {
     SkeletonToggleDemo()

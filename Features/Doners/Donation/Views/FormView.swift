@@ -32,11 +32,8 @@ struct FormView: View {
             eventHeader
 
             if donationVM.detail == nil, donationVM.isLoadingDetail {
-                VStack {
-                    ProgressView("Memuat acara…")
-                    Spacer()
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                DonationFormSkeleton()
+                    .skeleton(isLoading: true)
             } else if donationVM.detail == nil, let errorMessage = donationVM.errorMessage {
                 VStack(spacing: 12) {
                     Text(errorMessage)
@@ -78,17 +75,11 @@ struct FormView: View {
     private var eventHeader: some View {
         HStack(spacing: 16) {
             Group {
-                if let bannerURL = donationVM.bannerURL() {
-                    AsyncImage(url: bannerURL) { image in
-                        image.resizable().scaledToFill()
-                    } placeholder: {
-                        Image("Image 2").resizable().scaledToFill()
-                    }
-                } else {
-                    Image("Image 2")
-                        .resizable()
-                        .scaledToFit()
-                }
+                LoadableEventImage(
+                    localImage: nil,
+                    remoteURL: donationVM.bannerURL(),
+                    unavailableLabel: "Banner acara tidak tersedia"
+                )
             }
             .frame(height: 80)
             .clipShape(RoundedRectangle(cornerRadius: 16))
@@ -170,6 +161,35 @@ struct FormView: View {
         }
         .padding(16)
         .background(Color.gray.opacity(0.2), in: RoundedRectangle(cornerRadius: 30))
+    }
+}
+
+private struct DonationFormSkeleton: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            HStack(spacing: 16) {
+                SkeletonBlock(cornerRadius: 16)
+                    .frame(width: 96, height: 80)
+                VStack(alignment: .leading, spacing: 7) {
+                    SkeletonBlock(cornerRadius: 5)
+                        .frame(width: 170, height: 20)
+                    SkeletonBlock(cornerRadius: 5)
+                        .frame(width: 120, height: 15)
+                }
+            }
+            SkeletonBlock(cornerRadius: 5)
+                .frame(width: 190, height: 25)
+            ForEach(0 ..< 2, id: \.self) { _ in
+                SkeletonBlock(cornerRadius: 24)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 52)
+            }
+            Spacer(minLength: 80)
+            SkeletonBlock(cornerRadius: 24)
+                .frame(maxWidth: .infinity)
+                .frame(height: 52)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 }
 

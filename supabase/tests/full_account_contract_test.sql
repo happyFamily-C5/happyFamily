@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(66);
+select plan(70);
 
 -- The hosted Management API returns only the final result set. Capture every
 -- TAP assertion so this suite remains diagnosable without a local Docker-based
@@ -28,7 +28,7 @@ returns jsonb language sql immutable as $$
     )),
     'shipping_method', 'direct', 'scan_model_version', 'test-v2',
     'qr_token_hash', p_qr_hash, 'qr_token_ciphertext', 'encrypted-qr', 'qr_token_nonce', 'qr-nonce',
-    'terms_version', 'test-v1', 'privacy_version', 'test-v1', 'request_id', p_request_id
+    'request_id', p_request_id
   )
 $$;
 
@@ -118,6 +118,12 @@ insert into pg_temp.tap_results(result)
 select is(
   (select reserved_weight_grams from public.events where id = 'e1111111-1111-4111-8111-111111111111'),
   500::bigint, 'reservation equals estimate'
+);
+insert into pg_temp.tap_results(result)
+select is(
+  (select consented_at is not null and terms_version is null and privacy_version is null
+   from public.bookings where public_booking_id = 'KPL-V2AAA-00001'),
+  true, 'MVP booking records consent without legal versions'
 );
 insert into pg_temp.tap_results(result)
 select is(
@@ -336,6 +342,21 @@ select is(
   api.event_detail_v2('e1111111-1111-4111-8111-111111111111')
     -> 'availability' ->> 'available_weight_grams',
   '500', 'event detail carries the remaining capacity after reservation'
+);
+insert into pg_temp.tap_results(result)
+select is(
+  api.event_detail_v2('e1111111-1111-4111-8111-111111111111') -> 'operational_days',
+  '[1, 2, 3, 4, 5]'::jsonb, 'event detail carries the admin operational days'
+);
+insert into pg_temp.tap_results(result)
+select is(
+  api.event_detail_v2('e1111111-1111-4111-8111-111111111111') ->> 'opens_at_local',
+  '08:00:00', 'event detail carries the admin opening time'
+);
+insert into pg_temp.tap_results(result)
+select is(
+  api.event_detail_v2('e1111111-1111-4111-8111-111111111111') ->> 'closes_at_local',
+  '17:00:00', 'event detail carries the admin closing time'
 );
 reset role;
 
