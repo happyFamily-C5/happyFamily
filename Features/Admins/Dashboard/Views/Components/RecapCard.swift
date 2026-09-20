@@ -2,8 +2,7 @@ import SwiftUI
 
 struct RecapCard: View {
     let isDataEmpty: Bool
-    var totalWeight: String = "1.045 kg"
-    var periodTitle: String = "Bulan ini"
+    var chartData: [(day: String, height: CGFloat, weightLabel: String?)] = []
     var onTap: () -> Void
 
     var body: some View {
@@ -45,51 +44,7 @@ struct RecapCard: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
                 } else {
-                    // MARK: - Filled / Active State (Sesuai kode terakhir yang persis)
-
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text(periodTitle)
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.secondary)
-
-                        Text(totalWeight)
-                            .font(.system(size: 28, weight: .bold))
-                            .foregroundColor(Color("2-BoldDarkSoftCyan"))
-
-                        // Grafik Batang dengan Kustomisasi Gradient Warna
-                        HStack(alignment: .bottom, spacing: 14) {
-                            let chartData: [(height: CGFloat, month: String)] = [
-                                (70, "Jan"), (55, "Feb"), (45, "Mar"),
-                                (55, "Apr"), (75, "Mei"), (35, "Jun"),
-                                (55, "Jul"), (45, "Aug"), (45, "Sep"),
-                            ]
-
-                            ForEach(chartData, id: \.month) { data in
-                                VStack(spacing: 6) {
-                                    RoundedRectangle(cornerRadius: 6)
-                                        .fill(
-                                            LinearGradient(
-                                                colors: [
-                                                    Color("2-BoldDarkSoftCyan"), // Atas (Tip)
-                                                    Color("3-DarkSoftCyan"), // Tengah
-                                                    Color("5-LightSoftCyan"), // Akhir (Bawah)
-                                                ],
-                                                startPoint: .top,
-                                                endPoint: .bottom
-                                            )
-                                        )
-                                        .frame(width: 22, height: data.height)
-
-                                    Text(data.month)
-                                        .font(.system(size: 10, weight: .medium))
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                        }
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .padding(.top, 8)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    DonationBarChartView(chartData: chartData)
                 }
             }
             .padding(20)
@@ -124,7 +79,11 @@ struct RecapCard: View {
                 .foregroundColor(.secondary)
                 .padding(.horizontal, 16)
 
-            RecapCard(isDataEmpty: false, totalWeight: "1.045 kg", periodTitle: "Bulan ini") {
+            RecapCard(isDataEmpty: false, chartData: [
+                (day: "Sen", height: 90, weightLabel: nil),
+                (day: "Sel", height: 130, weightLabel: "1.0 kg"),
+                (day: "Rab", height: 70, weightLabel: nil),
+            ]) {
                 print("Card aktif diklik")
             }
         }

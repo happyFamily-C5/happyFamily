@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(79);
+select plan(83);
 
 create or replace function pg_temp.make_event(
   p_id uuid,
@@ -158,6 +158,7 @@ select is_empty(
   )$$,
   'rejected draft requests do not create events'
 );
+reset role;
 select is_empty(
   $$select * from public.idempotency_keys where scope = 'event-draft' and key in (
     '10000000-0000-4000-8000-000000000010',
@@ -166,6 +167,7 @@ select is_empty(
   'rejected draft requests do not claim idempotency keys'
 );
 
+set local role authenticated;
 select set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', true);
 select api.update_workspace_profile_v1(
   'Organizer One', 'Jl. Uji Jakarta', '+6281234567890',
@@ -432,6 +434,79 @@ select throws_ok(
   'P0002',
   'EVENT_NOT_FOUND',
   'cross-tenant event RPC returns not found'
+);
+reset role;
+
+select pg_temp.make_event(
+  'bbbbbbbb-bbbb-4bbb-8bbb-000000000010',
+  '22222222-2222-4222-8222-222222222222',
+  'Published event without description'
+);
+update public.events
+set max_donation_per_user_grams = 10000
+where id = 'bbbbbbbb-bbbb-4bbb-8bbb-000000000010';
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '22222222-2222-4222-8222-222222222222', true);
+select api.update_workspace_profile_v1(
+  'Organizer Two', 'Jl. Uji Bandung', '+6281234567891',
+  'organizer-two@example.invalid', ''
+);
+select api.upsert_event_draft_v2(
+  'bbbbbbbb-bbbb-4bbb-8bbb-000000000010',
+  '20000000-0000-4000-8000-000000000009',
+  jsonb_build_object('description', '   ')
+);
+select ok(
+  (
+    select description is null
+    from public.events
+    where id = 'bbbbbbbb-bbbb-4bbb-8bbb-000000000010'
+  ),
+  'draft normalizes a whitespace description to null'
+);
+select is(
+  api.publish_event_v2(
+    'bbbbbbbb-bbbb-4bbb-8bbb-000000000010',
+    'publish-event-without-description',
+    '20000000-0000-4000-8000-000000000010'
+  ) ->> 'status',
+  'ongoing',
+  'publish accepts a complete event without a description'
+);
+select is(
+  api.publish_event_v2(
+    'bbbbbbbb-bbbb-4bbb-8bbb-000000000010',
+    'publish-event-without-description',
+    '20000000-0000-4000-8000-000000000010'
+  ) -> 'description',
+  'null'::jsonb,
+  'publish replay preserves a null optional description'
+);
+reset role;
+
+select pg_temp.make_event(
+  'bbbbbbbb-bbbb-4bbb-8bbb-000000000011',
+  '22222222-2222-4222-8222-222222222222',
+  'Missing banner event without description'
+);
+update public.events
+set description = null, banner_object_path = null, max_donation_per_user_grams = 10000
+where id = 'bbbbbbbb-bbbb-4bbb-8bbb-000000000011';
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '22222222-2222-4222-8222-222222222222', true);
+select throws_ok(
+  $test$
+    select api.publish_event_v2(
+      'bbbbbbbb-bbbb-4bbb-8bbb-000000000011',
+      'publish-event-without-banner',
+      '20000000-0000-4000-8000-000000000011'
+    )
+  $test$,
+  '23514',
+  'EVENT_PUBLISH_FIELDS_REQUIRED',
+  'banner remains required when description is absent'
 );
 reset role;
 

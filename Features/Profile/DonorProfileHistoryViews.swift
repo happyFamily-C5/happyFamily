@@ -95,25 +95,12 @@ private struct DonorEventHistoryRow: View {
         }
     }
 
-    @ViewBuilder
     private var banner: some View {
-        if let bannerURL {
-            AsyncImage(url: bannerURL) { phase in
-                if let image = phase.image {
-                    image.resizable().scaledToFill()
-                } else {
-                    placeholder
-                }
-            }
-        } else {
-            placeholder
-        }
-    }
-
-    private var placeholder: some View {
-        Image("DummyImageBanner")
-            .resizable()
-            .scaledToFill()
+        LoadableEventImage(
+            localImage: nil,
+            remoteURL: bannerURL,
+            unavailableLabel: "Banner acara tidak tersedia"
+        )
     }
 
     private var dateRangeText: String {
@@ -260,5 +247,88 @@ private struct DonorDonationRow: View {
 }
 
 #Preview {
-    DonorDonationHistoryView(donations: [])
+    DonorDonationHistoryView(
+        donations: [
+            BookingHistoryItem(
+                bookingId: UUID(),
+                publicBookingId: "KMP-2026-001",
+                status: .recycled,
+                estimatedWeightGrams: 2500,
+                actualWeightGrams: 2300,
+                event: BookingEventSnapshot(
+                    id: UUID(),
+                    name: "Donasi Pakaian Layak Pakai",
+                    status: .completed,
+                    startAt: .now,
+                    endAt: .now,
+                    locationName: "Jakarta Selatan",
+                    bannerObjectPath: nil
+                ),
+                createdAt: .now,
+                statusUpdatedAt: .now
+            ),
+            BookingHistoryItem(
+                bookingId: UUID(),
+                publicBookingId: "KMP-2026-002",
+                status: .recycled,
+                estimatedWeightGrams: 1000,
+                actualWeightGrams: 1250,
+                event: BookingEventSnapshot(
+                    id: UUID(),
+                    name: "Bersih Lemari, Berbagi Sesama",
+                    status: .completed,
+                    startAt: .now,
+                    endAt: .now,
+                    locationName: "Jakarta Pusat",
+                    bannerObjectPath: nil
+                ),
+                createdAt: .now,
+                statusUpdatedAt: .now
+            ),
+        ]
+    )
+}
+
+#Preview("Riwayat Acara dengan Data") {
+    DonorEventHistoryView(
+        history: [
+            BookingHistoryItem(
+                bookingId: UUID(),
+                publicBookingId: "KMP-2026-003",
+                status: .accepted,
+                estimatedWeightGrams: 1500,
+                actualWeightGrams: nil,
+                event: BookingEventSnapshot(
+                    id: UUID(),
+                    name: "Tukar Baju, Rawat Bumi",
+                    status: .ongoing,
+                    startAt: .now,
+                    endAt: .now.addingTimeInterval(86400),
+                    locationName: "Jakarta Selatan",
+                    bannerObjectPath: nil
+                ),
+                createdAt: .now,
+                statusUpdatedAt: .now
+            ),
+            BookingHistoryItem(
+                bookingId: UUID(),
+                publicBookingId: "KMP-2026-004",
+                status: .recycled,
+                estimatedWeightGrams: 2000,
+                actualWeightGrams: 1850,
+                event: BookingEventSnapshot(
+                    id: UUID(),
+                    name: "Bersih Lemari, Berbagi Sesama",
+                    status: .completed,
+                    startAt: .now.addingTimeInterval(-172_800),
+                    endAt: .now.addingTimeInterval(-86400),
+                    locationName: "Jakarta Pusat",
+                    bannerObjectPath: nil
+                ),
+                createdAt: .now,
+                statusUpdatedAt: .now
+            ),
+        ],
+        bannerURL: { _ in nil }
+    )
 }

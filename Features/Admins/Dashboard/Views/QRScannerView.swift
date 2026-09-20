@@ -28,6 +28,7 @@ struct QRScannerView: View {
                     onRetry: { showResult = false },
                     onFinished: {
                         shouldRestartAfterResult = false
+                        scanner.prepareForNextScan()
                         showResult = false
                         dismiss()
                     }

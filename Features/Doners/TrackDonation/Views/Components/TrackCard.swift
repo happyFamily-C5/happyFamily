@@ -52,25 +52,12 @@ struct TrackCard: View {
         .background(Color.white, in: RoundedRectangle(cornerRadius: 16))
     }
 
-    @ViewBuilder
     private var banner: some View {
-        if let bannerURL {
-            AsyncImage(url: bannerURL) { phase in
-                if let image = phase.image {
-                    image.resizable().scaledToFill()
-                } else {
-                    placeholder
-                }
-            }
-        } else {
-            placeholder
-        }
-    }
-
-    private var placeholder: some View {
-        Image("Image 2")
-            .resizable()
-            .scaledToFill()
+        LoadableEventImage(
+            localImage: nil,
+            remoteURL: bannerURL,
+            unavailableLabel: "Banner acara tidak tersedia"
+        )
     }
 
     private var statusText: String {
@@ -127,6 +114,9 @@ private extension DonorEventDTO {
             startAt: Date(),
             endAt: Date().addingTimeInterval(86400 * 7),
             timezoneName: nil,
+            operationalDays: nil,
+            opensAtLocal: nil,
+            closesAtLocal: nil,
             locationName: "EcoTouch Office",
             locationAddress: nil,
             latitude: nil,

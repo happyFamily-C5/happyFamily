@@ -129,7 +129,7 @@ struct ReceptionDecisionInput: Encodable, Sendable {
 protocol ReceptionRepository: Sendable {
     func resolveQR(token: String) async throws -> ResolvedQRBooking
     func decide(_ input: ReceptionDecisionInput) async throws -> ReceptionDecisionData
-    func advanceTracking(bookingId: UUID, status: BookingStatusCode) async throws -> ReceptionDecisionData
+    func advanceTracking(bookingId: UUID, status: BookingStatusCode) async throws -> TrackingMutationData
 }
 
 protocol ReportRepository: Sendable {

@@ -22,9 +22,13 @@ struct ProfileEventHistoryView: View {
                     }
 
                     if model.isLoadingEvents, model.events.isEmpty {
-                        ProgressView()
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, 170)
+                        VStack(spacing: 12) {
+                            ForEach(0 ..< 3, id: \.self) { _ in
+                                ProfileEventHistoryRowSkeleton()
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .skeleton(isLoading: true)
                     } else if model.events.isEmpty {
                         ProfileEmptyHistoryView(
                             systemImage: "calendar.badge.exclamationmark",
@@ -36,16 +40,19 @@ struct ProfileEventHistoryView: View {
                     } else {
                         VStack(spacing: 24) {
                             ForEach(model.events) { item in
-                                ProfileEventHistoryRow(item: item)
-                                    .onAppear {
-                                        if item.id == model.events.last?.id, model.hasMoreEvents {
-                                            Task { await model.loadMoreEvents() }
-                                        }
+                                ProfileEventHistoryRow(
+                                    item: item,
+                                    bannerURL: model.bannerURL(for: item)
+                                )
+                                .onAppear {
+                                    if item.id == model.events.last?.id, model.hasMoreEvents {
+                                        Task { await model.loadMoreEvents() }
                                     }
+                                }
                             }
                             if model.isLoadingMoreEvents {
-                                ProgressView()
-                                    .frame(maxWidth: .infinity)
+                                ProfileEventHistoryRowSkeleton()
+                                    .skeleton(isLoading: true)
                             }
                         }
                         .padding(.horizontal, 20)
@@ -92,9 +99,13 @@ struct ProfileDonationHistoryView: View {
                     }
 
                     if model.isLoadingDonations, model.donations.isEmpty {
-                        ProgressView()
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, 170)
+                        VStack(spacing: 0) {
+                            ForEach(0 ..< 3, id: \.self) { _ in
+                                ProfileDonationHistoryRowSkeleton()
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .skeleton(isLoading: true)
                     } else if model.donations.isEmpty {
                         ProfileEmptyHistoryView(
                             systemImage: "list.clipboard",
@@ -116,8 +127,8 @@ struct ProfileDonationHistoryView: View {
                                 Divider()
                             }
                             if model.isLoadingMoreDonations {
-                                ProgressView()
-                                    .frame(maxWidth: .infinity)
+                                ProfileDonationHistoryRowSkeleton()
+                                    .skeleton(isLoading: true)
                             }
                         }
                         .padding(.horizontal, 20)
@@ -152,6 +163,7 @@ struct ProfileDonationHistoryView: View {
 
 private struct ProfileEventHistoryRow: View {
     let item: BookingHistoryItem
+    let bannerURL: URL?
 
     var body: some View {
         HStack(spacing: 16) {
@@ -199,6 +211,25 @@ private struct ProfileEventHistoryRow: View {
         case .cancelled: "Dibatalkan"
         case nil: "-"
         }
+    }
+}
+
+private struct ProfileEventHistoryRowSkeleton: View {
+    var body: some View {
+        HStack(spacing: 12) {
+            SkeletonBlock(cornerRadius: 8)
+                .frame(width: 78, height: 54)
+            VStack(alignment: .leading, spacing: 6) {
+                SkeletonBlock(cornerRadius: 4)
+                    .frame(width: 150, height: 15)
+                SkeletonBlock(cornerRadius: 4)
+                    .frame(width: 100, height: 12)
+                SkeletonBlock(cornerRadius: 4)
+                    .frame(width: 80, height: 11)
+            }
+            Spacer()
+        }
+        .padding(.vertical, 10)
     }
 }
 
@@ -267,6 +298,25 @@ private struct ProfileDonationHistoryRow: View {
         formatter.unitsStyle = .full
 
         return formatter.localizedString(for: date, relativeTo: Date())
+    }
+}
+
+private struct ProfileDonationHistoryRowSkeleton: View {
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 6) {
+                SkeletonBlock(cornerRadius: 4)
+                    .frame(width: 150, height: 14)
+                SkeletonBlock(cornerRadius: 4)
+                    .frame(width: 105, height: 11)
+                SkeletonBlock(cornerRadius: 4)
+                    .frame(width: 85, height: 11)
+            }
+            Spacer()
+            SkeletonBlock(cornerRadius: 12)
+                .frame(width: 60, height: 18)
+        }
+        .padding(.vertical, 10)
     }
 }
 

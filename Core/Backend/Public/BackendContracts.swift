@@ -129,6 +129,8 @@ enum BackendError: Error, Equatable, Sendable, LocalizedError {
         "EVENT_NOT_CANCELLABLE": "Acara sudah tidak dapat dibatalkan.",
         "DRAFT_HAS_BOOKINGS": "Draf memiliki donasi terkait dan tidak dapat dihapus.",
         "BANNER_REJECTED": "Upload gambar tidak diizinkan. Gunakan JPEG atau PNG.",
+        "BANNER_DIMENSIONS_INVALID": "Dimensi gambar terlalu besar. Pilih gambar lain atau coba kembali.",
+        "BANNER_DIMENSION_INVALID": "Dimensi gambar terlalu besar. Pilih gambar lain atau coba kembali.",
         "PROFILE_MEDIA_REJECTED": "Upload gambar ditolak oleh penyimpanan. Gunakan JPEG atau PNG berukuran maksimal 5 MB.",
         "PROFILE_MEDIA_FORBIDDEN": "Anda tidak memiliki izin untuk mengunggah gambar ini. Muat ulang profil lalu coba lagi.",
         "BANNER_TOO_LARGE": "Ukuran gambar melebihi 5 MB. Kompres atau pilih gambar lain.",
@@ -143,7 +145,7 @@ enum BackendError: Error, Equatable, Sendable, LocalizedError {
 struct PublicEventDTO: Codable, Identifiable, Equatable, Sendable {
     let id: UUID
     let name: String
-    let description: String
+    let description: String?
     let status: EventStatusCode
     let availability: EventAvailabilityCode
     let startAt: Date
@@ -175,7 +177,9 @@ struct ResolvedQRBooking: Decodable, Equatable, Sendable {
     let estimatedWeightGrams: Int64
     let itemCount: Int
     let shippingMethod: ShippingMethodCode
-    let eventSnapshot: PublicEventDTO
+    /// `operations:resolve_qr` returns the immutable booking snapshot created
+    /// by `private.event_user_json`, which has the donor event shape.
+    let eventSnapshot: DonorEventDTO
     let donorName: String
     let donorPhone: String
 }
@@ -184,9 +188,12 @@ struct ReceptionDecisionData: Decodable, Equatable, Sendable {
     let bookingId: UUID
     let publicBookingId: String
     let status: BookingStatusCode
-    let receivedWeightGrams: Int64
-    let capacityGrams: Int64
-    let capacityFull: Bool
+}
+
+struct TrackingMutationData: Decodable, Equatable, Sendable {
+    let bookingId: UUID
+    let status: BookingStatusCode
+    let statusUpdatedAt: Date
 }
 
 struct PublishEventData: Decodable, Equatable, Sendable {
@@ -209,6 +216,12 @@ struct RecapData: Decodable, Equatable, Sendable {
 }
 
 struct AdminRecapData: Decodable, Equatable, Sendable {
+    struct Daily: Decodable, Equatable, Sendable {
+        let date: String
+        let acceptedWeightGrams: Int64
+        let acceptedCount: Int64
+    }
+
     struct Month: Decodable, Equatable, Sendable {
         let acceptedWeightGrams: Int64
         let acceptedCount: Int64
@@ -224,6 +237,7 @@ struct AdminRecapData: Decodable, Equatable, Sendable {
         let receivedAt: Date
     }
 
+    let daily: [Daily]
     let month: Month
     let recentDonations: [RecentDonation]
 }

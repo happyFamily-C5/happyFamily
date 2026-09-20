@@ -37,9 +37,7 @@ struct BookingAttemptStoreTests {
             itemCount: original.itemCount,
             items: original.items,
             shippingMethod: original.shippingMethod,
-            scanModelVersion: original.scanModelVersion,
-            termsVersion: original.termsVersion,
-            privacyVersion: original.privacyVersion
+            scanModelVersion: original.scanModelVersion
         )
         let second = try store.resolveAttempt(eventId: eventId, payload: bookingBodyPayload(changed))
 
@@ -65,9 +63,7 @@ struct BookingAttemptStoreTests {
             itemCount: 1,
             items: [AccountBookingItem(ordinal: 0, passed: true, scannerModelVersion: "accessory-head-v1", metadata: [:])],
             shippingMethod: .direct,
-            scanModelVersion: "accessory-head-v1",
-            termsVersion: "terms-v1",
-            privacyVersion: "privacy-v1"
+            scanModelVersion: "accessory-head-v1"
         )
     }
 }

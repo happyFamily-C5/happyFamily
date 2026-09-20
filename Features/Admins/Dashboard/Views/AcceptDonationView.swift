@@ -8,8 +8,6 @@
 import SwiftUI
 
 struct AcceptDonationView: View {
-    @Environment(\ .dismiss) private var dismiss
-    @Environment(AppRouter.self) var router
     var onReturnHome: () -> Void
 
     var body: some View {
@@ -29,8 +27,7 @@ struct AcceptDonationView: View {
             Spacer()
 
             Button {
-                dismiss()
-                router.popToRoot()
+                onReturnHome()
             } label: {
                 Text("Kembali ke beranda")
                     .fontWeight(.bold)
@@ -49,5 +46,4 @@ struct AcceptDonationView: View {
 
 #Preview {
     AcceptDonationView(onReturnHome: {})
-        .environment(AppRouter())
 }
