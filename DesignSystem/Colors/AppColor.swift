@@ -24,4 +24,5 @@ enum AppColor {
     static let textMutedBlue = Color("MutedBlue")
 
     static let fieldBackground = Color("textFieldColor")
+    static let destructiveColor = Color("destructiveColor")
 }

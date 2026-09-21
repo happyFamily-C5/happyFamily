@@ -4,14 +4,14 @@ import SwiftUI
 @MainActor
 struct ProfileEditView: View {
     @Environment(\.dismiss) private var dismiss
-
+    
     @Binding var companyName: String
     @Binding var companyAddress: String
     @Binding var phoneNumber: String
     @Binding var email: String
     @Binding var selectedImageData: Data?
     private let onSave: ((AdminProfile) async throws -> Void)?
-
+    
     @State private var selectedItem: PhotosPickerItem?
     @State private var draftCompanyName: String
     @State private var draftCompanyAddress: String
@@ -22,7 +22,7 @@ struct ProfileEditView: View {
     @State private var isSaving = false
     @State private var errorMessage: String?
     @FocusState private var isFieldFocused: Bool
-
+    
     init(
         companyName: Binding<String>,
         companyAddress: Binding<String>,
@@ -43,44 +43,36 @@ struct ProfileEditView: View {
         _draftImageData = State(initialValue: selectedImageData.wrappedValue)
         self.onSave = onSave
     }
-
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ProfileBackBar(
-                showsSave: true,
-                onBackTapped: { dismiss() },
-                onSaveTapped: { Task { await saveProfile() } }
-            )
-
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 24) {
                     Button {
                         isPhotoPickerPresented = true
                     } label: {
                         ZStack(alignment: .bottomTrailing) {
-                            ProfileLogoImage(imageData: draftImageData, size: 88)
-
-                            Image(systemName: "photo")
-                                .font(.system(size: 13, weight: .semibold))
+                            ProfileLogoImage(imageData: draftImageData, size: 120)
+                            
+                            Image(systemName: "photo.badge.plus")
+                                .font(.system(size: 16, weight: .semibold))
                                 .foregroundColor(.primary)
-                                .frame(width: 32, height: 32)
-                                .background(Color(.systemGray6))
-                                .clipShape(Circle())
-                                .shadow(color: Color.black.opacity(0.08), radius: 5, x: 0, y: 2)
+                                .frame(width: 45, height: 45)
+                                .glassEffect(in: Circle())
                         }
                     }
                     .buttonStyle(PlainButtonStyle())
                     .frame(maxWidth: .infinity)
-
+                    
                     VStack(alignment: .leading, spacing: 12) {
                         ProfileSectionTitle(title: "Informasi Umum")
-
+                        
                         ProfileTextInput(
                             placeholder: "Nama Pengelola",
                             text: $draftCompanyName
                         )
                         .focused($isFieldFocused)
-
+                        
                         ProfileTextInput(
                             placeholder: "Alamat Pengelola",
                             text: $draftCompanyAddress,
@@ -89,17 +81,17 @@ struct ProfileEditView: View {
                         )
                         .focused($isFieldFocused)
                     }
-
+                    
                     VStack(alignment: .leading, spacing: 12) {
                         ProfileSectionTitle(title: "Informasi Kontak")
-
+                        
                         ProfileTextInput(
                             placeholder: "Nomor Telepon",
                             text: $draftPhoneNumber,
                             keyboardType: .phonePad
                         )
                         .focused($isFieldFocused)
-
+                        
                         ProfileTextInput(
                             placeholder: "Email",
                             text: $draftEmail,
@@ -107,7 +99,7 @@ struct ProfileEditView: View {
                         )
                         .focused($isFieldFocused)
                     }
-
+                    
                     if let errorMessage {
                         Text(errorMessage)
                             .font(.footnote)
@@ -121,8 +113,24 @@ struct ProfileEditView: View {
             .scrollDismissesKeyboard(.interactively)
         }
         .background(Color(.systemBackground))
-        .navigationBarHidden(true)
         .contentShape(Rectangle())
+        .toolbar{
+            ToolbarItem(placement: .topBarLeading) {
+                Button{
+                    dismiss()
+                } label:{
+                    Image(systemName: "chevron.left")
+                }
+            }
+            
+            ToolbarItem(placement: .topBarTrailing){
+                Button{
+                    Task{await saveProfile()}
+                }label:{
+                    Image(systemName: "checkmark")
+                }
+            }
+        }
         .onTapGesture {
             isFieldFocused = false
         }
@@ -133,7 +141,7 @@ struct ProfileEditView: View {
         )
         .onChange(of: selectedItem, loadSelectedImage)
     }
-
+    
     private func saveProfile() async {
         guard !isSaving else { return }
         isSaving = true
@@ -159,7 +167,7 @@ struct ProfileEditView: View {
         selectedImageData = draftImageData
         dismiss()
     }
-
+    
     private func loadSelectedImage(_ oldItem: PhotosPickerItem?, _ newItem: PhotosPickerItem?) {
         Task {
             if let data = try? await newItem?.loadTransferable(type: Data.self) {
@@ -177,12 +185,14 @@ struct ProfileEditView: View {
     @Previewable @State var phone = ""
     @Previewable @State var email = ""
     @Previewable @State var imageData: Data?
-
-    ProfileEditView(
-        companyName: $name,
-        companyAddress: $address,
-        phoneNumber: $phone,
-        email: $email,
-        selectedImageData: $imageData
-    )
+    
+    NavigationStack{
+        ProfileEditView(
+            companyName: $name,
+            companyAddress: $address,
+            phoneNumber: $phone,
+            email: $email,
+            selectedImageData: $imageData
+        )
+    }
 }

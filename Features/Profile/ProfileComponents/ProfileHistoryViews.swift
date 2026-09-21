@@ -7,14 +7,10 @@ struct ProfileEventHistoryView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ProfileBackBar(
-                onBackTapped: { dismiss() }
-            )
-
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 24) {
                     Text("Riwayat Acara")
-                        .font(.system(size: 26, weight: .bold))
+                        .font(.largeTitle).bold()
                         .foregroundColor(.primary)
                         .padding(.horizontal, 20)
 
@@ -42,7 +38,7 @@ struct ProfileEventHistoryView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.top, 170)
                     } else {
-                        VStack(spacing: 12) {
+                        VStack(spacing: 24) {
                             ForEach(model.events) { item in
                                 ProfileEventHistoryRow(
                                     item: item,
@@ -67,7 +63,15 @@ struct ProfileEventHistoryView: View {
             }
         }
         .background(Color(.systemBackground))
-        .navigationBarHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button{
+                    dismiss()
+                } label: {
+                    Image(systemName: "chevron.left")
+                }
+            }
+        }
         .task { await model.loadEvents() }
     }
 }
@@ -80,14 +84,10 @@ struct ProfileDonationHistoryView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ProfileBackBar(
-                onBackTapped: { dismiss() }
-            )
-
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 24) {
                     Text("Riwayat\nPendonasi")
-                        .font(.system(size: 26, weight: .bold))
+                        .font(.largeTitle).bold()
                         .foregroundColor(.primary)
                         .padding(.horizontal, 20)
 
@@ -139,7 +139,15 @@ struct ProfileDonationHistoryView: View {
             }
         }
         .background(Color(.systemBackground))
-        .navigationBarHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button{
+                    dismiss()
+                } label: {
+                    Image(systemName: "chevron.left")
+                }
+            }
+        }
         .task { await model.loadDonations() }
     }
 
@@ -158,43 +166,39 @@ private struct ProfileEventHistoryRow: View {
     let bannerURL: URL?
 
     var body: some View {
-        HStack(spacing: 12) {
-            LoadableEventImage(
-                localImage: nil,
-                remoteURL: bannerURL,
-                unavailableLabel: "Banner acara tidak tersedia"
-            )
-            .frame(width: 78, height: 54)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
+        HStack(spacing: 16) {
+            Image("DummyImageBanner")
+                .resizable()
+                .scaledToFill()
+                .frame(width: 106, height: 80)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.event.name ?? "Acara tanpa nama")
-                    .font(.system(size: 15, weight: .bold))
+                    .font(.title3).bold()
                     .foregroundColor(.primary)
                     .lineLimit(2)
-
-                Text(Self.dateText(from: item.createdAt))
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.primary)
-
-                Text(Self.statusLabel(item.event.status))
-                    .font(.system(size: 11, weight: .semibold))
+                
+                Text(Self.dateRangeText(for: item.event))
+                    .font(.footnote).bold()
                     .foregroundColor(.secondary)
             }
 
             Spacer()
         }
     }
-
-    private static let dateFormatter: DateFormatter = {
+    
+    private static func dateRangeText(for event: BookingEventSnapshot) -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "id_ID")
-        formatter.dateFormat = "d MMM yyyy"
-        return formatter
-    }()
+        formatter.dateFormat = "d MMM"
 
-    private static func dateText(from date: Date) -> String {
-        dateFormatter.string(from: date)
+        guard let start = event.startAt,
+              let end = event.endAt else {
+            return "-"
+        }
+
+        return "\(formatter.string(from: start)) - \(formatter.string(from: end))"
     }
 
     private static func statusLabel(_ status: EventStatusCode?) -> String {
@@ -235,20 +239,14 @@ private struct ProfileDonationHistoryRow: View {
     let onTrack: (BookingStatusCode) -> Void
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline) {
+        HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.event.name ?? item.publicBookingId)
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.body).bold()
                     .foregroundColor(.primary)
 
-                Text(item.publicBookingId)
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-
                 Text(Self.relativeText(from: item.createdAt))
-                    .font(.system(size: 11, weight: .medium))
+                    .font(.footnote)
                     .foregroundColor(.secondary)
             }
 
@@ -256,27 +254,27 @@ private struct ProfileDonationHistoryRow: View {
 
             VStack(alignment: .trailing, spacing: 6) {
                 Text(Self.weightText(grams: item.actualWeightGrams ?? item.estimatedWeightGrams))
-                    .font(.system(size: 17, weight: .bold))
+                    .font(.title2).bold()
                     .foregroundColor(Color("3-DarkSoftCyan"))
 
-                if let next = Self.nextTrackingStatus(for: item.status) {
-                    Button {
-                        onTrack(next)
-                    } label: {
-                        if isSubmitting {
-                            ProgressView()
-                                .controlSize(.small)
-                        } else {
-                            Text(next == .processed ? "Tandai Diproses" : "Tandai Didaur Ulang")
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 5)
-                                .background(Color("3-DarkSoftCyan"), in: Capsule())
-                        }
-                    }
-                    .disabled(isSubmitting)
-                }
+//                if let next = Self.nextTrackingStatus(for: item.status) {
+//                    Button {
+//                        onTrack(next)
+//                    } label: {
+//                        if isSubmitting {
+//                            ProgressView()
+//                                .controlSize(.small)
+//                        } else {
+//                            Text(next == .processed ? "Tandai Diproses" : "Tandai Didaur Ulang")
+//                                .font(.system(size: 11, weight: .semibold))
+//                                .foregroundColor(.white)
+//                                .padding(.horizontal, 10)
+//                                .padding(.vertical, 5)
+//                                .background(Color("3-DarkSoftCyan"), in: Capsule())
+//                        }
+//                    }
+//                    .disabled(isSubmitting)
+//                }
             }
         }
         .padding(.vertical, 10)
@@ -297,7 +295,8 @@ private struct ProfileDonationHistoryRow: View {
     private static func relativeText(from date: Date) -> String {
         let formatter = RelativeDateTimeFormatter()
         formatter.locale = Locale(identifier: "id_ID")
-        formatter.unitsStyle = .short
+        formatter.unitsStyle = .full
+
         return formatter.localizedString(for: date, relativeTo: Date())
     }
 }
@@ -361,4 +360,19 @@ struct ProfileEmptyHistoryView: View {
             }
         }
     }
+}
+
+
+#Preview {
+//    ProfileEventHistoryView(
+//        model: AdminHistoryModel(
+//            previewEvents: ProfileHistoryBookingDummyData.events
+//        )
+//    )
+    
+    ProfileDonationHistoryView(
+            model: AdminHistoryModel(
+                previewDonations: ProfileDonationHistoryDummyData.donations
+            )
+        )
 }
