@@ -101,7 +101,16 @@ struct ProfileView: View {
             }
             .padding(.horizontal, 36)
         }
-        .navigationBarHidden(true)
+        .navigationTitle("Profil")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button(role: .close) {
+                    dismiss()
+                }
+                .accessibilityLabel("Tutup profil")
+            }
+        }
         .confirmationDialog(
             "Anda yakin ingin keluar?",
             isPresented: $isShowingLogoutConfirmation,

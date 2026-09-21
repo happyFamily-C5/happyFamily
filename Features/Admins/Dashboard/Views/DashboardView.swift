@@ -334,15 +334,17 @@ struct DashboardView: View {
             }
         }
         .fullScreenCover(isPresented: $isShowingProfile) {
-            ProfileView(
-                profile: $adminProfile,
-                onLogout: {
-                    isShowingProfile = false
-                    onLogout()
-                },
-                onDeleteAccount: onDeleteAccount,
-                onSaveProfile: onSaveProfile
-            )
+            NavigationStack {
+                ProfileView(
+                    profile: $adminProfile,
+                    onLogout: {
+                        isShowingProfile = false
+                        onLogout()
+                    },
+                    onDeleteAccount: onDeleteAccount,
+                    onSaveProfile: onSaveProfile
+                )
+            }
         }
         .fullScreenCover(item: $selectedEvent) { event in
             EventDetailView(
