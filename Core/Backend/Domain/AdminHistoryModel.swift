@@ -41,6 +41,7 @@ final class AdminHistoryModel {
     init(previewDonations: [BookingHistoryItem]) {
         self.historyRepository = nil
         self.receptionRepository = nil
+        self.backendBaseURL = nil
         self.donations = previewDonations
     }
 #endif
@@ -49,6 +50,7 @@ final class AdminHistoryModel {
     init(previewEvents: [BookingHistoryItem]) {
         self.historyRepository = nil
         self.receptionRepository = nil
+        self.backendBaseURL = nil
         self.events = previewEvents
     }
 #endif
