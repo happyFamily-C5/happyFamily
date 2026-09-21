@@ -256,11 +256,13 @@ struct DashboardView: View {
                 }
             }
             .task {
-                await model.refresh()
+                await model.load()
+                await model.loadRecap()
             }
             .onReceive(NotificationCenter.default.publisher(for: .adminOperationsDidChange)) { _ in
                 Task {
-                    await model.refresh()
+                    await model.load()
+                    await model.refreshRecap()
                 }
             }
 
