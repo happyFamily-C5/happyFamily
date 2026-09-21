@@ -23,10 +23,6 @@ struct DonorProfileView: View {
     var body: some View {
         ZStack {
             VStack(alignment: .leading, spacing: 0) {
-                ProfileTopBar(
-                    onCloseTapped: { dismiss() }
-                )
-
                 VStack(alignment: .leading, spacing: 24) {
                     ProfileHeaderCard(
                         imageData: profile.imageData,
@@ -88,13 +84,6 @@ struct DonorProfileView: View {
                 .padding(.top, 12)
             }
             .background(Color(.systemBackground))
-
-            if isShowingLogoutConfirmation {
-                ProfileLogoutOverlay(
-                    onCancelTapped: { isShowingLogoutConfirmation = false },
-                    onLogoutTapped: logout
-                )
-            }
         }
         .safeAreaInset(edge: .bottom) {
             Button {
@@ -112,7 +101,29 @@ struct DonorProfileView: View {
             .padding(.vertical, 8)
             .background(Color(.systemBackground).opacity(0.96))
         }
-        .navigationBarHidden(true)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                }
+                .accessibilityLabel("Tutup")
+            }
+        }
+        .confirmationDialog(
+            "Anda yakin ingin keluar?",
+            isPresented: $isShowingLogoutConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Keluar", role: .destructive) {
+                logout()
+            }
+            Button("Batal", role: .cancel) {}
+        } message: {
+            Text("Anda akan keluar dari aplikasi ini dan berhenti menerima notifikasi")
+        }
         .confirmationDialog(
             "Hapus akun secara permanen?",
             isPresented: $isShowingDeleteConfirmation,
@@ -144,22 +155,28 @@ struct DonorProfileView: View {
             Text(deleteAccountError ?? "Terjadi kesalahan yang tidak diketahui.")
         }
         .fullScreenCover(isPresented: $isShowingEditProfile) {
-            DonorProfileEditView(profile: profile) { updated in
-                guard let onSaveProfile else {
-                    throw BackendError.configuration("penyimpanan profil donor")
+            NavigationStack {
+                DonorProfileEditView(profile: profile) { updated in
+                    guard let onSaveProfile else {
+                        throw BackendError.configuration("penyimpanan profil donor")
+                    }
+                    try await onSaveProfile(updated)
+                    profile = updated
                 }
-                try await onSaveProfile(updated)
-                profile = updated
             }
         }
         .fullScreenCover(isPresented: $isShowingEventHistory) {
-            DonorEventHistoryView(
-                history: history.completed,
-                bannerURL: { history.bannerURL(for: $0) }
-            )
+            NavigationStack {
+                DonorEventHistoryView(
+                    history: history.completed,
+                    bannerURL: { history.bannerURL(for: $0) }
+                )
+            }
         }
         .fullScreenCover(isPresented: $isShowingDonationHistory) {
-            DonorDonationHistoryView(donations: history.donations)
+            NavigationStack {
+                DonorDonationHistoryView(donations: history.donations)
+            }
         }
         .task {
             async let donations: () = history.loadDonations()

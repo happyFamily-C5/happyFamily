@@ -24,10 +24,6 @@ struct DonorEventHistoryView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ProfileBackBar(
-                onBackTapped: { dismiss() }
-            )
-
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 24) {
                     Text("Riwayat Acara")
@@ -66,7 +62,17 @@ struct DonorEventHistoryView: View {
             }
         }
         .background(Color(.systemBackground))
-        .navigationBarHidden(true)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "chevron.left")
+                }
+                .accessibilityLabel("Kembali")
+            }
+        }
     }
 }
 
@@ -155,10 +161,6 @@ struct DonorDonationHistoryView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ProfileBackBar(
-                onBackTapped: { dismiss() }
-            )
-
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 24) {
                     Text("Riwayat Donasi")
@@ -188,7 +190,17 @@ struct DonorDonationHistoryView: View {
             }
         }
         .background(Color(.systemBackground))
-        .navigationBarHidden(true)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "chevron.left")
+                }
+                .accessibilityLabel("Kembali")
+            }
+        }
     }
 }
 

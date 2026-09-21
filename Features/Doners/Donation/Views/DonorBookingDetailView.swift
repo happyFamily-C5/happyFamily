@@ -21,10 +21,6 @@ struct DonorBookingDetailView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ProfileBackBar(
-                onBackTapped: { dismiss() }
-            )
-
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 20) {
                     Text("Detail Booking")
@@ -55,7 +51,17 @@ struct DonorBookingDetailView: View {
             }
         }
         .background(Color(.systemBackground))
-        .navigationBarHidden(true)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "chevron.left")
+                }
+                .accessibilityLabel("Kembali")
+            }
+        }
         .task { await model.loadDetail(bookingId: bookingId) }
         .alert(
             "Batalkan booking?",

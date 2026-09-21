@@ -11,11 +11,6 @@ struct EditEventCriteriaView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            EditEventHeaderView(
-                onBackTapped: { dismiss() },
-                onSaveTapped: saveCriteria
-            )
-
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 18) {
                     VStack(alignment: .leading, spacing: 8) {
@@ -55,7 +50,28 @@ struct EditEventCriteriaView: View {
             }
         }
         .background(Color(.systemBackground))
-        .navigationBarHidden(true)
+        .navigationTitle("Edit Acara")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "chevron.left")
+                }
+                .accessibilityLabel("Kembali")
+            }
+
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    saveCriteria()
+                } label: {
+                    Image(systemName: "checkmark")
+                }
+                .accessibilityLabel("Simpan")
+            }
+        }
     }
 
     private func saveCriteria() {

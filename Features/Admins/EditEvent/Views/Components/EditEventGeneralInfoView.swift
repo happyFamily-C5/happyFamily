@@ -26,14 +26,6 @@ struct EditEventGeneralInfoView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            EditEventHeaderView(
-                onBackTapped: { dismiss() },
-                onSaveTapped: {
-                    onSaveTapped()
-                    dismiss()
-                }
-            )
-
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 16) {
                     TextField("Nama Acara", text: $eventName)
@@ -64,7 +56,29 @@ struct EditEventGeneralInfoView: View {
             .scrollDismissesKeyboard(.interactively)
         }
         .background(Color(.systemBackground))
-        .navigationBarHidden(true)
+        .navigationTitle("Edit Acara")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "chevron.left")
+                }
+                .accessibilityLabel("Kembali")
+            }
+
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    onSaveTapped()
+                    dismiss()
+                } label: {
+                    Image(systemName: "checkmark")
+                }
+                .accessibilityLabel("Simpan")
+            }
+        }
         .sheet(item: $activeDateSheet) { target in
             NavigationStack {
                 VStack {

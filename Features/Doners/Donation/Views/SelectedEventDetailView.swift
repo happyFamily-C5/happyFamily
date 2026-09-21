@@ -62,12 +62,14 @@ struct SelectedEventDetailView: View {
             .presentationDragIndicator(.visible)
         }
         .fullScreenCover(isPresented: $showRequiredProfile, onDismiss: resumeDonationAfterProfileSave) {
-            DonorProfileEditView(profile: router.donorProfile, mode: .donationRequired) { updated in
-                guard let onSaveProfile = router.onSaveDonorProfile else {
-                    throw BackendError.configuration("penyimpanan profil donor")
+            NavigationStack {
+                DonorProfileEditView(profile: router.donorProfile, mode: .donationRequired) { updated in
+                    guard let onSaveProfile = router.onSaveDonorProfile else {
+                        throw BackendError.configuration("penyimpanan profil donor")
+                    }
+                    try await onSaveProfile(updated)
+                    shouldResumeDonationAfterProfileSave = true
                 }
-                try await onSaveProfile(updated)
-                shouldResumeDonationAfterProfileSave = true
             }
         }
     }

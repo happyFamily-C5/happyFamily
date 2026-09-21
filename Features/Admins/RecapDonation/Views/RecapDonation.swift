@@ -10,20 +10,6 @@ struct RecapDonation: View {
         ZStack(alignment: .bottom) {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 20) {
-                    // 1. Tombol Back / Navigasi Atas
-                    Button(action: { dismiss() }) {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(.primary)
-                            .frame(width: 40, height: 40)
-                            .background(Color(.systemBackground))
-                            .clipShape(Circle())
-                            .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 8)
-
-                    // 2. Judul Halaman & Subtitle
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Rekap Donasi")
                             .font(.system(size: 28, weight: .bold))
@@ -104,7 +90,17 @@ struct RecapDonation: View {
         .task {
             await model.load()
         }
-        .navigationBarHidden(true)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "chevron.left")
+                }
+                .accessibilityLabel("Kembali")
+            }
+        }
     }
 }
 

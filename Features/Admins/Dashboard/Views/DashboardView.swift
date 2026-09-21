@@ -35,7 +35,6 @@ struct DashboardView: View {
     @State private var isShowingProfile: Bool = false
     @State private var selectedEvent: AdminEvent?
     @State private var showShareSheet: Bool = false
-    @FocusState private var isSearchFocused: Bool
 
     init(
         initialProfile: AdminProfile = .defaultProfile,
@@ -99,11 +98,6 @@ struct DashboardView: View {
 
                     ScrollView(showsIndicators: false) {
                         VStack(alignment: .leading, spacing: 20) {
-                            HeaderNavigationView(
-                                onLogoTapped: openAdminProfile,
-                                onAddTapped: { requestCreateEvent() }
-                            )
-
                             Menu {
                                 Button("Semua status") { selectedStatus = nil }
                                 ForEach(EventStatusCode.allCases, id: \.self) { status in
@@ -253,6 +247,35 @@ struct DashboardView: View {
                     .refreshable {
                         await model.refresh()
                     }
+                    .searchable(text: $searchText, prompt: "Cari acara")
+                    .toolbar {
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button {
+                                openAdminProfile()
+                            } label: {
+                                Image(systemName: "person.crop.circle.fill")
+                            }
+                            .accessibilityLabel("Buka profil")
+                            .accessibilityIdentifier("dashboardProfile")
+                        }
+
+                        ToolbarItemGroup(placement: .topBarTrailing) {
+                            Button {
+                                isShowingQRScanner = true
+                            } label: {
+                                Image(systemName: "qrcode")
+                            }
+                            .accessibilityLabel("Buka pemindai QR")
+
+                            Button {
+                                requestCreateEvent()
+                            } label: {
+                                Image(systemName: "plus")
+                            }
+                            .accessibilityLabel("Tambah acara")
+                            .accessibilityIdentifier("dashboardAddEvent")
+                        }
+                    }
                 }
             }
             .task {
@@ -264,28 +287,6 @@ struct DashboardView: View {
                 }
             }
 
-            // While editing, a transparent layer over the dashboard catches
-            // taps and resigns focus. It sits above the content but below the
-            // search bar, so tapping the field itself still reaches the field,
-            // and it only exists while editing so it never interferes
-            // otherwise. Attaching the gesture to the content instead was
-            // unreliable once the field had text in it.
-            if isSearchFocused {
-                Color.clear
-                    .contentShape(Rectangle())
-                    .onTapGesture { isSearchFocused = false }
-            }
-
-            // Floating Search Bar hanya muncul saat dashboard aktif
-            if hasAnyEvent {
-                FloatingSearchBar(
-                    searchText: $searchText,
-                    isSearchFocused: $isSearchFocused,
-                    onMicTapped: { print("Mic diklik!") },
-                    onQrTapped: { isShowingQRScanner = true }
-                )
-                .padding(.bottom, 16)
-            }
         }
         // Only the container's bottom inset (the home indicator) is ignored.
         // The old .edgesIgnoringSafeArea(.bottom) also ignored the *keyboard*
@@ -328,7 +329,9 @@ struct DashboardView: View {
             }
         }
         .fullScreenCover(isPresented: $isShowingRecapDonation) {
-            RecapDonation()
+            NavigationStack {
+                RecapDonation()
+            }
         }
         .fullScreenCover(isPresented: $isShowingProfile) {
             ProfileView(

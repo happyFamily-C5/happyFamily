@@ -86,13 +86,6 @@ struct ProfileView: View {
                 .padding(.top, 12)
             }
             .background(Color(.systemBackground))
-
-            if isShowingLogoutConfirmation {
-                ProfileLogoutOverlay(
-                    onCancelTapped: { isShowingLogoutConfirmation = false },
-                    onLogoutTapped: logout
-                )
-            }
         }
         .safeAreaInset(edge: .bottom) {
             Button {
@@ -109,6 +102,18 @@ struct ProfileView: View {
             .padding(.horizontal, 36)
         }
         .navigationBarHidden(true)
+        .confirmationDialog(
+            "Anda yakin ingin keluar?",
+            isPresented: $isShowingLogoutConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Keluar", role: .destructive) {
+                logout()
+            }
+            Button("Batal", role: .cancel) {}
+        } message: {
+            Text("Anda akan keluar dari aplikasi ini dan berhenti menerima notifikasi")
+        }
         .confirmationDialog(
             "Hapus akun secara permanen?",
             isPresented: $isShowingDeleteConfirmation,

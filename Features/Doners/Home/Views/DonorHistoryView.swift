@@ -29,10 +29,6 @@ struct DonorHistoryView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ProfileBackBar(
-                onBackTapped: { dismiss() }
-            )
-
             VStack(alignment: .leading, spacing: 16) {
                 Text("Riwayat")
                     .font(.system(size: 26, weight: .bold))
@@ -51,7 +47,17 @@ struct DonorHistoryView: View {
             .padding(.top, 18)
         }
         .background(Color(.systemBackground))
-        .navigationBarHidden(true)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "chevron.left")
+                }
+                .accessibilityLabel("Kembali")
+            }
+        }
         .task {
             await model.loadDonations()
             await model.loadCompleted()

@@ -64,14 +64,7 @@ struct CreatingView: View {
                     FormHeaderView(
                         currentStep: currentStep,
                         totalSteps: totalSteps,
-                        stepTitle: stepTitleText,
-                        onBackTapped: {
-                            if currentStep > 1 {
-                                currentStep -= 1
-                            } else {
-                                dismiss()
-                            }
-                        }
+                        stepTitle: stepTitleText
                     )
                     .padding(.top, 8)
                     
@@ -115,13 +108,29 @@ struct CreatingView: View {
                         .opacity(isCurrentStepValid && !isSubmitting ? 1.0 : 0.6)
                     }
                     .padding(.bottom, 16)
+                    .navigationTitle("Tambahkan Acara")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .navigationBarBackButtonHidden(true)
+                    .toolbar {
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button {
+                                if currentStep > 1 {
+                                    currentStep -= 1
+                                } else {
+                                    dismiss()
+                                }
+                            } label: {
+                                Image(systemName: "chevron.left")
+                            }
+                            .accessibilityLabel("Kembali")
+                        }
+                    }
                 }
             }
         }
         .background(Color(.systemBackground).ignoresSafeArea())
         .contentShape(Rectangle())
         .onTapGesture { focusedField = nil }
-        .navigationBarHidden(true)
         .onChange(of: startTime) { _, newStart in
             if endTime < newStart {
                 endTime = newStart

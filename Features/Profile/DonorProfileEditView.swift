@@ -45,13 +45,6 @@ struct DonorProfileEditView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ProfileBackBar(
-                showsSave: true,
-                isSaveDisabled: isSaving || (mode == .donationRequired && !canSaveDonationProfile),
-                onBackTapped: { dismiss() },
-                onSaveTapped: { Task { await saveProfile() } }
-            )
-
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 24) {
                     if mode == .donationRequired {
@@ -123,7 +116,27 @@ struct DonorProfileEditView: View {
             }
         }
         .background(Color(.systemBackground))
-        .navigationBarHidden(true)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "chevron.left")
+                }
+                .accessibilityLabel("Kembali")
+            }
+
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task { await saveProfile() }
+                } label: {
+                    Image(systemName: "checkmark")
+                }
+                .disabled(isSaving || (mode == .donationRequired && !canSaveDonationProfile))
+                .accessibilityLabel("Simpan")
+            }
+        }
         .contentShape(Rectangle())
         .onTapGesture {
             isFieldFocused = false

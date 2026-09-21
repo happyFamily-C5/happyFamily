@@ -120,12 +120,6 @@ struct EditEventView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            EditEventHeaderView(
-                onBackTapped: cancelEdit,
-                onSaveTapped: saveAndDismiss,
-                showsSaveButton: false
-            )
-
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 12) {
                     EditEventBannerSection(
@@ -187,9 +181,32 @@ struct EditEventView: View {
                 isShowingCancelSheet = true
             }
         }
-        .navigationBarHidden(true)
+        .navigationTitle("Edit Acara")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    cancelEdit()
+                } label: {
+                    Image(systemName: "chevron.left")
+                }
+                .accessibilityLabel("Kembali")
+            }
+
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    saveAndDismiss()
+                } label: {
+                    Image(systemName: "checkmark")
+                }
+                .accessibilityLabel("Simpan")
+            }
+        }
         .fullScreenCover(item: $activeEditor, onDismiss: commitLocationIfNeeded) { editor in
-            editorView(for: editor)
+            NavigationStack {
+                editorView(for: editor)
+            }
         }
         .sheet(isPresented: $isShowingCancelSheet) {
             CancelEventConfirmationSheet {
