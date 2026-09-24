@@ -279,18 +279,6 @@ struct CreatingView: View {
                     .padding(.bottom, 12)
                 }
             }
-            .onChange(of: selectedItem) { _, newItem in
-                Task {
-                    if let data = try? await newItem?.loadTransferable(type: Data.self),
-                       let uiImage = UIImage(data: data) {
-                        await MainActor.run {
-                            selectedImageData = data
-                            selectedBannerImage = Image(uiImage: uiImage)
-                        }
-                    }
-                }
-            }
-            
             VStack(alignment: .leading, spacing: 16) {
                 VStack(alignment: .leading, spacing: 8) {
     
