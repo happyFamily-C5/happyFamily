@@ -13,28 +13,71 @@ struct EventBannerPolicyTests {
         #expect(try await EventBannerPolicy.prepareForUpload(Data()) == nil)
     }
 
-    @Test("Compliant JPEG is uploaded unchanged")
+    @Test("Exact 16:9 JPEG is uploaded unchanged")
     func compliantJPEGStaysUnchanged() async throws {
-        let data = imageData(width: 240, height: 120, format: .jpeg)
+        let data = imageData(width: 320, height: 180, format: .jpeg)
 
         let prepared = try #require(await EventBannerPolicy.prepareForUpload(data))
 
         #expect(prepared.data == data)
         #expect(prepared.contentType == "image/jpeg")
-        #expect(prepared.width == 240)
-        #expect(prepared.height == 120)
+        #expect(prepared.width == 320)
+        #expect(prepared.height == 180)
     }
 
-    @Test("Compliant PNG is uploaded unchanged")
+    @Test("Exact 16:9 PNG is uploaded unchanged")
     func compliantPNGStaysUnchanged() async throws {
-        let data = imageData(width: 120, height: 240, format: .png)
+        let data = imageData(width: 320, height: 180, format: .png)
 
         let prepared = try #require(await EventBannerPolicy.prepareForUpload(data))
 
         #expect(prepared.data == data)
         #expect(prepared.contentType == "image/png")
-        #expect(prepared.width == 120)
-        #expect(prepared.height == 240)
+        #expect(prepared.width == 320)
+        #expect(prepared.height == 180)
+    }
+
+    @Test("Portrait JPEG is center-cropped to 16:9")
+    func portraitJPEGIsCropped() async throws {
+        let data = imageData(width: 120, height: 240, format: .jpeg)
+
+        let prepared = try #require(await EventBannerPolicy.prepareForUpload(data))
+
+        #expect(prepared.contentType == "image/jpeg")
+        #expect(isSixteenByNine(prepared))
+        #expect(prepared.width > prepared.height)
+        #expect(prepared.data != data)
+    }
+
+    @Test("Portrait PNG is converted and center-cropped to 16:9")
+    func portraitPNGIsCropped() async throws {
+        let data = imageData(width: 120, height: 240, format: .png)
+
+        let prepared = try #require(await EventBannerPolicy.prepareForUpload(data))
+
+        #expect(prepared.contentType == "image/jpeg")
+        #expect(isSixteenByNine(prepared))
+        #expect(prepared.width > prepared.height)
+        #expect(prepared.data != data)
+    }
+
+    @Test("Landscape 4:3 is cropped without stretching")
+    func landscapeFourByThreeIsCropped() async throws {
+        let data = imageData(width: 240, height: 180, format: .jpeg)
+
+        let prepared = try #require(await EventBannerPolicy.prepareForUpload(data))
+
+        #expect(isSixteenByNine(prepared))
+        #expect(prepared.width > prepared.height)
+    }
+
+    @Test("Prepared banners are idempotent")
+    func preparedBannerIsNotReencoded() async throws {
+        let source = imageData(width: 120, height: 240, format: .jpeg)
+        let first = try #require(await EventBannerPolicy.prepareForUpload(source))
+        let second = try #require(await EventBannerPolicy.prepareForUpload(first.data))
+
+        #expect(second == first)
     }
 
     @Test("Images above the server dimension limit are resized")
@@ -109,5 +152,9 @@ struct EventBannerPolicyTests {
             return nil
         }
         return (width, height)
+    }
+
+    private func isSixteenByNine(_ banner: PreparedEventBanner) -> Bool {
+        banner.width * 9 == banner.height * 16
     }
 }

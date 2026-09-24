@@ -39,6 +39,8 @@ struct AuthRoutingTests {
             phoneE164: phone,
             address: nil,
             recommendationLocationLabel: nil,
+            recommendationLatitude: nil,
+            recommendationLongitude: nil,
             avatarObjectPath: nil
         )
     }

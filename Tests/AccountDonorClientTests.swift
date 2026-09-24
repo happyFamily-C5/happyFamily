@@ -54,11 +54,43 @@ struct AccountDonorClientTests {
 
         _ = try? await makeAccountClient().updateProfile(AccountProfileUpdate(
             displayName: "Donatur Uji", phoneE164: "0812-3456-7890", address: "Jakarta",
-            locationLabel: "", latitude: nil, longitude: nil, avatarObjectPath: ""
+            locationLabel: "Jakarta Selatan", latitude: -6.2, longitude: 106.8, avatarObjectPath: ""
         ))
         let profileJSON = try #require(recorder.snapshot().last?.jsonBody)
         #expect(profileJSON["action"] as? String == "update_profile")
         #expect(profileJSON["phone_e164"] as? String == "+6281234567890")
+        #expect(profileJSON["location_label"] as? String == "Jakarta Selatan")
+        #expect(profileJSON["latitude"] as? Double == -6.2)
+        #expect(profileJSON["longitude"] as? Double == 106.8)
+    }
+
+    @Test("myProfile decodes the persisted recommendation location")
+    func myProfileDecodesRecommendationLocation() async throws {
+        URLProtocolStub.requestHandler = { request in
+            let data = try JSONSerialization.data(withJSONObject: [
+                "data": [
+                    "id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+                    "role": "donor",
+                    "display_name": "Donatur Uji",
+                    "phone_e164": "+6281234567890",
+                    "address": "Jakarta",
+                    "recommendation_location_label": "Jakarta Selatan",
+                    "recommendation_latitude": -6.2,
+                    "recommendation_longitude": 106.8,
+                    "avatar_object_path": NSNull(),
+                ],
+                "error": NSNull(),
+                "request_id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+                "server_time": "2026-09-10T01:00:00Z",
+            ])
+            return try (response(for: request, status: 200), data)
+        }
+
+        let profile = try await makeAccountClient().myProfile()
+
+        #expect(profile.recommendationLocationLabel == "Jakarta Selatan")
+        #expect(profile.recommendationLatitude == -6.2)
+        #expect(profile.recommendationLongitude == 106.8)
     }
 
     @Test("createBooking posts the account action with the idempotency key")

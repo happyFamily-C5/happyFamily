@@ -19,13 +19,21 @@ struct HomeView: View {
     @State private var selectedAddress: String?
     @State private var selectedCoordinate: CLLocationCoordinate2D?
     @State private var model: DonorHomeModel
+    @State private var isSavingLocation = false
+    @State private var locationSaveError: String?
+
+    private let onSaveLocation: ((String, CLLocationCoordinate2D) async throws -> Void)?
 
     init(
         userLocation: String = "Lokasi Anda",
+        userCoordinate: CLLocationCoordinate2D? = nil,
+        onSaveLocation: ((String, CLLocationCoordinate2D) async throws -> Void)? = nil,
         accountClient: (any AccountBackendServing)? = BackendDependencies.accountClientOrDefault(),
         backendBaseURL: URL? = BackendDependencies.backendBaseURL()
     ) {
         _userLocation = State(initialValue: userLocation)
+        _selectedCoordinate = State(initialValue: userCoordinate)
+        self.onSaveLocation = onSaveLocation
         _model = State(initialValue: DonorHomeModel(
             accountClient: accountClient,
             backendBaseURL: backendBaseURL
@@ -86,11 +94,52 @@ struct HomeView: View {
         }
         .task { await model.load() }
         .onChange(of: router.mapPickerSession.revision) { _, _ in
-            if let location = router.mapPickerSession.selectedLocation {
-                userLocation = location
+            guard let location = router.mapPickerSession.selectedLocation,
+                  let coordinate = router.mapPickerSession.selectedCoordinate
+            else {
+                locationSaveError = "Koordinat lokasi tidak tersedia. Pilih lokasi kembali."
+                return
             }
-            selectedAddress = router.mapPickerSession.selectedAddress
-            selectedCoordinate = router.mapPickerSession.selectedCoordinate
+
+            let previousLocation = userLocation
+            let previousAddress = selectedAddress
+            let previousCoordinate = selectedCoordinate
+            let newAddress = router.mapPickerSession.selectedAddress
+
+            userLocation = location
+            selectedAddress = newAddress
+            selectedCoordinate = coordinate
+
+            guard let onSaveLocation else { return }
+
+            isSavingLocation = true
+            Task {
+                defer { isSavingLocation = false }
+                do {
+                    try await onSaveLocation(location, coordinate)
+                    await model.load()
+                } catch {
+                    userLocation = previousLocation
+                    selectedAddress = previousAddress
+                    selectedCoordinate = previousCoordinate
+                    locationSaveError = error.localizedDescription
+                }
+            }
+        }
+        .alert(
+            "Lokasi gagal disimpan",
+            isPresented: Binding(
+                get: { locationSaveError != nil },
+                set: {
+                    if !$0 {
+                        locationSaveError = nil
+                    }
+                }
+            )
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(locationSaveError ?? "Silakan coba lagi.")
         }
     }
 
@@ -107,12 +156,18 @@ struct HomeView: View {
                     .font(.system(size: 20))
                 Text(userLocation)
                     .bold()
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 17)).bold()
+                if isSavingLocation {
+                    ProgressView()
+                        .controlSize(.small)
+                } else {
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 17)).bold()
+                }
             }
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .disabled(isSavingLocation)
     }
 
     @ViewBuilder

@@ -131,6 +131,8 @@ private final class DonationAccountClient: AccountBackendServing, @unchecked Sen
             phoneE164: "+6281234567890",
             address: nil,
             recommendationLocationLabel: nil,
+            recommendationLatitude: nil,
+            recommendationLongitude: nil,
             avatarObjectPath: nil
         )
     }

@@ -127,9 +127,9 @@ struct DonorProfileCompletionView: View {
                 displayName: displayName,
                 phoneE164: phoneE164,
                 address: address,
-                locationLabel: "",
-                latitude: nil,
-                longitude: nil,
+                locationLabel: profile.recommendationLocationLabel ?? "",
+                latitude: profile.recommendationLatitude,
+                longitude: profile.recommendationLongitude,
                 avatarObjectPath: resolvedAvatarPath
             ))
         } catch {

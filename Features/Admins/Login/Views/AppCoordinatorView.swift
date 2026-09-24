@@ -44,7 +44,11 @@ struct AppCoordinatorView: View {
                 case .donorHome:
                     MainTabView(
                         router: router,
-                        userLocation: model.donorProfile?.recommendationLocationLabel ?? "Lokasi Anda"
+                        userLocation: model.donorProfile?.recommendationLocationLabel ?? "Lokasi Anda",
+                        userCoordinate: model.donorLocationCoordinate,
+                        onSaveLocation: { label, coordinate in
+                            try await model.saveDonorLocation(label: label, coordinate: coordinate)
+                        }
                     )
                 }
             }

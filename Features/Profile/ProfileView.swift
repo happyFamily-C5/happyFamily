@@ -152,18 +152,18 @@ struct ProfileView: View {
                 .presentationDragIndicator(.visible)
             }
         }
-        
+
         .sheet(isPresented: $isShowingEventHistory) {
             NavigationStack {
                 ProfileEventHistoryView(model: historyModel)
                     .presentationDragIndicator(.visible)
             }
         }
-        
+
         .sheet(isPresented: $isShowingDonationHistory) {
             NavigationStack {
                 ProfileDonationHistoryView(model: historyModel)
-                .presentationDragIndicator(.visible)
+                    .presentationDragIndicator(.visible)
             }
         }
     }

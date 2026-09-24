@@ -65,7 +65,7 @@ struct ProfileEventHistoryView: View {
         .background(Color(.systemBackground))
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                Button{
+                Button {
                     dismiss()
                 } label: {
                     Image(systemName: "chevron.left")
@@ -141,7 +141,7 @@ struct ProfileDonationHistoryView: View {
         .background(Color(.systemBackground))
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                Button{
+                Button {
                     dismiss()
                 } label: {
                     Image(systemName: "chevron.left")
@@ -178,7 +178,7 @@ private struct ProfileEventHistoryRow: View {
                     .font(.title3).bold()
                     .foregroundColor(.primary)
                     .lineLimit(2)
-                
+
                 Text(Self.dateRangeText(for: item.event))
                     .font(.footnote).bold()
                     .foregroundColor(.secondary)
@@ -187,14 +187,15 @@ private struct ProfileEventHistoryRow: View {
             Spacer()
         }
     }
-    
+
     private static func dateRangeText(for event: BookingEventSnapshot) -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "id_ID")
         formatter.dateFormat = "d MMM"
 
         guard let start = event.startAt,
-              let end = event.endAt else {
+              let end = event.endAt
+        else {
             return "-"
         }
 
@@ -362,17 +363,16 @@ struct ProfileEmptyHistoryView: View {
     }
 }
 
-
 #Preview {
 //    ProfileEventHistoryView(
 //        model: AdminHistoryModel(
 //            previewEvents: ProfileHistoryBookingDummyData.events
 //        )
 //    )
-    
+
     ProfileDonationHistoryView(
-            model: AdminHistoryModel(
-                previewDonations: ProfileDonationHistoryDummyData.donations
-            )
+        model: AdminHistoryModel(
+            previewDonations: ProfileDonationHistoryDummyData.donations
         )
+    )
 }
