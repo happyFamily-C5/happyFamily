@@ -15,10 +15,12 @@ struct PreparedEventBanner: Sendable, Equatable {
 enum EventBannerPolicy {
     static let maximumBytes = 5 * 1024 * 1024
     static let maximumDimension = 4096
+    static let targetAspectWidth = 16
+    static let targetAspectHeight = 9
 
-    /// Converts an unsupported, oversized, or over-dimension image into a
-    /// valid JPEG. A JPEG/PNG that already satisfies the contract is kept
-    /// byte-for-byte to avoid an unnecessary quality loss.
+    /// Converts an unsupported, oversized, over-dimension, or non-landscape
+    /// image into a valid, centered 16:9 JPEG. An upright JPEG/PNG that is
+    /// already 16:9 and satisfies the contract is kept byte-for-byte.
     static func prepareForUpload(_ data: Data?) async throws -> PreparedEventBanner? {
         guard let data, !data.isEmpty else { return nil }
         return try await Task.detached(priority: .userInitiated) {
@@ -43,19 +45,23 @@ enum EventBannerPolicy {
         guard let source = CGImageSourceCreateWithData(data as CFData, nil) else {
             throw data.count > maximumBytes ? tooLargeError : rejectedError
         }
-        guard let dimensions = sourceDimensions(source) else {
+        guard let metadata = sourceMetadata(source) else {
             throw data.count > maximumBytes ? tooLargeError : rejectedError
         }
 
         let isWithinServerLimits = data.count <= maximumBytes
-            && dimensions.width <= maximumDimension
-            && dimensions.height <= maximumDimension
-        if isSupportedFormat(data), isWithinServerLimits {
+            && metadata.width <= maximumDimension
+            && metadata.height <= maximumDimension
+        if isSupportedFormat(data),
+           metadata.orientation == 1,
+           isWithinServerLimits,
+           isTargetAspect(width: metadata.width, height: metadata.height)
+        {
             return PreparedEventBanner(
                 data: data,
                 contentType: data.starts(with: [0x89, 0x50, 0x4E, 0x47]) ? "image/png" : "image/jpeg",
-                width: dimensions.width,
-                height: dimensions.height
+                width: metadata.width,
+                height: metadata.height
             )
         }
 
@@ -73,8 +79,8 @@ enum EventBannerPolicy {
                 return PreparedEventBanner(
                     data: jpeg,
                     contentType: "image/jpeg",
-                    width: thumbnail.width,
-                    height: thumbnail.height
+                    width: Int(rendered.size.width),
+                    height: Int(rendered.size.height)
                 )
             }
         }
@@ -82,7 +88,7 @@ enum EventBannerPolicy {
         throw tooLargeError
     }
 
-    private static func sourceDimensions(_ source: CGImageSource) -> (width: Int, height: Int)? {
+    private static func sourceMetadata(_ source: CGImageSource) -> (width: Int, height: Int, orientation: Int)? {
         guard let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
               let width = properties[kCGImagePropertyPixelWidth] as? Int,
               let height = properties[kCGImagePropertyPixelHeight] as? Int,
@@ -91,7 +97,18 @@ enum EventBannerPolicy {
         else {
             return nil
         }
-        return (width, height)
+
+        let orientation = properties[kCGImagePropertyOrientation] as? Int ?? 1
+        let rotatesDimensions = (5 ... 8).contains(orientation)
+        return (
+            width: rotatesDimensions ? height : width,
+            height: rotatesDimensions ? width : height,
+            orientation: orientation
+        )
+    }
+
+    private static func isTargetAspect(width: Int, height: Int) -> Bool {
+        width * targetAspectHeight == height * targetAspectWidth
     }
 
     private static func thumbnail(
@@ -107,14 +124,37 @@ enum EventBannerPolicy {
     }
 
     private static func renderedJPEGImage(from image: CGImage) -> UIImage {
-        let size = CGSize(width: image.width, height: image.height)
+        let unit = max(
+            1,
+            min(
+                image.width / targetAspectWidth,
+                image.height / targetAspectHeight
+            )
+        )
+        let size = CGSize(
+            width: targetAspectWidth * unit,
+            height: targetAspectHeight * unit
+        )
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
         format.opaque = true
         return UIGraphicsImageRenderer(size: size, format: format).image { context in
             UIColor.white.setFill()
             context.fill(CGRect(origin: .zero, size: size))
-            UIImage(cgImage: image).draw(in: CGRect(origin: .zero, size: size))
+
+            let scale = max(size.width / CGFloat(image.width), size.height / CGFloat(image.height))
+            let drawSize = CGSize(
+                width: CGFloat(image.width) * scale,
+                height: CGFloat(image.height) * scale
+            )
+            let drawRect = CGRect(
+                x: (size.width - drawSize.width) / 2,
+                y: (size.height - drawSize.height) / 2,
+                width: drawSize.width,
+                height: drawSize.height
+            )
+            context.cgContext.interpolationQuality = .high
+            UIImage(cgImage: image).draw(in: drawRect)
         }
     }
 

@@ -1,3 +1,4 @@
+import CoreLocation
 import Foundation
 import Observation
 import SwiftUI
@@ -23,6 +24,13 @@ final class AppCoordinatorViewModel {
 
     var isShowingError: Bool {
         bootstrapError != nil
+    }
+
+    var donorLocationCoordinate: CLLocationCoordinate2D? {
+        guard let latitude = donorProfile?.recommendationLatitude,
+              let longitude = donorProfile?.recommendationLongitude
+        else { return nil }
+        return CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
     }
 
     func splashAnimationCompleted() {
@@ -115,7 +123,8 @@ final class AppCoordinatorViewModel {
         let workspace = try await BackendDependencies.organizerClient().workspaceProfile()
         var logoObjectPath = workspace.logoObjectPath ?? ""
         if let imageData = profile.imageData,
-           adminProfile.logoObjectPath == nil || adminProfile.imageData != imageData {
+           adminProfile.logoObjectPath == nil || adminProfile.imageData != imageData
+        {
             logoObjectPath = try await BackendDependencies.storageMediaClient()
                 .uploadWorkspaceLogo(data: imageData, workspaceId: workspace.id)
         }
@@ -136,13 +145,14 @@ final class AppCoordinatorViewModel {
 
     func saveDonorProfile(_ profile: DonorProfile, router: AppRouter) async throws {
         let account = try BackendDependencies.accountClient()
+        let savedLocation = donorProfile
         let saved = try await account.updateProfile(AccountProfileUpdate(
             displayName: profile.fullName,
             phoneE164: profile.phoneE164,
             address: profile.address,
-            locationLabel: "",
-            latitude: nil,
-            longitude: nil,
+            locationLabel: savedLocation?.recommendationLocationLabel ?? "",
+            latitude: savedLocation?.recommendationLatitude,
+            longitude: savedLocation?.recommendationLongitude,
             avatarObjectPath: profile.avatarObjectPath
         ))
         donorProfile = saved
@@ -154,6 +164,23 @@ final class AppCoordinatorViewModel {
             phoneE164: saved.phoneE164 ?? "",
             avatarObjectPath: saved.avatarObjectPath ?? ""
         )
+    }
+
+    func saveDonorLocation(label: String, coordinate: CLLocationCoordinate2D) async throws {
+        guard let currentProfile = donorProfile else {
+            throw BackendError.configuration("profil donor belum tersedia")
+        }
+
+        let saved = try await BackendDependencies.accountClient().updateProfile(AccountProfileUpdate(
+            displayName: currentProfile.displayName,
+            phoneE164: currentProfile.phoneE164 ?? "",
+            address: currentProfile.address ?? "",
+            locationLabel: label,
+            latitude: coordinate.latitude,
+            longitude: coordinate.longitude,
+            avatarObjectPath: currentProfile.avatarObjectPath ?? ""
+        ))
+        donorProfile = saved
     }
 
     nonisolated static func shouldRequestEmailChange(
@@ -202,13 +229,15 @@ final class AppCoordinatorViewModel {
         router.donorProfile = profile
         if profile.imageData == nil,
            let avatarPath = account.avatarObjectPath,
-           !avatarPath.isEmpty {
+           !avatarPath.isEmpty
+        {
             Task {
                 let avatarData = await BackendDependencies.storageMediaClientOrDefault()?
                     .fetchPublicObject(bucket: "profile-avatars", path: avatarPath)
                 if let avatarData,
                    router.donorProfile.id == account.id,
-                   router.donorProfile.avatarObjectPath == avatarPath {
+                   router.donorProfile.avatarObjectPath == avatarPath
+                {
                     profile.imageData = avatarData
                     router.donorProfile = profile
                 }

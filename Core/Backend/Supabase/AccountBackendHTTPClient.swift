@@ -18,6 +18,8 @@ struct AccountProfileData: Decodable, Sendable, Equatable {
     let phoneE164: String?
     let address: String?
     let recommendationLocationLabel: String?
+    let recommendationLatitude: Double?
+    let recommendationLongitude: Double?
     let avatarObjectPath: String?
 }
 

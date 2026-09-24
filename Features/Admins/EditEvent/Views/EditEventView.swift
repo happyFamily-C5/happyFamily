@@ -18,6 +18,9 @@ struct EditEventView: View {
     @State private var isPhotoPickerPresented = false
     @State private var selectedItem: PhotosPickerItem?
     @State private var selectedImageData: Data?
+    @State private var bannerLoadTask: Task<Void, Never>?
+    @State private var isProcessingBanner = false
+    @State private var bannerProcessingError: String?
     @State private var startDate: Date
     @State private var endDate: Date
     @State private var selectedLocationName: String?
@@ -120,19 +123,33 @@ struct EditEventView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            EditEventHeaderView(
-                onBackTapped: cancelEdit,
-                onSaveTapped: saveAndDismiss,
-                showsSaveButton: false
-            )
-
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 12) {
-                    EditEventBannerSection(
-                        selectedImageData: selectedImageData,
-                        remoteURL: bannerURL,
-                        onTap: { isPhotoPickerPresented = true }
-                    )
+                    VStack(alignment: .leading, spacing: 8) {
+                        EditEventBannerSection(
+                            selectedImageData: selectedImageData,
+                            remoteURL: bannerURL,
+                            onTap: {
+                                guard !isProcessingBanner else { return }
+                                isPhotoPickerPresented = true
+                            }
+                        )
+                        .disabled(isProcessingBanner)
+
+                        if isProcessingBanner {
+                            ProgressView("Menyiapkan sampul…")
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 10)
+                                .background(.regularMaterial, in: Capsule())
+                        }
+
+                        if let bannerProcessingError {
+                            Text(bannerProcessingError)
+                                .font(.footnote)
+                                .foregroundStyle(.red)
+                                .padding(.horizontal, 16)
+                        }
+                    }
 
                     Spacer().frame(height: 12)
 
@@ -187,9 +204,33 @@ struct EditEventView: View {
                 isShowingCancelSheet = true
             }
         }
-        .navigationBarHidden(true)
+        .navigationTitle("Edit Acara")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    cancelEdit()
+                } label: {
+                    Image(systemName: "chevron.left")
+                }
+                .accessibilityLabel("Kembali")
+            }
+
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    saveAndDismiss()
+                } label: {
+                    Image(systemName: "checkmark")
+                }
+                .accessibilityLabel("Simpan")
+                .disabled(isProcessingBanner)
+            }
+        }
         .fullScreenCover(item: $activeEditor, onDismiss: commitLocationIfNeeded) { editor in
-            editorView(for: editor)
+            NavigationStack {
+                editorView(for: editor)
+            }
         }
         .sheet(isPresented: $isShowingCancelSheet) {
             CancelEventConfirmationSheet {
@@ -219,6 +260,9 @@ struct EditEventView: View {
             selectedLocationAddress = router.mapPickerSession.selectedAddress
             selectedCoordinate = router.mapPickerSession.selectedCoordinate
             commitLocationIfNeeded()
+        }
+        .onDisappear {
+            bannerLoadTask?.cancel()
         }
     }
 
@@ -258,12 +302,13 @@ struct EditEventView: View {
     }
 
     private func saveAndDismiss() {
+        guard !isProcessingBanner else { return }
         commitChanges()
         dismiss()
     }
 
     private func commitChanges() {
-        guard !selectedCategories.isEmpty else { return }
+        guard !selectedCategories.isEmpty, !isProcessingBanner else { return }
         onSave(updatedEvent)
     }
 
@@ -284,14 +329,44 @@ struct EditEventView: View {
     }
 
     private func loadSelectedImage(_ oldItem: PhotosPickerItem?, _ newItem: PhotosPickerItem?) {
-        Task {
-            if let data = try? await newItem?.loadTransferable(type: Data.self) {
-                await MainActor.run {
-                    selectedImageData = data
-                    commitChanges()
+        bannerLoadTask?.cancel()
+        bannerProcessingError = nil
+
+        guard let newItem else {
+            isProcessingBanner = false
+            return
+        }
+
+        isProcessingBanner = true
+        bannerLoadTask = Task { [newItem] in
+            do {
+                guard let rawData = try await newItem.loadTransferable(type: Data.self) else {
+                    throw BannerLoadError.unavailable
                 }
+                guard !Task.isCancelled,
+                      let prepared = try await EventBannerPolicy.prepareForUpload(rawData),
+                      UIImage(data: prepared.data) != nil
+                else {
+                    throw BannerLoadError.invalid
+                }
+                guard !Task.isCancelled, selectedItem == newItem else { return }
+
+                selectedImageData = prepared.data
+                isProcessingBanner = false
+                commitChanges()
+            } catch is CancellationError {
+                // A newer selection replaced this task.
+            } catch {
+                guard selectedItem == newItem else { return }
+                isProcessingBanner = false
+                bannerProcessingError = "Foto sampul tidak dapat diproses. Pilih foto lain dan coba lagi."
             }
         }
+    }
+
+    private enum BannerLoadError: Error {
+        case unavailable
+        case invalid
     }
 
     private func commitCapacityChange(_ oldCapacity: Int, _ newCapacity: Int) {
