@@ -362,18 +362,12 @@ struct ProfileEmptyHistoryView: View {
     }
 }
 
-
-#Preview {
-//    ProfileEventHistoryView(
-//        model: AdminHistoryModel(
-//            previewEvents: ProfileHistoryBookingDummyData.events
-//        )
-//    )
-    
-    ProfileDonationHistoryView(
+#if DEBUG
+    #Preview {
+        ProfileDonationHistoryView(
             model: AdminHistoryModel(
                 previewDonations: ProfileDonationHistoryDummyData.donations
             )
         )
-}
-
+    }
+#endif
