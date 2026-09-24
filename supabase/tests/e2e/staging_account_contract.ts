@@ -219,8 +219,6 @@ function booking(eventId: string, weight: number) {
       }],
       shipping_method: "direct",
       scan_model_version: "e2e-v1",
-      terms_version: "e2e-v1",
-      privacy_version: "e2e-v1",
     },
   };
 }
@@ -346,11 +344,6 @@ async function main() {
   invariant(
     (detailBefore.availability as { bookable?: boolean }).bookable === true,
     "fresh event is not bookable",
-  );
-  const legal = detailBefore.legal as { terms_version?: unknown; privacy_version?: unknown };
-  invariant(
-    typeof legal.terms_version === "string" && typeof legal.privacy_version === "string",
-    "event detail legal metadata is incomplete",
   );
   const bookingKey = `booking-${runId}-primary`;
   const created = data(

@@ -233,7 +233,7 @@ Supabase
 ### 9.3 Event
 
 - **BE-EVENT-01 (P0):** Backend menyimpan status internal stabil `draft`, `upcoming`, `ongoing`, `completed`, `closed`, dan `cancelled`; UI memetakannya ke Bahasa Indonesia.
-- **BE-EVENT-02 (P0):** Draf boleh tidak lengkap, tetapi publish memerlukan nama, deskripsi, banner, start/end datetime, drop point, timezone, jadwal operasional, minimal satu kriteria, kapasitas, serta data penerima.
+- **BE-EVENT-02 (P0):** Field event pada draf boleh tidak lengkap. Pembuatan draf baru hanya diizinkan setelah workspace memiliki nama, alamat, telepon, dan email lengkap; update draf milik workspace tetap diizinkan. Publish memerlukan nama, banner, start/end datetime, drop point, timezone, jadwal operasional, minimal satu kriteria, kapasitas, serta data penerima. Deskripsi opsional; input kosong atau hanya spasi dinormalisasi menjadi `NULL` dan tidak menghalangi publish.
 - **BE-EVENT-03 (P0):** Publish memilih `upcoming` bila waktu mulai masih di masa depan dan `ongoing` bila event sudah berada dalam rentang aktif.
 - **BE-EVENT-04 (P0):** Publish ditolak bila end datetime telah lewat, start tidak sebelum end, lokasi bukan Indonesia, atau event aktif workspace telah berjumlah lima.
 - **BE-EVENT-05 (P0):** Event berubah menjadi `ongoing` pada start datetime dan `completed` pada end datetime berdasarkan waktu server.
@@ -474,7 +474,7 @@ menghasilkan mutation ganda tanpa memblokir actor scope lain.
 
 ### 10.10 `legal_document_versions`
 
-Menyimpan document type, version identifier, public URL, published timestamp, dan status aktif untuk Syarat & Ketentuan serta Kebijakan Privasi. Hanya satu version aktif per document type/environment. Booking menyimpan version identifier yang disetujui, bukan salinan penuh dokumen.
+Menyimpan document type, version identifier, public URL, published timestamp, dan status aktif untuk Syarat & Ketentuan serta Kebijakan Privasi. Tabel ini dipertahankan untuk kompatibilitas dan histori legacy. Alur iOS MVP aktif tidak membaca tabel ini dan booking MVP tidak menyimpan version identifier.
 
 ### 10.11 `audit_events`
 

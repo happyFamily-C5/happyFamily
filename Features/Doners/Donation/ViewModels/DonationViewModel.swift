@@ -10,8 +10,7 @@ import SwiftUI
 
 /// Drives the donor donation flow against the authenticated account API.
 /// Donor identity comes from the profile (the server encrypts it), the event
-/// and legal versions come from `account:event_detail`, and the booking
-/// submission is idempotent through a persisted attempt key.
+/// and the booking submission is idempotent through a persisted attempt key.
 @MainActor
 @Observable
 final class DonationViewModel {
@@ -49,19 +48,16 @@ final class DonationViewModel {
     }
 
     func bannerURL() -> URL? {
-        guard let backendBaseURL,
-              let path = detail?.event.bannerObjectPath,
-              !path.isEmpty else { return nil }
-        return backendBaseURL
-            .appending(path: "storage/v1/object/public/event-banners", directoryHint: .isDirectory)
-            .appending(path: path)
+        EventBannerURLBuilder.makeURL(
+            baseURL: backendBaseURL,
+            objectPath: detail?.event.bannerObjectPath
+        )
     }
 
     // MARK: - Flow entry
 
-    /// Entry point from the event detail CTA. Loads the event detail (with
-    /// donor availability and legal versions) plus the profile summary the
-    /// flow displays instead of collecting PII locally.
+    /// Entry point from the event detail CTA. Loads the event detail and the
+    /// profile summary the flow displays instead of collecting PII locally.
     func start(eventId: UUID) async {
         guard loadedEventId != eventId || detail == nil else { return }
         loadedEventId = eventId
@@ -140,9 +136,7 @@ final class DonationViewModel {
                 )
             },
             shippingMethod: .direct,
-            scanModelVersion: Self.scanModelVersion(from: passedItems),
-            termsVersion: detail.legal.termsVersion,
-            privacyVersion: detail.legal.privacyVersion
+            scanModelVersion: Self.scanModelVersion(from: passedItems)
         )
 
         let payload: Data

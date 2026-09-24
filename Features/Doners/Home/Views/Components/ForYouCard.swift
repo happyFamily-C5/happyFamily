@@ -28,9 +28,7 @@ struct ForYouCard: View {
                 Text(name)
                     .font(.caption)
                     .foregroundStyle(Color.secondary)
-                Text(title)
-                    .font(.body).bold()
-                    .lineLimit(2)
+                titleContent
                 HStack(spacing: 8) {
                     Image(systemName: "calendar.circle.fill")
                         .font(.system(size: 11))
@@ -53,25 +51,54 @@ struct ForYouCard: View {
         }
     }
 
-    @ViewBuilder
-    private var banner: some View {
-        if let bannerURL {
-            AsyncImage(url: bannerURL) { phase in
-                if let image = phase.image {
-                    image.resizable().scaledToFill()
-                } else {
-                    placeholder
-                }
-            }
-        } else {
-            placeholder
+    /// Reserves the card's two-line title height for both loading and loaded states.
+    /// The guide uses the system body font, so it follows Dynamic Type naturally.
+    private var titleContent: some View {
+        ZStack(alignment: .topLeading) {
+            Text(verbatim: "Title\nTitle")
+                .font(.body)
+                .bold()
+                .lineLimit(2)
+                .hidden()
+                .accessibilityHidden(true)
+
+            Text(title)
+                .font(.body)
+                .bold()
+                .lineLimit(2)
         }
     }
 
-    private var placeholder: some View {
-        Image("Image 2")
-            .resizable()
-            .scaledToFill()
+    private var banner: some View {
+        LoadableEventImage(
+            localImage: nil,
+            remoteURL: bannerURL,
+            unavailableLabel: "Banner acara tidak tersedia"
+        )
+    }
+}
+
+struct ForYouCardSkeleton: View {
+    var body: some View {
+        HStack(spacing: 16) {
+            SkeletonBlock(cornerRadius: 16)
+                .frame(width: 121, height: 84)
+
+            VStack(alignment: .leading, spacing: 7) {
+                SkeletonBlock(cornerRadius: 4)
+                    .frame(width: 110, height: 12)
+                SkeletonBlock(cornerRadius: 4)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 16)
+                SkeletonBlock(cornerRadius: 4)
+                    .frame(width: 130, height: 16)
+                SkeletonBlock(cornerRadius: 4)
+                    .frame(width: 120, height: 12)
+                SkeletonBlock(cornerRadius: 4)
+                    .frame(width: 100, height: 12)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

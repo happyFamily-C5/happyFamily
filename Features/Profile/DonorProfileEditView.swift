@@ -6,15 +6,22 @@ import SwiftUI
 /// `profile-avatars` bucket first, then `account:update_profile` runs once.
 @MainActor
 struct DonorProfileEditView: View {
+    enum Mode: Equatable {
+        case edit
+        case donationRequired
+    }
+
     @Environment(\.dismiss) private var dismiss
 
     let profile: DonorProfile
+    let mode: Mode
     /// Applies the edit to the backend and the bound profile. Throws when
     /// the upload or the profile update fails; the sheet stays open.
     let onSave: (DonorProfile) async throws -> Void
 
     @State private var selectedItem: PhotosPickerItem?
     @State private var draftFullName: String
+    @State private var draftPhoneE164: String
     @State private var draftAddress: String
     @State private var draftImageData: Data?
     @State private var isPhotoPickerPresented = false
@@ -24,11 +31,14 @@ struct DonorProfileEditView: View {
 
     init(
         profile: DonorProfile,
+        mode: Mode = .edit,
         onSave: @escaping (DonorProfile) async throws -> Void
     ) {
         self.profile = profile
+        self.mode = mode
         self.onSave = onSave
         _draftFullName = State(initialValue: profile.fullName)
+        _draftPhoneE164 = State(initialValue: profile.phoneE164)
         _draftAddress = State(initialValue: profile.address)
         _draftImageData = State(initialValue: profile.imageData)
     }
@@ -37,12 +47,23 @@ struct DonorProfileEditView: View {
         VStack(alignment: .leading, spacing: 0) {
             ProfileBackBar(
                 showsSave: true,
+                isSaveDisabled: isSaving || (mode == .donationRequired && !canSaveDonationProfile),
                 onBackTapped: { dismiss() },
                 onSaveTapped: { Task { await saveProfile() } }
             )
 
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 24) {
+                    if mode == .donationRequired {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Lengkapi Profil")
+                                .font(.title2.bold())
+                            Text("Nama dan nomor WhatsApp diperlukan sebelum berdonasi.")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
                     Button {
                         isPhotoPickerPresented = true
                     } label: {
@@ -75,6 +96,16 @@ struct DonorProfileEditView: View {
                             text: $draftAddress,
                             minHeight: 112,
                             isMultiline: true
+                        )
+                        .focused($isFieldFocused)
+                    }
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        ProfileSectionTitle(title: "Informasi Kontak")
+                        ProfileTextInput(
+                            placeholder: "Nomor WhatsApp",
+                            text: $draftPhoneE164,
+                            keyboardType: .phonePad
                         )
                         .focused($isFieldFocused)
                     }
@@ -121,12 +152,13 @@ struct DonorProfileEditView: View {
     }
 
     private func saveProfile() async {
-        guard !isSaving else { return }
+        guard !isSaving, mode != .donationRequired || canSaveDonationProfile else { return }
         isSaving = true
         defer { isSaving = false }
         do {
             var updated = profile
             updated.fullName = draftFullName.trimmingCharacters(in: .whitespacesAndNewlines)
+            updated.phoneE164 = draftPhoneE164.trimmingCharacters(in: .whitespacesAndNewlines)
             updated.address = draftAddress.trimmingCharacters(in: .whitespacesAndNewlines)
             updated.imageData = draftImageData
 
@@ -151,6 +183,17 @@ struct DonorProfileEditView: View {
         } catch {
             saveError = error.localizedDescription
         }
+    }
+
+    private var canSaveDonationProfile: Bool {
+        ProfileCompletionPolicy.canDonate(DonorProfile(
+            fullName: draftFullName,
+            address: draftAddress,
+            imageData: draftImageData,
+            id: profile.id,
+            phoneE164: draftPhoneE164,
+            avatarObjectPath: profile.avatarObjectPath
+        ))
     }
 
     private func loadSelectedImage(_ oldItem: PhotosPickerItem?, _ newItem: PhotosPickerItem?) {

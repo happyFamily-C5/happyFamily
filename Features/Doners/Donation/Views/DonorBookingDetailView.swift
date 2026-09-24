@@ -31,9 +31,8 @@ struct DonorBookingDetailView: View {
                         .font(.system(size: 26, weight: .bold))
 
                     if model.isLoadingDetail, model.detail == nil {
-                        ProgressView()
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, 120)
+                        BookingDetailSkeleton()
+                            .skeleton(isLoading: true)
                     } else if let errorMessage = model.detailError, model.detail == nil {
                         VStack(spacing: 12) {
                             Text(errorMessage)
@@ -216,6 +215,39 @@ struct DonorBookingDetailView: View {
 
     private static func dateText(_ date: Date) -> String {
         dateFormatter.string(from: date)
+    }
+}
+
+private struct BookingDetailSkeleton: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            SkeletonBlock(cornerRadius: 5)
+                .frame(width: 180, height: 25)
+            SkeletonBlock(cornerRadius: 5)
+                .frame(width: 220, height: 18)
+            SkeletonBlock(cornerRadius: 5)
+                .frame(width: 160, height: 14)
+            HStack(spacing: 12) {
+                SkeletonBlock(cornerRadius: 12)
+                    .frame(width: 72, height: 24)
+                SkeletonBlock(cornerRadius: 5)
+                    .frame(width: 80, height: 16)
+            }
+            SkeletonBlock(cornerRadius: 16)
+                .frame(maxWidth: .infinity)
+                .frame(height: 210)
+            SkeletonBlock(cornerRadius: 5)
+                .frame(width: 100, height: 20)
+            ForEach(0 ..< 3, id: \.self) { _ in
+                HStack(spacing: 12) {
+                    SkeletonBlock(cornerRadius: 8)
+                        .frame(width: 8, height: 8)
+                    SkeletonBlock(cornerRadius: 4)
+                        .frame(width: 180, height: 14)
+                    Spacer()
+                }
+            }
+        }
     }
 }
 

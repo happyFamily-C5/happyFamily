@@ -19,11 +19,17 @@ struct TrendingView: View {
     var body: some View {
         Group {
             if model.isLoading, model.dashboard == nil {
-                VStack {
-                    ProgressView("Memuat acara…")
-                    Spacer()
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 32) {
+                        ForEach(0 ..< 3, id: \.self) { _ in
+                            ForYouCardSkeleton()
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 18)
+                    .padding(.bottom, 32)
+                    .skeleton(isLoading: true)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let errorMessage = model.errorMessage, model.dashboard == nil {
                 VStack(spacing: 12) {
                     Text(errorMessage)

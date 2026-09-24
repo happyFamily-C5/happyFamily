@@ -117,9 +117,13 @@ struct DonorHistoryView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.top, 120)
                 } else if section.isLoading, items.isEmpty {
-                    ProgressView()
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, 120)
+                    VStack(spacing: 12) {
+                        ForEach(0 ..< 3, id: \.self) { _ in
+                            DonorHistoryRowSkeleton()
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .skeleton(isLoading: true)
                 } else if items.isEmpty {
                     DonorEmptyHistoryView(
                         systemImage: "clock.arrow.circlepath",
@@ -139,8 +143,8 @@ struct DonorHistoryView: View {
                                 }
                         }
                         if section.isLoadingMore {
-                            ProgressView()
-                                .frame(maxWidth: .infinity)
+                            DonorHistoryRowSkeleton()
+                                .skeleton(isLoading: true)
                         }
                     }
                     .padding(.horizontal, 20)
@@ -212,6 +216,28 @@ struct DonorHistoryView: View {
 
     private static func dateText(from date: Date) -> String {
         dateFormatter.string(from: date)
+    }
+}
+
+private struct DonorHistoryRowSkeleton: View {
+    var body: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 7) {
+                SkeletonBlock(cornerRadius: 4)
+                    .frame(width: 155, height: 15)
+                SkeletonBlock(cornerRadius: 4)
+                    .frame(width: 100, height: 12)
+            }
+            Spacer()
+            VStack(alignment: .trailing, spacing: 7) {
+                SkeletonBlock(cornerRadius: 10)
+                    .frame(width: 70, height: 18)
+                SkeletonBlock(cornerRadius: 4)
+                    .frame(width: 48, height: 14)
+            }
+        }
+        .padding(14)
+        .background(Color.gray.opacity(0.08), in: RoundedRectangle(cornerRadius: 16))
     }
 }
 

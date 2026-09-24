@@ -92,11 +92,9 @@ final class MyBookingsModel {
     /// Public banner URL for a booking's event snapshot. Cosmetic: nil on
     /// any missing piece, never fails the list.
     func bannerURL(for booking: DonorBookingListItem) -> URL? {
-        guard let backendBaseURL, let path = booking.event.bannerObjectPath, !path.isEmpty else {
-            return nil
-        }
-        return backendBaseURL
-            .appending(path: "storage/v1/object/public/event-banners", directoryHint: .isDirectory)
-            .appending(path: path)
+        EventBannerURLBuilder.makeURL(
+            baseURL: backendBaseURL,
+            objectPath: booking.event.bannerObjectPath
+        )
     }
 }

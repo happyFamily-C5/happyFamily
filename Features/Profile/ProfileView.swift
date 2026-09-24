@@ -25,10 +25,6 @@ struct ProfileView: View {
     var body: some View {
         ZStack {
             VStack(alignment: .leading, spacing: 0) {
-                ProfileTopBar(
-                    onCloseTapped: { dismiss() }
-                )
-
                 VStack(alignment: .leading, spacing: 24) {
                     ProfileHeaderCard(
                         imageData: profile.imageData,
@@ -54,6 +50,7 @@ struct ProfileView: View {
                                     Image(systemName: "chevron.right")
                                         .font(.system(size: 16))
                                 }
+                                .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
 
@@ -67,19 +64,20 @@ struct ProfileView: View {
                                     Image(systemName: "chevron.right")
                                         .font(.system(size: 16))
                                 }
+                                .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
                         }
                         .listRowBackground(Color(#colorLiteral(red: 0.9499571919, green: 0.9500558972, blue: 0.953115046, alpha: 1)))
 
-                        Section("Akun") {
-                            Button(role: .destructive) {
-                                isShowingDeleteConfirmation = true
-                            } label: {
-                                Label("Hapus Akun", systemImage: "trash")
-                            }
-                            .disabled(isDeletingAccount || onDeleteAccount == nil)
-                        }
+//                        Section("Akun") {
+//                            Button(role: .destructive) {
+//                                isShowingDeleteConfirmation = true
+//                            } label: {
+//                                Label("Hapus Akun", systemImage: "trash")
+//                            }
+//                            .disabled(isDeletingAccount || onDeleteAccount == nil)
+//                        }
                     }
                     .listStyle(.insetGrouped)
                     .scrollDisabled(true)
@@ -101,16 +99,14 @@ struct ProfileView: View {
                 isShowingLogoutConfirmation = true
             } label: {
                 Text("Keluar")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.body).bold()
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(Color(red: 0.9, green: 0.32, blue: 0.34))
+                    .padding(16)
+                    .background(AppColor.destructiveColor)
                     .cornerRadius(28)
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 8)
-            .background(Color(.systemBackground).opacity(0.96))
+            .padding(.horizontal, 36)
         }
         .navigationBarHidden(true)
         .confirmationDialog(
@@ -143,21 +139,32 @@ struct ProfileView: View {
         } message: {
             Text(deleteAccountError ?? "Terjadi kesalahan yang tidak diketahui.")
         }
-        .fullScreenCover(isPresented: $isShowingEditProfile) {
-            ProfileEditView(
-                companyName: $profile.companyName,
-                companyAddress: $profile.companyAddress,
-                phoneNumber: $profile.phoneNumber,
-                email: $profile.email,
-                selectedImageData: $profile.imageData,
-                onSave: onSaveProfile
-            )
+        .sheet(isPresented: $isShowingEditProfile) {
+            NavigationStack {
+                ProfileEditView(
+                    companyName: $profile.companyName,
+                    companyAddress: $profile.companyAddress,
+                    phoneNumber: $profile.phoneNumber,
+                    email: $profile.email,
+                    selectedImageData: $profile.imageData,
+                    onSave: onSaveProfile
+                )
+                .presentationDragIndicator(.visible)
+            }
         }
-        .fullScreenCover(isPresented: $isShowingEventHistory) {
-            ProfileEventHistoryView(model: historyModel)
+        
+        .sheet(isPresented: $isShowingEventHistory) {
+            NavigationStack {
+                ProfileEventHistoryView(model: historyModel)
+                    .presentationDragIndicator(.visible)
+            }
         }
-        .fullScreenCover(isPresented: $isShowingDonationHistory) {
-            ProfileDonationHistoryView(model: historyModel)
+        
+        .sheet(isPresented: $isShowingDonationHistory) {
+            NavigationStack {
+                ProfileDonationHistoryView(model: historyModel)
+                .presentationDragIndicator(.visible)
+            }
         }
     }
 

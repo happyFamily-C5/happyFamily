@@ -58,6 +58,23 @@ struct DonorProfile {
     )
 }
 
+enum ProfileCompletionPolicy {
+    static func canCreateEvent(_ profile: AdminProfile) -> Bool {
+        required(profile.companyName)
+            && required(profile.companyAddress)
+            && required(profile.phoneNumber)
+            && required(profile.email)
+    }
+
+    static func canDonate(_ profile: DonorProfile) -> Bool {
+        required(profile.fullName) && required(profile.phoneE164)
+    }
+
+    private static func required(_ value: String) -> Bool {
+        !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+}
+
 // MARK: Donor's donation history — events they've personally contributed to, with the weight they gave
 
 struct DonorDonation: Identifiable {
@@ -110,30 +127,107 @@ struct DonorDonation: Identifiable {
     ]
 }
 
-struct RegisterAccountDraft {
-    let name: String
-    let email: String
-    let password: String
+enum ProfileHistoryBookingDummyData {
+
+    static let events: [BookingHistoryItem] = [
+        BookingHistoryItem(
+            bookingId: UUID(),
+            publicBookingId: "SS-76329",
+            status: .recycled,
+            estimatedWeightGrams: 4300,
+            actualWeightGrams: 4300,
+            event: BookingEventSnapshot(
+                id: UUID(),
+                name: "Ecoday | drop your unused shirt",
+                status: .completed,
+                startAt: Date(),
+                endAt: Date(),
+                locationName: "EcoTouch Office",
+                bannerObjectPath: nil
+            ),
+            createdAt: Date(),
+            statusUpdatedAt: Date()
+        ),
+
+        BookingHistoryItem(
+            bookingId: UUID(),
+            publicBookingId: "SS-76330",
+            status: .recycled,
+            estimatedWeightGrams: 3800,
+            actualWeightGrams: 3800,
+            event: BookingEventSnapshot(
+                id: UUID(),
+                name: "Give Clothes a Second Life",
+                status: .completed,
+                startAt: Date(),
+                endAt: Date(),
+                locationName: "EcoTouch Office",
+                bannerObjectPath: nil
+            ),
+            createdAt: Date(),
+            statusUpdatedAt: Date()
+        )
+    ]
 }
 
-enum ProfileHistoryDummyData {
-    static var completedEvent: AdminEvent {
-        AdminEvent(
-            name: "Ecoday | drop your unused shirt",
-            description: "Drop your unused shirt",
-            startDate: Calendar.current.date(from: DateComponents(year: 2026, month: 9, day: 9)) ?? Date(),
-            endDate: Calendar.current.date(from: DateComponents(year: 2026, month: 9, day: 16)) ?? Date(),
-            locationName: "EcoTouch Office",
-            locationAddress: "Duren Selatan, Jakarta Barat",
-            coordinate: CLLocationCoordinate2D(latitude: -6.1754, longitude: 106.8272),
-            operationalMode: "Hari kerja",
-            activeDays: [true, true, true, true, true, false, false],
-            startTime: Calendar.current.date(from: DateComponents(hour: 9, minute: 0)) ?? Date(),
-            endTime: Calendar.current.date(from: DateComponents(hour: 16, minute: 0)) ?? Date(),
-            donationCriteria: ["Katun", "Linen", "Wol"],
-            capacityKg: 500,
-            collectedKg: 500,
-            bannerImageData: nil
+enum ProfileDonationHistoryDummyData {
+
+    static let donations: [BookingHistoryItem] = [
+        BookingHistoryItem(
+            bookingId: UUID(),
+            publicBookingId: "SS-76329",
+            status: .recycled,
+            estimatedWeightGrams: 4300,
+            actualWeightGrams: 4300,
+            event: BookingEventSnapshot(
+                id: UUID(),
+                name: "Yuan Dimianta",
+                status: .completed,
+                startAt: Date(),
+                endAt: Date(),
+                locationName: "EcoTouch Office",
+                bannerObjectPath: nil
+            ),
+            createdAt: Date().addingTimeInterval(-3600),
+            statusUpdatedAt: Date()
+        ),
+
+        BookingHistoryItem(
+            bookingId: UUID(),
+            publicBookingId: "SS-76330",
+            status: .recycled,
+            estimatedWeightGrams: 3800,
+            actualWeightGrams: 3800,
+            event: BookingEventSnapshot(
+                id: UUID(),
+                name: "Calzy Akmal",
+                status: .completed,
+                startAt: Date(),
+                endAt: Date(),
+                locationName: "EcoTouch Office",
+                bannerObjectPath: nil
+            ),
+            createdAt: Date().addingTimeInterval(-3600),
+            statusUpdatedAt: Date()
+        ),
+
+        BookingHistoryItem(
+            bookingId: UUID(),
+            publicBookingId: "SS-76331",
+            status: .processed,
+            estimatedWeightGrams: 4900,
+            actualWeightGrams: nil,
+            event: BookingEventSnapshot(
+                id: UUID(),
+                name: "Sasha Grey",
+                status: .ongoing,
+                startAt: Date(),
+                endAt: Date(),
+                locationName: "EcoTouch Office",
+                bannerObjectPath: nil
+            ),
+            createdAt: Date(),
+            statusUpdatedAt: Date()
         )
-    }
+    ]
 }

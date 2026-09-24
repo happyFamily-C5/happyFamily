@@ -8,6 +8,7 @@ struct DonorProfileView: View {
     @Binding var profile: DonorProfile
     var onLogout: () -> Void = {}
     var onDeleteAccount: (() async throws -> Void)?
+    var onSaveProfile: ((DonorProfile) async throws -> Void)?
     @State private var isShowingEditProfile = false
     @State private var isShowingEventHistory = false
     @State private var isShowingDonationHistory = false
@@ -144,16 +145,10 @@ struct DonorProfileView: View {
         }
         .fullScreenCover(isPresented: $isShowingEditProfile) {
             DonorProfileEditView(profile: profile) { updated in
-                let account = try BackendDependencies.accountClient()
-                _ = try await account.updateProfile(AccountProfileUpdate(
-                    displayName: updated.fullName,
-                    phoneE164: updated.phoneE164,
-                    address: updated.address,
-                    locationLabel: "",
-                    latitude: nil,
-                    longitude: nil,
-                    avatarObjectPath: updated.avatarObjectPath
-                ))
+                guard let onSaveProfile else {
+                    throw BackendError.configuration("penyimpanan profil donor")
+                }
+                try await onSaveProfile(updated)
                 profile = updated
             }
         }
