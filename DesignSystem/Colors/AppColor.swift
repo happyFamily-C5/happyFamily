@@ -25,4 +25,5 @@ enum AppColor {
 
     static let fieldBackground = Color("textFieldColor")
     static let destructiveColor = Color("destructiveColor")
+    static let profileBackground = Color("profileBackground")
 }

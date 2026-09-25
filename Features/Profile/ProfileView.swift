@@ -4,7 +4,7 @@ import UIKit
 
 struct ProfileView: View {
     @Environment(\.dismiss) private var dismiss
-
+    
     @Binding var profile: AdminProfile
     var onLogout: () -> Void = {}
     var onDeleteAccount: (() async throws -> Void)?
@@ -16,82 +16,93 @@ struct ProfileView: View {
     @State private var isShowingDeleteConfirmation = false
     @State private var isDeletingAccount = false
     @State private var deleteAccountError: String?
-
+    
     @State private var historyModel = AdminHistoryModel(
         historyRepository: BackendDependencies.reportRepositoryOrDefault(),
         receptionRepository: try? BackendDependencies.receptionRepository()
     )
-
+    
     var body: some View {
-        ZStack {
-            VStack(alignment: .leading, spacing: 0) {
-                VStack(alignment: .leading, spacing: 24) {
-                    ProfileHeaderCard(
-                        imageData: profile.imageData,
-                        name: profile.companyName,
-                        address: profile.companyAddress,
-                        onTap: { isShowingEditProfile = true }
-                    )
-
-                    List {
-                        Section(
-                            header: Text("Aktifitas Terbaru")
-                                .font(.title2)
-                                .bold()
-                                .foregroundStyle(Color.black)
-                        ) {
-                            Button {
-                                isShowingEventHistory = true
-                            } label: {
-                                HStack {
-                                    Text("Riwayat Acara")
-                                        .font(.body)
-                                    Spacer()
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 16))
+        NavigationStack {
+            ZStack {
+                VStack(alignment: .leading, spacing: 0) {
+                    VStack(alignment: .leading, spacing: 24) {
+                        ProfileHeaderCard(
+                            imageData: profile.imageData,
+                            name: profile.companyName,
+                            address: profile.companyAddress,
+                            onTap: { isShowingEditProfile = true }
+                        )
+                        
+                        List {
+                            Section(
+                                header: Text("Aktifitas Terbaru")
+                                    .font(.title2)
+                                    .bold()
+                                    .foregroundStyle(Color.black)
+                            ) {
+                                Button {
+                                    isShowingEventHistory = true
+                                } label: {
+                                    HStack {
+                                        Text("Riwayat Acara")
+                                            .font(.body)
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .font(.system(size: 16))
+                                    }
+                                    .contentShape(Rectangle())
                                 }
-                                .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-
-                            Button {
-                                isShowingDonationHistory = true
-                            } label: {
-                                HStack {
-                                    Text("Riwayat Donasi")
-                                        .font(.body)
-                                    Spacer()
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 16))
+                                .buttonStyle(.plain)
+                                
+                                Button {
+                                    isShowingDonationHistory = true
+                                } label: {
+                                    HStack {
+                                        Text("Riwayat Donasi")
+                                            .font(.body)
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .font(.system(size: 16))
+                                    }
+                                    .contentShape(Rectangle())
                                 }
-                                .contentShape(Rectangle())
+                                .buttonStyle(.plain)
                             }
-                            .buttonStyle(.plain)
+                            .listRowBackground(Color(#colorLiteral(red: 0.9499571919, green: 0.9500558972, blue: 0.953115046, alpha: 1)))
+                            
+                            //                        Section("Akun") {
+                            //                            Button(role: .destructive) {
+                            //                                isShowingDeleteConfirmation = true
+                            //                            } label: {
+                            //                                Label("Hapus Akun", systemImage: "trash")
+                            //                            }
+                            //                            .disabled(isDeletingAccount || onDeleteAccount == nil)
+                            //                        }
                         }
-                        .listRowBackground(Color(#colorLiteral(red: 0.9499571919, green: 0.9500558972, blue: 0.953115046, alpha: 1)))
-
-//                        Section("Akun") {
-//                            Button(role: .destructive) {
-//                                isShowingDeleteConfirmation = true
-//                            } label: {
-//                                Label("Hapus Akun", systemImage: "trash")
-//                            }
-//                            .disabled(isDeletingAccount || onDeleteAccount == nil)
-//                        }
+                        .listStyle(.insetGrouped)
+                        .scrollDisabled(true)
+                        .scrollContentBackground(.hidden)
                     }
-                    .listStyle(.insetGrouped)
-                    .scrollDisabled(true)
-                    .scrollContentBackground(.hidden)
+                    .padding(.top, 12)
                 }
-                .padding(.top, 12)
+                .background(Color(.systemBackground))
+                
+                if isShowingLogoutConfirmation {
+                    ProfileLogoutOverlay(
+                        onCancelTapped: { isShowingLogoutConfirmation = false },
+                        onLogoutTapped: logout
+                    )
+                }
             }
-            .background(Color(.systemBackground))
-
-            if isShowingLogoutConfirmation {
-                ProfileLogoutOverlay(
-                    onCancelTapped: { isShowingLogoutConfirmation = false },
-                    onLogoutTapped: logout
-                )
+            .toolbar{
+                ToolbarItem(placement: .topBarLeading) {
+                    Button{
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                    }
+                }
             }
         }
         .safeAreaInset(edge: .bottom) {
@@ -121,7 +132,7 @@ struct ProfileView: View {
         } message: {
             Text(
                 "Akun, akses workspace, dan data pribadi akan dihapus. "
-                    + "Riwayat operasional tetap disimpan tanpa akses akun. Tindakan ini tidak dapat dibatalkan."
+                + "Riwayat operasional tetap disimpan tanpa akses akun. Tindakan ini tidak dapat dibatalkan."
             )
         }
         .alert(
@@ -163,17 +174,17 @@ struct ProfileView: View {
         .sheet(isPresented: $isShowingDonationHistory) {
             NavigationStack {
                 ProfileDonationHistoryView(model: historyModel)
-                .presentationDragIndicator(.visible)
+                    .presentationDragIndicator(.visible)
             }
         }
     }
-
+    
     private func logout() {
         isShowingLogoutConfirmation = false
         onLogout()
         dismiss()
     }
-
+    
     private func deleteAccount() async {
         guard let onDeleteAccount, !isDeletingAccount else { return }
         isDeletingAccount = true
@@ -189,6 +200,6 @@ struct ProfileView: View {
 
 #Preview {
     @Previewable @State var profile = AdminProfile.defaultProfile
-
+    
     ProfileView(profile: $profile)
 }

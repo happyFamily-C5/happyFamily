@@ -18,6 +18,7 @@ struct CreatingView: View {
     @State private var totalSteps: Int = 3
     
     // State untuk Form Step 1 (Informasi Dasar)
+    @State private var isEmptyField = true
     @State private var eventName: String = ""
     @State private var eventDescription: String = ""
     @State private var selectedItem: PhotosPickerItem?
@@ -60,18 +61,10 @@ struct CreatingView: View {
             } else {
                 VStack(alignment: .leading, spacing: 0) {
                     // MARK: - 1. Header dengan Progress Bar Segmen Sesuai Step Aktif
-                    
                     FormHeaderView(
                         currentStep: currentStep,
                         totalSteps: totalSteps,
-                        stepTitle: stepTitleText,
-                        onBackTapped: {
-                            if currentStep > 1 {
-                                currentStep -= 1
-                            } else {
-                                dismiss()
-                            }
-                        }
+                        stepTitle: stepTitleText
                     )
                     .padding(.top, 8)
                     
@@ -121,7 +114,22 @@ struct CreatingView: View {
         .background(Color(.systemBackground).ignoresSafeArea())
         .contentShape(Rectangle())
         .onTapGesture { focusedField = nil }
-        .navigationBarHidden(true)
+        .navigationTitle("Tambahkan Acara")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .toolbar{
+            ToolbarItem(placement: .topBarLeading) {
+                Button{
+                    if currentStep > 1 {
+                        currentStep -= 1
+                    } else {
+                        dismiss()
+                    }
+                }label: {
+                    Image(systemName: "chevron.left")
+                }
+            }
+        }
         .onChange(of: startTime) { _, newStart in
             if endTime < newStart {
                 endTime = newStart
@@ -274,7 +282,8 @@ struct CreatingView: View {
             VStack(alignment: .leading, spacing: 16) {
                 VStack(alignment: .leading, spacing: 8) {
     
-                    TextField("Nama Acara", text: $eventName)
+                    ZStack(alignment: .trailing) {
+                        TextField("Nama Acara", text: $eventName)
                         .focused($focusedField, equals: .eventName)
                         .textInputAutocapitalization(.words)
                         .submitLabel(.next)
@@ -284,7 +293,28 @@ struct CreatingView: View {
                         .padding(16)
                         .background(Color(.systemGray6))
                         .cornerRadius(24)
+                        
+                        if isEmptyField == false {
+                            Button{
+                                eventName = ""
+//                                isEmptyField = true
+                            }label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 24))
+                            }
+                            .padding(.horizontal, 16)
+                            .buttonStyle(.plain)
+                            .foregroundStyle(.secondary).opacity(0.7)
+                        }
+                    }
                 }
+                .onChange(of: eventName, { _, _ in
+                    if eventName != ""{
+                        isEmptyField = false
+                    } else {
+                        isEmptyField = true
+                    }
+                })
                 .contentShape(Rectangle())
                 .onTapGesture {
                     focusedField = .eventName
@@ -351,12 +381,12 @@ struct CreatingView: View {
         VStack(alignment: .leading, spacing: 24) {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Tentukan Kriteria\nDonasi")
-                    .font(.system(size: 28, weight: .bold))
+                    .font(.largeTitle).bold()
                     .foregroundColor(.primary)
                     .lineSpacing(4)
                 
-                Text("Pilih kategori-kategori pakaian yang akan anda terima sebagai donasi")
-                    .font(.system(size: 15))
+                Text("Pilih kategori-kategori pakaian yang akan \nanda terima sebagai donasi")
+                    .font(.body)
                     .foregroundColor(.secondary)
             }
             .padding(.horizontal, 20)
