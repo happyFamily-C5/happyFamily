@@ -231,8 +231,7 @@ struct DashboardView: View {
                 }
             }
             .task {
-                await model.load()
-                await model.loadRecap()
+                await model.refresh()
             }
             .onReceive(NotificationCenter.default.publisher(for: .adminOperationsDidChange)) { _ in
                 Task {
@@ -287,7 +286,7 @@ struct DashboardView: View {
                         Image(systemName: "plus")
                     }
                     .accessibilityLabel("Tambah Event")
-                    .accessibilityIdentifier("dashboardProfile")
+                    .accessibilityIdentifier("dashboardAddEvent")
                 }
             }
         }
