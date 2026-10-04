@@ -239,7 +239,7 @@ struct OrganizerOperationsClientTests {
         let recorder = RequestRecorder()
         URLProtocolStub.requestHandler = { request in
             recorder.record(request)
-            let action = request.jsonBody?["action"] as? String
+            let action = recorder.snapshot().last?.jsonBody?["action"] as? String
             let responseData = action == "advance_tracking"
                 ? trackingMutationJSON()
                 : receptionDecisionJSON()
@@ -250,7 +250,7 @@ struct OrganizerOperationsClientTests {
             ])
             return try (response(for: request, status: 200), data)
         }
-        let bookingId = UUID()
+        let bookingId = try #require(UUID(uuidString: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"))
         let input = ReceptionDecisionInput(
             bookingId: bookingId, decision: .accepted, actualWeightGrams: 750,
             condition: .good, rejectionReason: nil, rejectionNote: nil,
