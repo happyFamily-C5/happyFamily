@@ -115,7 +115,8 @@ final class AppCoordinatorViewModel {
         let workspace = try await BackendDependencies.organizerClient().workspaceProfile()
         var logoObjectPath = workspace.logoObjectPath ?? ""
         if let imageData = profile.imageData,
-           adminProfile.logoObjectPath == nil || adminProfile.imageData != imageData {
+           adminProfile.logoObjectPath == nil || adminProfile.imageData != imageData
+        {
             logoObjectPath = try await BackendDependencies.storageMediaClient()
                 .uploadWorkspaceLogo(data: imageData, workspaceId: workspace.id)
         }
@@ -202,13 +203,15 @@ final class AppCoordinatorViewModel {
         router.donorProfile = profile
         if profile.imageData == nil,
            let avatarPath = account.avatarObjectPath,
-           !avatarPath.isEmpty {
+           !avatarPath.isEmpty
+        {
             Task {
                 let avatarData = await BackendDependencies.storageMediaClientOrDefault()?
                     .fetchPublicObject(bucket: "profile-avatars", path: avatarPath)
                 if let avatarData,
                    router.donorProfile.id == account.id,
-                   router.donorProfile.avatarObjectPath == avatarPath {
+                   router.donorProfile.avatarObjectPath == avatarPath
+                {
                     profile.imageData = avatarData
                     router.donorProfile = profile
                 }

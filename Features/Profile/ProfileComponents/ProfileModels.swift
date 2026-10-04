@@ -128,7 +128,6 @@ struct DonorDonation: Identifiable {
 }
 
 enum ProfileHistoryBookingDummyData {
-
     static let events: [BookingHistoryItem] = [
         BookingHistoryItem(
             bookingId: UUID(),
@@ -166,12 +165,11 @@ enum ProfileHistoryBookingDummyData {
             ),
             createdAt: Date(),
             statusUpdatedAt: Date()
-        )
+        ),
     ]
 }
 
 enum ProfileDonationHistoryDummyData {
-
     static let donations: [BookingHistoryItem] = [
         BookingHistoryItem(
             bookingId: UUID(),
@@ -228,6 +226,6 @@ enum ProfileDonationHistoryDummyData {
             ),
             createdAt: Date(),
             statusUpdatedAt: Date()
-        )
+        ),
     ]
 }

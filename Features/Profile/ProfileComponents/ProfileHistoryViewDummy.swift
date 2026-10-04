@@ -9,13 +9,12 @@ import Foundation
 
 #if DEBUG
 
-extension BookingHistoryItem {
-
-    static var previewData: [BookingHistoryItem] {
-        [
-            // dummy data di sini
-        ]
+    extension BookingHistoryItem {
+        static var previewData: [BookingHistoryItem] {
+            [
+                // dummy data di sini
+            ]
+        }
     }
-}
 
 #endif

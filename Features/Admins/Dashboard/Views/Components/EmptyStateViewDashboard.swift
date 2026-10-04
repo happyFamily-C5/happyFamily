@@ -10,7 +10,6 @@ struct EmptyStateViewDashboard: View {
 
     var body: some View {
         VStack(spacing: 36) {
-            
             Image("emptyViewHome")
                 .resizable()
                 .scaledToFit()

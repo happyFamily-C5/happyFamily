@@ -5,13 +5,13 @@ struct DashboardView: View {
     private let onLogout: () -> Void
     private let onDeleteAccount: (() async throws -> Void)?
     private let onSaveProfile: ((AdminProfile) async throws -> Void)?
-    
+
     @Environment(AppRouter.self) var router
-    
+
     @State private var searchText: String = ""
     @State private var selectedStatus: EventStatusCode?
     @State private var adminProfile: AdminProfile
-    
+
     /// State utama untuk status apakah sudah ada event
     /// Sumber data: cache backend (DashboardModel), bukan state lokal.
     @State private var model = DashboardModel(
@@ -19,13 +19,13 @@ struct DashboardView: View {
         reportRepository: BackendDependencies.reportRepositoryOrDefault(),
         backendBaseURL: BackendDependencies.backendBaseURL()
     )
-    
+
     private var hasAnyEvent: Bool {
         !model.events.isEmpty
     }
-    
+
     //    @State private var isRecapDataEmpty: Bool = true
-    
+
     // State untuk membuka modal CreatingView multi-step
     @State private var isShowingCreateModal: Bool = false
     @State private var isShowingRequiredProfile: Bool = false
@@ -36,7 +36,7 @@ struct DashboardView: View {
     @State private var selectedEvent: AdminEvent?
     @State private var showShareSheet: Bool = false
     @FocusState private var isSearchFocused: Bool
-    
+
     init(
         initialProfile: AdminProfile = .defaultProfile,
         onLogout: @escaping () -> Void = {},
@@ -48,24 +48,24 @@ struct DashboardView: View {
         self.onDeleteAccount = onDeleteAccount
         self.onSaveProfile = onSaveProfile
     }
-    
+
     private var displayEvents: [AdminEvent] {
         model.events
             .map(AdminEvent.init(backend:))
             .filter { searchText.isEmpty || $0.name.localizedCaseInsensitiveContains(searchText) }
             .filter { selectedStatus == nil || $0.status == selectedStatus }
     }
-    
+
     var body: some View {
         @Bindable var router = router
-        
+
         ZStack(alignment: .bottom) {
             Group {
                 if model.isLoading, model.events.isEmpty {
                     AdminDashboardSkeleton()
                 } else if !hasAnyEvent {
                     // MARK: - 1. Empty State Murni
-                    
+
                     VStack {
                         EmptyStateViewDashboard {
                             requestCreateEvent()
@@ -73,10 +73,10 @@ struct DashboardView: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(Color(.systemBackground))
-                    
+
                 } else {
                     // MARK: - 2. Dashboard Aktif
-                    
+
                     ScrollView(showsIndicators: false) {
                         VStack(alignment: .leading, spacing: 20) {
                             Menu {
@@ -94,14 +94,14 @@ struct DashboardView: View {
                                 .font(.subheadline.weight(.medium))
                             }
                             .padding(.horizontal, 16)
-                            
+
                             VStack(alignment: .leading, spacing: 24) {
                                 // A. BAGIAN EVENT BERLANGSUNG (Ongoing)
                                 let ongoingEvents = displayEvents.filter(\.isOngoing)
                                 if !ongoingEvents.isEmpty {
                                     VStack(alignment: .leading, spacing: 16) {
                                         DashboardTitleView(hasOngoingEvent: true)
-                                        
+
                                         ScrollView(.horizontal, showsIndicators: false) {
                                             HStack(spacing: 0) {
                                                 ForEach(ongoingEvents) { event in
@@ -128,7 +128,7 @@ struct DashboardView: View {
                                         DashboardTitleView(hasOngoingEvent: false)
                                     }
                                 }
-                                
+
                                 // B. BAGIAN ACARA MENDATANG (Upcoming)
                                 let upcomingEvents = displayEvents.filter(\.isUpcoming)
                                 if !upcomingEvents.isEmpty {
@@ -136,7 +136,7 @@ struct DashboardView: View {
                                         SectionHeader(title: "Acara mendatang") {
                                             print("Lihat semua acara mendatang")
                                         }
-                                        
+
                                         ScrollView(.horizontal, showsIndicators: false) {
                                             HStack(spacing: 16) {
                                                 ForEach(upcomingEvents) { event in
@@ -159,7 +159,7 @@ struct DashboardView: View {
                                         }
                                     }
                                 }
-                                
+
                                 // Load/search failures (e.g. CURSOR_INVALID from a
                                 // stale pagination cursor) surface here instead of
                                 // silently keeping a truncated list.
@@ -176,7 +176,7 @@ struct DashboardView: View {
                                     .frame(maxWidth: .infinity)
                                     .padding(.horizontal, 16)
                                 }
-                                
+
                                 // C. SECTION REKAP DONASI
                                 VStack(alignment: .leading, spacing: 12) {
                                     SectionHeader(
@@ -185,7 +185,7 @@ struct DashboardView: View {
                                     ) {
                                         isShowingRecapDonation = true
                                     }
-                                    
+
                                     if !model.hasLoadedRecap || model.isRecapLoading {
                                         ProgressView("Memuat rekap…")
                                             .frame(maxWidth: .infinity, minHeight: 150)
@@ -208,7 +208,7 @@ struct DashboardView: View {
                                         ) {
                                             isShowingRecapDonation = true
                                         }
-                                        
+
                                         if let recapErrorMessage = model.recapErrorMessage {
                                             Button("Muat ulang rekap") {
                                                 Task { await model.refreshRecap() }
@@ -220,7 +220,7 @@ struct DashboardView: View {
                                     }
                                 }
                             }
-                            
+
                             Spacer().frame(height: 100)
                         }
                     }
@@ -238,7 +238,7 @@ struct DashboardView: View {
                     await model.refresh()
                 }
             }
-            
+
             // While editing, a transparent layer over the dashboard catches
             // taps and resigns focus. It sits above the content but below the
             // search bar, so tapping the field itself still reaches the field,
@@ -250,7 +250,7 @@ struct DashboardView: View {
                     .contentShape(Rectangle())
                     .onTapGesture { isSearchFocused = false }
             }
-            
+
             // Floating Search Bar hanya muncul saat dashboard aktif
             if hasAnyEvent {
                 FloatingSearchBar(
@@ -264,9 +264,9 @@ struct DashboardView: View {
         }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                Button{
+                Button {
                     openAdminProfile()
-                }label: {
+                } label: {
                     Image("ecoTouchLogo")
                         .resizable()
                         .scaledToFit()
@@ -277,12 +277,12 @@ struct DashboardView: View {
                 .accessibilityLabel("Buka profil")
                 .accessibilityIdentifier("dashboardProfile")
             }
-            
-            if hasAnyEvent{
+
+            if hasAnyEvent {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button{
+                    Button {
                         requestCreateEvent()
-                    }label: {
+                    } label: {
                         Image(systemName: "plus")
                     }
                     .accessibilityLabel("Tambah Event")
@@ -380,7 +380,7 @@ struct DashboardView: View {
             QRScannerView()
         }
     }
-    
+
     private func requestCreateEvent() {
         if ProfileCompletionPolicy.canCreateEvent(adminProfile) {
             isShowingCreateModal = true
@@ -388,11 +388,11 @@ struct DashboardView: View {
             isShowingRequiredProfile = true
         }
     }
-    
+
     private func openAdminProfile() {
         isShowingProfile = true
     }
-    
+
     private func resumeEventCreationAfterProfileSave() {
         guard shouldOpenCreateAfterProfileSave else { return }
         shouldOpenCreateAfterProfileSave = false
@@ -421,25 +421,25 @@ private struct AdminDashboardSkeleton: View {
                         .frame(width: 48, height: 48)
                 }
                 .padding(.horizontal, 20)
-                
+
                 SkeletonBlock(cornerRadius: 6)
                     .frame(width: 130, height: 20)
                     .padding(.horizontal, 16)
-                
+
                 VStack(alignment: .leading, spacing: 16) {
                     SkeletonBlock(cornerRadius: 6)
                         .frame(width: 190, height: 22)
-                    
+
                     SkeletonBlock(cornerRadius: 16)
                         .frame(maxWidth: .infinity)
                         .frame(height: 180)
                 }
                 .padding(.horizontal, 16)
-                
+
                 VStack(alignment: .leading, spacing: 12) {
                     SkeletonBlock(cornerRadius: 6)
                         .frame(width: 160, height: 22)
-                    
+
                     HStack(spacing: 16) {
                         ForEach(0 ..< 2, id: \.self) { _ in
                             VStack(alignment: .leading, spacing: 8) {
@@ -454,7 +454,7 @@ private struct AdminDashboardSkeleton: View {
                     }
                 }
                 .padding(.horizontal, 16)
-                
+
                 VStack(alignment: .leading, spacing: 12) {
                     SkeletonBlock(cornerRadius: 6)
                         .frame(width: 140, height: 22)
@@ -463,7 +463,7 @@ private struct AdminDashboardSkeleton: View {
                         .frame(height: 100)
                 }
                 .padding(.horizontal, 16)
-                
+
                 Spacer().frame(height: 100)
             }
             .padding(.top, 20)

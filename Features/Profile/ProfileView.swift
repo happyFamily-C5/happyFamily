@@ -4,7 +4,7 @@ import UIKit
 
 struct ProfileView: View {
     @Environment(\.dismiss) private var dismiss
-    
+
     @Binding var profile: AdminProfile
     var onLogout: () -> Void = {}
     var onDeleteAccount: (() async throws -> Void)?
@@ -16,12 +16,12 @@ struct ProfileView: View {
     @State private var isShowingDeleteConfirmation = false
     @State private var isDeletingAccount = false
     @State private var deleteAccountError: String?
-    
+
     @State private var historyModel = AdminHistoryModel(
         historyRepository: BackendDependencies.reportRepositoryOrDefault(),
         receptionRepository: try? BackendDependencies.receptionRepository()
     )
-    
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -33,7 +33,7 @@ struct ProfileView: View {
                             address: profile.companyAddress,
                             onTap: { isShowingEditProfile = true }
                         )
-                        
+
                         List {
                             Section(
                                 header: Text("Aktifitas Terbaru")
@@ -54,7 +54,7 @@ struct ProfileView: View {
                                     .contentShape(Rectangle())
                                 }
                                 .buttonStyle(.plain)
-                                
+
                                 Button {
                                     isShowingDonationHistory = true
                                 } label: {
@@ -70,7 +70,7 @@ struct ProfileView: View {
                                 .buttonStyle(.plain)
                             }
                             .listRowBackground(Color(#colorLiteral(red: 0.9499571919, green: 0.9500558972, blue: 0.953115046, alpha: 1)))
-                            
+
                             //                        Section("Akun") {
                             //                            Button(role: .destructive) {
                             //                                isShowingDeleteConfirmation = true
@@ -87,7 +87,7 @@ struct ProfileView: View {
                     .padding(.top, 12)
                 }
                 .background(Color(.systemBackground))
-                
+
                 if isShowingLogoutConfirmation {
                     ProfileLogoutOverlay(
                         onCancelTapped: { isShowingLogoutConfirmation = false },
@@ -95,9 +95,9 @@ struct ProfileView: View {
                     )
                 }
             }
-            .toolbar{
+            .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button{
+                    Button {
                         dismiss()
                     } label: {
                         Image(systemName: "xmark")
@@ -132,7 +132,7 @@ struct ProfileView: View {
         } message: {
             Text(
                 "Akun, akses workspace, dan data pribadi akan dihapus. "
-                + "Riwayat operasional tetap disimpan tanpa akses akun. Tindakan ini tidak dapat dibatalkan."
+                    + "Riwayat operasional tetap disimpan tanpa akses akun. Tindakan ini tidak dapat dibatalkan."
             )
         }
         .alert(
@@ -163,14 +163,14 @@ struct ProfileView: View {
                 .presentationDragIndicator(.visible)
             }
         }
-        
+
         .sheet(isPresented: $isShowingEventHistory) {
             NavigationStack {
                 ProfileEventHistoryView(model: historyModel)
                     .presentationDragIndicator(.visible)
             }
         }
-        
+
         .sheet(isPresented: $isShowingDonationHistory) {
             NavigationStack {
                 ProfileDonationHistoryView(model: historyModel)
@@ -178,13 +178,13 @@ struct ProfileView: View {
             }
         }
     }
-    
+
     private func logout() {
         isShowingLogoutConfirmation = false
         onLogout()
         dismiss()
     }
-    
+
     private func deleteAccount() async {
         guard let onDeleteAccount, !isDeletingAccount else { return }
         isDeletingAccount = true
@@ -200,6 +200,6 @@ struct ProfileView: View {
 
 #Preview {
     @Previewable @State var profile = AdminProfile.defaultProfile
-    
+
     ProfileView(profile: $profile)
 }

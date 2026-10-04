@@ -8,19 +8,19 @@ struct ProfileHeaderCard: View {
     var namePlaceholder: String = "Nama Pengelola"
     var addressPlaceholder: String = "Alamat Pengelola"
     var onTap: () -> Void
-    
+
     var body: some View {
         Button(action: onTap) {
             ZStack(alignment: .topTrailing) {
                 VStack(spacing: 16) {
                     ProfileLogoImage(imageData: imageData, size: 86)
-                    
+
                     VStack(spacing: 8) {
                         Text(name.isEmpty ? namePlaceholder : name)
                             .font(.title2).bold()
                             .foregroundColor(.white)
                             .multilineTextAlignment(.center)
-                        
+
                         Text(address.isEmpty ? addressPlaceholder : address)
                             .font(.subheadline)
                             .foregroundColor(.white.opacity(0.9))
@@ -42,7 +42,7 @@ struct ProfileHeaderCard: View {
                     )
                 )
                 .cornerRadius(36)
-                
+
                 Image(systemName: "chevron.right")
                     .font(.system(size: 14, weight: .bold))
                     .frame(width: 36, height: 36)
@@ -58,32 +58,29 @@ struct ProfileHeaderCard: View {
 struct ProfileLogoImage: View {
     let imageData: Data?
     var size: CGFloat = 120
-    
+
     var body: some View {
-        Group {
-            if let imageData, let uiImage = UIImage(data: imageData) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .scaledToFill()
-                    .clipShape(Circle())
-                    .frame(width: size, height: size)
-            } else {
-                Image("AppLogoIcon")
-                    .resizable()
-                    .scaledToFill()
-                    .clipShape(Circle())
-                    .frame(width: size, height: size)
-            }
+        if let imageData, let uiImage = UIImage(data: imageData) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFill()
+                .clipShape(Circle())
+                .frame(width: size, height: size)
+        } else {
+            Image("AppLogoIcon")
+                .resizable()
+                .scaledToFill()
+                .clipShape(Circle())
+                .frame(width: size, height: size)
         }
-    
     }
 }
 
-#Preview{
+#Preview {
     ProfileHeaderCard(
         imageData: .none,
         name: "test",
         address: "test",
-        onTap: {
-        })
+        onTap: {}
+    )
 }

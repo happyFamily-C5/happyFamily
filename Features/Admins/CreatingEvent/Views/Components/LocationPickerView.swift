@@ -20,9 +20,8 @@ struct LocationPickerView: View {
             if let locationName = selectedLocation, !locationName.isEmpty {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack(alignment: .center, spacing: 12) {
-                        
-                            Image(systemName: "location.circle.fill")
-                                .font(.system(size: 20, weight: .semibold))
+                        Image(systemName: "location.circle.fill")
+                            .font(.system(size: 20, weight: .semibold))
 
                         VStack(alignment: .leading, spacing: 2) {
                             Text(locationName)

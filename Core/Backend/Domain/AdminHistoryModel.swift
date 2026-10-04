@@ -11,18 +11,18 @@ final class AdminHistoryModel {
     private(set) var donations: [BookingHistoryItem] = []
     /// Bookings from events other than cancelled ones, newest first.
     private(set) var events: [BookingHistoryItem] = []
-    
+
     private(set) var isLoadingDonations = false
     private(set) var isLoadingEvents = false
     private(set) var isLoadingMoreDonations = false
     private(set) var isLoadingMoreEvents = false
-    
+
     var donationError: String?
     var eventError: String?
-    
+
     private var donationCursor: String?
     private var eventCursor: String?
-    
+
     private let historyRepository: (any ReportRepository)?
     private let receptionRepository: (any ReceptionRepository)?
     private let backendBaseURL: URL?
@@ -36,25 +36,25 @@ final class AdminHistoryModel {
         self.receptionRepository = receptionRepository
         self.backendBaseURL = backendBaseURL
     }
-    
-#if DEBUG
-    init(previewDonations: [BookingHistoryItem]) {
-        self.historyRepository = nil
-        self.receptionRepository = nil
-        self.backendBaseURL = nil
-        self.donations = previewDonations
-    }
-#endif
-    
-#if DEBUG
-    init(previewEvents: [BookingHistoryItem]) {
-        self.historyRepository = nil
-        self.receptionRepository = nil
-        self.backendBaseURL = nil
-        self.events = previewEvents
-    }
-#endif
-    
+
+    #if DEBUG
+        init(previewDonations: [BookingHistoryItem]) {
+            self.historyRepository = nil
+            self.receptionRepository = nil
+            self.backendBaseURL = nil
+            self.donations = previewDonations
+        }
+    #endif
+
+    #if DEBUG
+        init(previewEvents: [BookingHistoryItem]) {
+            self.historyRepository = nil
+            self.receptionRepository = nil
+            self.backendBaseURL = nil
+            self.events = previewEvents
+        }
+    #endif
+
     var hasMoreDonations: Bool {
         donationCursor != nil
     }
@@ -83,7 +83,7 @@ final class AdminHistoryModel {
             donationError = error.localizedDescription
         }
     }
-    
+
     func loadMoreDonations() async {
         await loadMore(\.donationCursor) { cursor in
             guard let repository = self.historyRepository else {
@@ -95,7 +95,7 @@ final class AdminHistoryModel {
             self.donationError = nil
         } setError: { self.donationError = $0 }
     }
-    
+
     func loadEvents() async {
         guard let historyRepository, !isLoadingEvents else { return }
         isLoadingEvents = true
@@ -109,7 +109,7 @@ final class AdminHistoryModel {
             eventError = error.localizedDescription
         }
     }
-    
+
     func loadMoreEvents() async {
         await loadMore(\.eventCursor) { cursor in
             guard let repository = self.historyRepository else {
@@ -121,7 +121,7 @@ final class AdminHistoryModel {
             self.eventError = nil
         } setError: { self.eventError = $0 }
     }
-    
+
     /// M20: accepted → "Tandai Diproses" (.processed), processed →
     /// "Tandai Didaur Ulang" (.recycled). The matched rows adopt the
     /// server-returned status; an `INVALID_BOOKING_TRANSITION` means local
@@ -144,9 +144,9 @@ final class AdminHistoryModel {
             return false
         }
     }
-    
+
     // MARK: - Internals
-    
+
     private func loadMore(
         _ cursor: ReferenceWritableKeyPath<AdminHistoryModel, String?>,
         fetch: (String?) async throws -> HistoryPage,
@@ -171,12 +171,12 @@ final class AdminHistoryModel {
             setError(error.localizedDescription)
         }
     }
-    
+
     private static func appended(_ current: [BookingHistoryItem], _ page: [BookingHistoryItem]) -> [BookingHistoryItem] {
         let known = Set(current.map(\.bookingId))
         return current + page.filter { !known.contains($0.bookingId) }
     }
-    
+
     private func replace(status: BookingStatusCode, for bookingId: UUID) {
         donations = donations.map {
             $0.bookingId == bookingId ? $0.updating(status: status) : $0
