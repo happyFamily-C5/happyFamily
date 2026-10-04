@@ -20,14 +20,9 @@ struct LocationPickerView: View {
             if let locationName = selectedLocation, !locationName.isEmpty {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack(alignment: .center, spacing: 12) {
-                        ZStack {
-                            Circle()
-                                .fill(Color(.systemBackground))
-                                .frame(width: 36, height: 36)
-                            Image(systemName: "location.north.fill")
-                                .font(.system(size: 14, weight: .semibold))
-                                .rotationEffect(.degrees(45))
-                        }
+                        
+                            Image(systemName: "location.circle.fill")
+                                .font(.system(size: 20, weight: .semibold))
 
                         VStack(alignment: .leading, spacing: 2) {
                             Text(locationName)
@@ -64,10 +59,9 @@ struct LocationPickerView: View {
                 .contentShape(RoundedRectangle(cornerRadius: 24))
             } else {
                 HStack(spacing: 12) {
-                    Image(systemName: "location.north.fill")
+                    Image(systemName: "location")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.secondary)
-                        .rotationEffect(.degrees(45))
                     Text("Pilih Lokasi")
                         .font(.system(size: 15))
                         .foregroundColor(.secondary)

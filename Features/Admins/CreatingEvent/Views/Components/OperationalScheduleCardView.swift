@@ -25,7 +25,7 @@ struct OperationalScheduleCardView: View {
                         .foregroundColor(.primary)
 
                     Spacer()
-
+                    
                     Menu {
                         Button("Hari Kerja") {
                             selectedPreset = "Hari Kerja"
@@ -50,6 +50,8 @@ struct OperationalScheduleCardView: View {
                         }
                     }
                 }
+                
+                Divider()
 
                 // Indikator Hari yang bisa diklik manual per lingkaran (M, S, S, R, K, J, S)
                 HStack(spacing: 0) {

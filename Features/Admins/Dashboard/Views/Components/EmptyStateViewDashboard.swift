@@ -9,9 +9,8 @@ struct EmptyStateViewDashboard: View {
     var onActionButtonTapped: () -> Void
 
     var body: some View {
-        VStack(spacing: 24) {
-            Spacer()
-
+        VStack(spacing: 36) {
+            
             Image("emptyViewHome")
                 .resizable()
                 .scaledToFit()
@@ -35,10 +34,11 @@ struct EmptyStateViewDashboard: View {
                 .padding(.horizontal, 16)
             }
 
-            Spacer()
+//            Spacer()
 
             // 4. Memanggil PrimaryButton yang sudah kita buat sebelumnya
             PrimaryButton(title: "Mulai Membuat Event", action: onActionButtonTapped)
+                .frame(width: 300)
                 .padding(.bottom, 24)
         }
         .padding(.horizontal, 16)

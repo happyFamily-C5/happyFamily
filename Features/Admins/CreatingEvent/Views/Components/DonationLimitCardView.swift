@@ -10,7 +10,7 @@ struct DonationLimitCardView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("Limit Donasi per Donatur")
-                .font(.system(size: 14, weight: .semibold))
+                .font(.body).bold()
                 .foregroundColor(.primary)
                 .padding(.bottom, 8)
 
@@ -23,18 +23,16 @@ struct DonationLimitCardView: View {
                 }) {
                     HStack {
                         Text("Jumlah")
-                            .font(.system(size: 15, weight: .regular))
+                            .font(.body)
                             .foregroundColor(.primary)
 
                         Spacer()
 
-                        HStack(spacing: 4) {
+                        HStack(spacing: 8) {
                             Text("\(selectedLimit) kg")
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundColor(.secondary)
+                                .font(.body)
 
                             Image(systemName: "chevron.up.chevron.down")
-                                .font(.system(size: 10, weight: .semibold))
                                 .foregroundColor(.secondary)
                         }
                         .padding(.horizontal, 14)

@@ -376,3 +376,4 @@ struct ProfileEmptyHistoryView: View {
             )
         )
 }
+
