@@ -5,6 +5,7 @@ require "base64"
 require "fileutils"
 require "securerandom"
 require "shellwords"
+require_relative "lib/backend_release_guard"
 
 default_platform(:ios)
 
@@ -41,6 +42,47 @@ platform :ios do
       "-authenticationKeyID #{Shellwords.escape(key_id)}",
       "-authenticationKeyIssuerID #{Shellwords.escape(issuer_id)}"
     ].join(" ")
+  end
+
+  def run_testflight_release(lane, options)
+    root = File.expand_path("..", __dir__)
+    expected = BackendReleaseGuard.expected(lane)
+    number = BackendReleaseGuard.build_number(options[:build_number])
+    BackendReleaseGuard.verify_backend(expected)
+    BackendReleaseGuard.verify_build_settings(expected, number, root: root)
+
+    # Fail backend preflight before importing any signing credentials.
+    import_ci_signing_assets
+    api_key = load_api_key
+    signing_xcargs = automatic_signing_xcargs
+    FileUtils.mkdir_p(File.join(root, "build"))
+    output = Dir.mktmpdir("testflight-#{lane}-", File.join(root, "build"))
+    archive = File.join(output, "happyFamily.xcarchive")
+    ipa = build_app(
+      project: "happyFamily.xcodeproj",
+      scheme: "happyFamily",
+      configuration: expected.configuration,
+      export_method: "app-store",
+      clean: true,
+      archive_path: archive,
+      output_directory: output,
+      output_name: "happyFamily.ipa",
+      # gym also forwards xcargs to export. Do not duplicate signing arguments.
+      xcargs: "CURRENT_PROJECT_VERSION=#{number} #{signing_xcargs}"
+    )
+    BackendReleaseGuard.upload_validated(
+      archive: archive, ipa: ipa, expected: expected, number: number, output_directory: output
+    ) do |validated_ipa|
+      upload_to_testflight(
+        ipa: validated_ipa,
+        api_key: api_key,
+        skip_waiting_for_build_processing: true,
+        distribute_external: lane == "beta" && (options[:distribute_external] || false),
+        notify_external_testers: false
+      )
+    end
+  rescue BackendReleaseGuard::Error => error
+    UI.user_error!(error.message)
   end
 
   # GitHub-hosted runners have no signing identities, and the Release
@@ -189,56 +231,12 @@ platform :ios do
   # ----------------------------------------------------------------------
   desc "Build and upload Beta build to TestFlight"
   lane :beta do |options|
-    import_ci_signing_assets
-    api_key = load_api_key
-    build_number = options[:build_number]
-    signing_xcargs = automatic_signing_xcargs
-    archive_xcargs = [build_number ? "CURRENT_PROJECT_VERSION=#{build_number}" : nil, signing_xcargs].compact.join(" ")
-
-    # Build the app using Release configuration
-    # gym forwards xcargs to both archive and export, so do not repeat them in export_xcargs.
-    build_app(
-      project: "happyFamily.xcodeproj",
-      scheme: "happyFamily",
-      configuration: "Release",
-      export_method: "app-store",
-      clean: true,
-      output_directory: "./build/Beta",
-      xcargs: archive_xcargs
-    )
-
-    # Upload to TestFlight
-    upload_to_testflight(
-      api_key: api_key,
-      skip_waiting_for_build_processing: true,
-      distribute_external: options[:distribute_external] || false,
-      notify_external_testers: false
-    )
+    run_testflight_release("beta", options)
   end
 
   desc "Build and upload Staging build to TestFlight"
   lane :staging_beta do |options|
-    import_ci_signing_assets
-    api_key = load_api_key
-    build_number = options[:build_number]
-    signing_xcargs = automatic_signing_xcargs
-    archive_xcargs = [build_number ? "CURRENT_PROJECT_VERSION=#{build_number}" : nil, signing_xcargs].compact.join(" ")
-
-    build_app(
-      project: "happyFamily.xcodeproj",
-      scheme: "happyFamily",
-      configuration: "Staging",
-      export_method: "app-store",
-      clean: true,
-      output_directory: "./build/Staging-Beta",
-      xcargs: archive_xcargs
-    )
-
-    upload_to_testflight(
-      api_key: api_key,
-      skip_waiting_for_build_processing: true,
-      distribute_external: false
-    )
+    run_testflight_release("staging_beta", options)
   end
 
   desc "Build and deploy a new version to the App Store"

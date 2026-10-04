@@ -1,0 +1,40 @@
+name: TestFlight configuration guard
+
+on:
+  push:
+    paths:
+      - 'fastlane/**'
+      - 'Config/**'
+      - 'App/Info.plist'
+      - '.github/workflows/testflight*.yml'
+      - 'Gemfile*'
+  pull_request:
+    paths:
+      - 'fastlane/**'
+      - 'Config/**'
+      - 'App/Info.plist'
+      - '.github/workflows/testflight*.yml'
+      - 'Gemfile*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+      - name: Ruby syntax
+        run: |
+          ruby -c fastlane/Fastfile
+          ruby -c fastlane/lib/backend_release_guard.rb
+          ruby -c fastlane/backend_config.rb
+          ruby -c fastlane/redact_release_logs.rb
+      - name: Regression tests without backend credentials
+        run: bundle exec ruby fastlane/tests/backend_release_guard_test.rb

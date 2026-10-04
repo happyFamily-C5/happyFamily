@@ -30,6 +30,15 @@ jobs:
     name: Build & Deploy to TestFlight
     runs-on: macos-26
     timeout-minutes: 45
+    env:
+      TESTFLIGHT_LANE: ${{ github.event.inputs.lane || 'beta' }}
+      TESTFLIGHT_BUILD_NUMBER: ${{ github.event.inputs.build_number || github.run_number }}
+      KUMPUL_PRODUCTION_PROJECT_REF: ${{ vars.KUMPUL_PRODUCTION_PROJECT_REF }}
+      KUMPUL_PRODUCTION_BACKEND_URL: ${{ secrets.KUMPUL_PRODUCTION_BACKEND_URL }}
+      KUMPUL_PRODUCTION_PUBLISHABLE_KEY: ${{ secrets.KUMPUL_PRODUCTION_PUBLISHABLE_KEY }}
+      KUMPUL_STAGING_PROJECT_REF: tdpvtdblphojutjifdlc
+      KUMPUL_STAGING_BACKEND_URL: ${{ secrets.KUMPUL_STAGING_BACKEND_URL }}
+      KUMPUL_STAGING_PUBLISHABLE_KEY: ${{ secrets.KUMPUL_STAGING_PUBLISHABLE_KEY }}
 
     steps:
       - name: Checkout repository
@@ -47,6 +56,12 @@ jobs:
         with:
           ruby-version: '3.3'
           bundler-cache: true
+
+      - name: Test backend release guard
+        run: bundle exec ruby fastlane/tests/backend_release_guard_test.rb
+
+      - name: Validate backend and create temporary configuration
+        run: bundle exec ruby fastlane/backend_config.rb prepare
 
       # The release lane points at production, so a reset is deliberately
       # restricted to the explicitly selected staging_beta lane.
@@ -122,16 +137,24 @@ jobs:
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           PROVISIONING_PROFILE_BASE64: ${{ secrets.PROVISIONING_PROFILE_BASE64 }}
         run: |
-          LANE="${{ github.event.inputs.lane || 'beta' }}"
-          BUILD_NUM="${{ github.event.inputs.build_number || github.run_number }}"
-          bundle exec fastlane $LANE build_number:"$BUILD_NUM"
+          set -euo pipefail
+          bundle exec fastlane "$TESTFLIGHT_LANE" build_number:"$TESTFLIGHT_BUILD_NUMBER"
+
+      - name: Redact failure logs
+        id: redact_logs
+        if: failure()
+        run: ruby fastlane/redact_release_logs.rb "$RUNNER_TEMP/redacted-fastlane-logs"
 
       - name: Upload Build Artifacts on Failure
-        if: failure()
+        if: failure() && steps.redact_logs.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: fastlane-logs
-          path: |
-            ~/Library/Logs/gym/*.log
-            ~/Library/Logs/fastlane/
+          path: ${{ runner.temp }}/redacted-fastlane-logs/*.log
           retention-days: 7
+
+      - name: Remove temporary configuration and API key
+        if: always()
+        run: |
+          rm -f Config/Secrets.xcconfig
+          rm -f "$RUNNER_TEMP"/AuthKey_*.p8
